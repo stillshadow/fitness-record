@@ -190,11 +190,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-
         <div class="section"><h2>云同步</h2><span class="meta" id="cloudUserText">未登录</span></div>
         <div id="cloudStatus" class="callout">未配置 Supabase 时也可以完整使用本地记录。</div>
         <div class="field-grid" style="margin-top:10px">
-          <div><label for="cloudEmail">登录邮箱</label><input id="cloudEmail" type="email" placeholder="you@example.com"></div>
+          <div><label for="cloudEmail">登录邮箱</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
           <div><label for="cloudAuto">自动同步</label><select id="cloudAuto"><option value="true">开启</option><option value="false">关闭</option></select></div>
         </div>
+        <div id="otpFields" class="hidden" style="margin-top:10px">
+          <label for="cloudOtp">邮箱验证码</label>
+          <input id="cloudOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="输入 6 位验证码">
+          <div class="meta" style="margin-top:6px">验证码在当前 Web App 内验证，不需要点击邮件链接跳到 Safari。</div>
+        </div>
         <div class="toolbar">
-          <button class="btn" id="cloudLogin">发送登录邮件</button>
+          <button class="btn" id="cloudLogin">发送验证码</button>
+          <button class="btn hidden" id="cloudVerify">验证并登录</button>
           <button class="btn ghost" id="cloudSyncNow">立即同步</button>
           <button class="btn ghost" id="cloudLogout">退出</button>
         </div>
@@ -805,7 +811,7 @@ function exportCSV(){
   rows.forEach(x=>{const t=dayTotals(x),count=new Set((x.training||[]).map(y=>y.exerciseId||y.exerciseName)).size;csv+=[x.date,x.weight??"",x.cardio||0,fmt(t.K),fmt(t.C,1),fmt(t.P,1),fmt(t.F,1),count].join(",")+"\n"});download(new Blob([csv],{type:"text/csv;charset=utf-8"}),"池边影の健身记录.csv");
 }
 function importJSON(file){
-  const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x||typeof x!=="object"||!x.days)throw new Error();DB={...clone(DEFAULT_DB),...x,settings:{...clone(DEFAULT_DB.settings),...(x.settings||{})},meta:{...clone(DEFAULT_DB.meta),...(x.meta||{})}};persist();refreshAll();toast("导入完成")}catch(e){alert("这个 JSON 不是有效的健身记录备份。")}};r.readAsText(file);
+  const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x||typeof x!=="object"||!x.days)throw new Error();DB={...clone(DEFAULT_DB),...x,settings:{...clone(DEFAULT_DB.settings),...(x.settings||{})},meta:{...clone(DEFAULT_DB.meta),...(x.meta||{})}};persist();refreshAll();toast("导入完成")}catch(e){alert("这个 JSON 不是有效的健身记录备份。")} };r.readAsText(file);
 }
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function refreshAll(){renderDate();refreshSelectors();renderToday();renderTrainingPage();renderFoodPage();renderProgress();loadSettingsForm()}
@@ -892,7 +898,7 @@ async function init(){
   const c=cfg();
   if(!c.url||!c.key){supabase=null;session=null;$c("cloudUserText").textContent="未配置";status("未配置 Supabase。先本地使用也完全没问题。","warn");return}
   try{
-    supabase=createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    supabase=createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
     const {data,error}=await supabase.auth.getSession();if(error)throw error;session=data.session;
     updateUser();
     const r=supabase.auth.onAuthStateChange((_event,s)=>{session=s;updateUser();if(session&&cfg().autoSync)setTimeout(()=>smartSync(false),500)});
@@ -900,17 +906,42 @@ async function init(){
     if(session&&c.autoSync)setTimeout(()=>smartSync(false),700);
   }catch(e){status("Supabase 初始化失败："+e.message,"bad")}
 }
+function setOtpUI(show){
+  $c("otpFields").classList.toggle("hidden",!show);
+  $c("cloudVerify").classList.toggle("hidden",!show);
+  $c("cloudLogin").textContent=show?"重新发送验证码":"发送验证码";
+  if(!show)$c("cloudOtp").value="";
+}
 function updateUser(extra=""){
-  if(session){$c("cloudUserText").textContent=session.user.email||"已登录";status(extra||"云端已连接","good")}
-  else{$c("cloudUserText").textContent="未登录";status("Supabase 已配置，登录后可在手机与电脑间同步。","warn")}
+  if(session){
+    $c("cloudUserText").textContent=session.user.email||"已登录";
+    setOtpUI(false);
+    status(extra||"云端已连接","good");
+  }else{
+    $c("cloudUserText").textContent="未登录";
+    status("Supabase 已配置。使用邮箱验证码登录，适合 iPhone 主屏幕 Web App。","warn");
+  }
 }
 async function login(){
   if(!supabase)return status("请先填写 Project URL 和 Publishable Key。","warn");
   const email=$c("cloudEmail").value.trim();if(!email)return status("请填写登录邮箱。","warn");
-  const redirectTo=location.origin+location.pathname;
-  const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo}});
-  if(error)return status("发送登录邮件失败："+error.message,"bad");
-  const c=cfg();localStorage.setItem(OVERRIDE_KEY,JSON.stringify({...c,email}));status("登录邮件已发送，点击邮件里的链接后会回到这里。","good");
+  const {error}=await supabase.auth.signInWithOtp({email});
+  if(error)return status("发送验证码失败："+error.message,"bad");
+  const c=cfg();localStorage.setItem(OVERRIDE_KEY,JSON.stringify({...c,email}));
+  setOtpUI(true);
+  $c("cloudOtp").focus();
+  status("验证码已发送到 "+email+"。回到这个 App 输入 6 位验证码即可。","good");
+}
+async function verifyOtp(){
+  if(!supabase)return status("Supabase 尚未配置。","warn");
+  const email=$c("cloudEmail").value.trim(),token=$c("cloudOtp").value.replace(/\D/g,"").slice(0,6);
+  if(!email)return status("请填写登录邮箱。","warn");
+  if(token.length!==6)return status("请输入 6 位邮箱验证码。","warn");
+  const {data,error}=await supabase.auth.verifyOtp({email,token,type:"email"});
+  if(error)return status("验证码验证失败："+error.message,"bad");
+  session=data.session;
+  updateUser("登录成功");
+  if(session&&cfg().autoSync)setTimeout(()=>smartSync(false),250);
 }
 async function logout(){
   if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)return status("退出失败："+error.message,"bad");session=null;updateUser();
@@ -959,11 +990,21 @@ function schedule(){
 window.addEventListener("fitness:changed",schedule);
 $c("cloudSaveConfig").addEventListener("click",saveConfig);
 $c("cloudLogin").addEventListener("click",login);
+$c("cloudVerify").addEventListener("click",verifyOtp);
+$c("cloudOtp").addEventListener("input",()=>{$c("cloudOtp").value=$c("cloudOtp").value.replace(/\D/g,"").slice(0,6)});
+$c("cloudOtp").addEventListener("keydown",e=>{if(e.key==="Enter")verifyOtp()});
 $c("cloudLogout").addEventListener("click",logout);
 $c("cloudSyncNow").addEventListener("click",smartSync);
 $c("cloudPush").addEventListener("click",pushCloud);
 $c("cloudPull").addEventListener("click",()=>pullCloud(true));
 $c("cloudAuto").addEventListener("change",()=>{const c=cfg();localStorage.setItem(OVERRIDE_KEY,JSON.stringify({...c,autoSync:$c("cloudAuto").value==="true"}))});
+
+// 多设备体验：重新回到 App、切回前台或保持打开时，自动检查云端。
+// 不做高频实时订阅，健身记录每 30 秒检查一次已经足够。
+window.addEventListener("focus",()=>{if(session&&cfg().autoSync)smartSync(false)});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&session&&cfg().autoSync)smartSync(false)});
+setInterval(()=>{if(document.visibilityState==="visible"&&session&&cfg().autoSync)smartSync(false)},30000);
+
 fill();init();
 </script>
 </body>
