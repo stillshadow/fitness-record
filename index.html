@@ -787,7 +787,23 @@ $("weeklyChange").className=changeGood?"good":"";
   const now=new Date(),dow=(now.getDay()+6)%7,monday=new Date(now);monday.setDate(now.getDate()-dow);monday.setHours(0,0,0,0);
   const cardio=rows.filter(x=>new Date(x.date+"T00:00:00")>=monday).reduce((s,x)=>s+(+x.cardio||0),0);$("cardioWeek").textContent=cardio+"min";
   let t="至少记录两周晨重后，这里会给出稳定判断。";
-  if(diff!=null){if(diff>=.25&&diff<=.45)t="减重速度处于目标区间。保持当前热量和有氧，不需要继续砍。";else if(diff>.5)t="下降偏快。如果主项力量、睡眠或精神状态也在下降，优先加回约25–30g碳水。";else if(diff<.15)t="下降偏慢。只有连续两周都这样，才考虑减少约25g碳水或少量增加活动。";else t="趋势可接受，继续观察，不因单周小波动修改方案。"}$("trendAdvice").textContent=t;
+  if(diff!=null){
+  if(stage==="cut"){
+    if(diff>=.25&&diff<=.45)t="当前处于减脂阶段：下降速度在目标区间，先保持当前方案。";
+    else if(diff>.5)t="当前处于减脂阶段：下降偏快。如果力量、睡眠或精神状态也在下降，可以小幅加回热量。";
+    else if(diff<.15)t="当前处于减脂阶段：下降偏慢。连续两周都如此时，再考虑小幅调整热量或活动量。";
+    else t="当前处于减脂阶段：趋势可接受，继续观察，不因单周波动频繁改方案。";
+  }else if(stage==="gain"){
+    if(delta<.05)t="当前处于增肌阶段：均重基本没有上升。结合力量和围度判断是否需要小幅增加热量。";
+    else if(delta>.35)t="当前处于增肌阶段：均重上升较快。如果腰围增长也明显，可以小幅回收热量。";
+    else t="当前处于增肌阶段：均重缓慢上升，继续结合力量表现和围度观察。";
+  }else{
+    if(Math.abs(delta)<=.15)t="当前处于维持阶段：均重基本稳定，先保持当前方案。";
+    else if(delta>.15)t="当前处于维持阶段：均重正在上升。如果不是预期变化，可以小幅减少热量。";
+    else t="当前处于维持阶段：均重正在下降。如果不是预期变化，可以小幅增加热量。";
+  }
+}
+$("trendAdvice").textContent=t;
   renderWeightChart(wr.slice(-14));
 }
 function renderWeightChart(rows){

@@ -1,4 +1,4 @@
-const CACHE='chibianying-fitness-v1-3';
+const CACHE='chibianying-fitness-v1-4';
 const ASSETS=['./','index.html','manifest.json','cloud-config.js','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
