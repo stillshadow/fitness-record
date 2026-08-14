@@ -1,0 +1,98 @@
+name: Patch fitness app V1.2
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch index and PWA cache
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+            ('<div class="section"><h2>减脂方案</h2><span class="meta">随时可改</span></div>',
+             '<div class="section"><h2>当前方案</h2><span class="meta">随时可改</span></div>'),
+            ('<div class="field-grid">\n          <div><label for="setK">热量 kcal</label><input id="setK" type="number"></div>',
+             '<div class="field-grid">\n          <div><label for="setStage">目标阶段</label><select id="setStage"><option value="cut">减脂</option><option value="gain">增肌</option><option value="maintain">维持</option></select></div>\n          <div><label for="setK">热量 kcal</label><input id="setK" type="number"></div>'),
+            ('maxlength="6" pattern="[0-9]*" placeholder="输入 6 位验证码"',
+             'maxlength="10" pattern="[0-9]*" placeholder="输入邮件中的验证码"'),
+            ('验证码在当前 Web App 内验证，不需要点击邮件链接跳到 Safari。',
+             '验证码在当前 Web App 内验证，不需要点击邮件链接跳到 Safari。支持 Supabase 配置的 6～10 位验证码。'),
+            ('settings:{kcal:1900,c:200,p:140,f:60,cardioWeekly:90},',
+             'settings:{stage:"cut",kcal:1900,c:200,p:140,f:60,cardioWeekly:90},'),
+            ('function loadSettingsForm(){\n  $("setK").value=DB.settings.kcal;',
+             'function loadSettingsForm(){\n  $("setStage").value=DB.settings.stage||"cut";\n  $("setK").value=DB.settings.kcal;'),
+            ('function saveSettings(){\n  DB.settings.kcal=+$("setK").value||1900;',
+             'function saveSettings(){\n  DB.settings.stage=$("setStage").value||"cut";\n  DB.settings.kcal=+$("setK").value||1900;'),
+            ('status("验证码已发送到 "+email+"。回到这个 App 输入 6 位验证码即可。","good");',
+             'status("验证码已发送到 "+email+"。回到这个 App 输入邮件中的验证码即可。","good");'),
+            ('const email=$c("cloudEmail").value.trim(),token=$c("cloudOtp").value.replace(/\\D/g,"").slice(0,6);',
+             'const email=$c("cloudEmail").value.trim(),token=$c("cloudOtp").value.replace(/\\D/g,"").slice(0,10);'),
+            ('if(token.length!==6)return status("请输入 6 位邮箱验证码。","warn");',
+             'if(token.length<6||token.length>10)return status("请输入邮件中的 6～10 位邮箱验证码。","warn");'),
+            ('$c("cloudOtp").addEventListener("input",()=>{$c("cloudOtp").value=$c("cloudOtp").value.replace(/\\D/g,"").slice(0,6)});',
+             '$c("cloudOtp").addEventListener("input",()=>{$c("cloudOtp").value=$c("cloudOtp").value.replace(/\\D/g,"").slice(0,10)});'),
+          ]
+
+          for old, new in replacements:
+              if old in s:
+                  s = s.replace(old, new)
+
+          old_progress = '''  let t="至少记录两周晨重后，这里会给出稳定判断。";
+          if(diff!=null){if(diff>=.25&&diff<=.45)t="减重速度处于目标区间。保持当前热量和有氧，不需要继续砍。";else if(diff>.5)t="下降偏快。如果主项力量、睡眠或精神状态也在下降，优先加回约25–30g碳水。";else if(diff<.15)t="下降偏慢。只有连续两周都这样，才考虑减少约25g碳水或少量增加活动。";else t="趋势可接受，继续观察，不因单周小波动修改方案。"}$("trendAdvice").textContent=t;'''
+          new_progress = '''  let t="至少记录两周晨重后，这里会给出稳定判断。";
+          const stage=DB.settings.stage||"cut", delta=(a!=null&&p!=null)?a-p:null;
+          if(diff!=null){
+            if(stage==="cut"){
+              if(diff>=.25&&diff<=.45)t="当前处于减脂阶段：下降速度在目标区间，先保持当前方案。";
+              else if(diff>.5)t="当前处于减脂阶段：下降偏快。如果力量、睡眠或精神状态也在下降，可以小幅加回热量。";
+              else if(diff<.15)t="当前处于减脂阶段：下降偏慢。连续两周都如此时，再考虑小幅调整热量或活动量。";
+              else t="当前处于减脂阶段：趋势可接受，继续观察，不因单周波动频繁改方案。";
+            }else if(stage==="gain"){
+              if(delta<.05)t="当前处于增肌阶段：均重基本没有上升。结合力量和围度判断是否需要小幅增加热量。";
+              else if(delta>.35)t="当前处于增肌阶段：均重上升较快。如果腰围增长也明显，可以小幅回收热量。";
+              else t="当前处于增肌阶段：均重缓慢上升，继续结合力量表现和围度观察。";
+            }else{
+              if(Math.abs(delta)<=.15)t="当前处于维持阶段：均重基本稳定，先保持当前方案。";
+              else if(delta>.15)t="当前处于维持阶段：均重正在上升。如果不是预期变化，可以小幅减少热量。";
+              else t="当前处于维持阶段：均重正在下降。如果不是预期变化，可以小幅增加热量。";
+            }
+          }
+          $("trendAdvice").textContent=t;'''
+          if old_progress in s:
+              s = s.replace(old_progress, new_progress)
+
+          p.write_text(s, encoding='utf-8')
+
+          sw = Path('sw.js')
+          t = sw.read_text(encoding='utf-8')
+          t = t.replace("const CACHE='chibianying-fitness-v1-1';", "const CACHE='chibianying-fitness-v1-2';")
+          sw.write_text(t, encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "Fix OTP length and generalize plan stages"
+            git push
+          fi
