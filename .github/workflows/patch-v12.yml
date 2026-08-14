@@ -14,32 +14,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Finalize stage-aware progress logic
+      - name: Patch stage-aware advice
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-
-          old = '''  const rows=Object.values(DB.days).sort((a,b)=>a.date.localeCompare(b.date)),wr=rows.filter(x=>x.weight!=null),last=wr.slice(-7).map(x=>+x.weight),prev=wr.slice(-14,-7).map(x=>+x.weight),a=avg(last),p=avg(prev),diff=(a!=null&&p!=null)?p-a:null;'''
-          new = '''  const rows=Object.values(DB.days).sort((a,b)=>a.date.localeCompare(b.date)),wr=rows.filter(x=>x.weight!=null),last=wr.slice(-7).map(x=>+x.weight),prev=wr.slice(-14,-7).map(x=>+x.weight),a=avg(last),p=avg(prev),diff=(a!=null&&p!=null)?p-a:null;
-          const stage=DB.settings.stage||"cut",delta=(a!=null&&p!=null)?a-p:null;'''
-          if old in s:
-              s = s.replace(old, new)
-
-          old = '''  $("weeklyChange").textContent=diff==null?"-":(diff>=0?"↓":"↑")+fmt(Math.abs(diff),2)+"kg";$("weeklyChange").className=diff!=null&&diff>=.15&&diff<=.5?"good":"";'''
-          new = '''  $("weeklyChange").textContent=diff==null?"-":(diff>=0?"↓":"↑")+fmt(Math.abs(diff),2)+"kg";
-          const changeGood=diff!=null&&(stage==="cut"?(diff>=.15&&diff<=.5):stage==="gain"?(delta>=.05&&delta<=.35):Math.abs(delta)<=.15);
-          $("weeklyChange").className=changeGood?"good":"";'''
-          if old in s:
-              s = s.replace(old, new)
-
-          old = '''  let t="至少记录两周晨重后，这里会给出稳定判断。";
-          if(diff!=null){if(diff>=.25&&diff<=.45)t="减重速度处于目标区间。保持当前热量和有氧，不需要继续砍。";else if(diff>.5)t="下降偏快。如果主项力量、睡眠或精神状态也在下降，优先加回约25–30g碳水。";else if(diff<.15)t="下降偏慢。只有连续两周都这样，才考虑减少约25g碳水或少量增加活动。";else t="趋势可接受，继续观察，不因单周小波动修改方案。"}$("trendAdvice").textContent=t;'''
-          new = '''  let t="至少记录两周晨重后，这里会给出稳定判断。";
-          if(diff!=null){
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='  if(diff!=null){if(diff>=.25&&diff<=.45)t="减重速度处于目标区间。保持当前热量和有氧，不需要继续砍。";else if(diff>.5)t="下降偏快。如果主项力量、睡眠或精神状态也在下降，优先加回约25–30g碳水。";else if(diff<.15)t="下降偏慢。只有连续两周都这样，才考虑减少约25g碳水或少量增加活动。";else t="趋势可接受，继续观察，不因单周小波动修改方案。"}$("trendAdvice").textContent=t;'
+          new='''  if(diff!=null){
             if(stage==="cut"){
               if(diff>=.25&&diff<=.45)t="当前处于减脂阶段：下降速度在目标区间，先保持当前方案。";
               else if(diff>.5)t="当前处于减脂阶段：下降偏快。如果力量、睡眠或精神状态也在下降，可以小幅加回热量。";
@@ -56,26 +39,24 @@ jobs:
             }
           }
           $("trendAdvice").textContent=t;'''
-          if old in s:
-              s = s.replace(old, new)
+          if old not in s:
+              raise SystemExit('target advice line not found')
+          s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
 
-          p.write_text(s, encoding='utf-8')
-
-          sw = Path('sw.js')
-          t = sw.read_text(encoding='utf-8')
-          t = t.replace("const CACHE='chibianying-fitness-v1-2';", "const CACHE='chibianying-fitness-v1-3';")
-          sw.write_text(t, encoding='utf-8')
+          sw=Path('sw.js')
+          t=sw.read_text(encoding='utf-8')
+          if "chibianying-fitness-v1-3" in t:
+              t=t.replace("chibianying-fitness-v1-3","chibianying-fitness-v1-4")
+          elif "chibianying-fitness-v1-2" in t:
+              t=t.replace("chibianying-fitness-v1-2","chibianying-fitness-v1-4")
+          sw.write_text(t,encoding='utf-8')
           PY
-
       - name: Commit patch
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html sw.js
-          if git diff --cached --quiet; then
-            echo "No changes needed"
-          else
-            git commit -m "Make progress logic follow selected stage"
-            git push
-          fi
+          git commit -m "Make progress advice follow selected stage"
+          git push
