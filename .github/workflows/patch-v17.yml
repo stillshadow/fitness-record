@@ -1,0 +1,158 @@
+name: Patch fitness app V1.7
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply V1.7 UI and plan calculator
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Safari/iOS time input can keep an intrinsic width wider than its grid cell.
+          old = 'input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-height:76px;resize:vertical}'
+          new = 'input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-height:76px;resize:vertical}.row>div{min-width:0}input[type="time"]{width:100%;min-width:0;max-width:100%;display:block;-webkit-appearance:none;appearance:none}'
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          # Remove long-term explanatory copy from the tool UI.
+          s = s.replace('        <div class="meta" style="margin-bottom:9px">模板只是快捷动作清单，不会强制你哪天必须练什么。</div>\n', '')
+          s = s.replace('<div class="section"><h2>力量记录</h2><span class="meta">自动统计最佳组与 e1RM</span></div>', '<div class="section"><h2>力量记录</h2></div>')
+          s = s.replace('        <div class="meta" style="margin-bottom:9px">例如“练后 = 香蕉120g + 蛋白粉30g”，以后一点就整套加入。</div>\n', '')
+          s = s.replace('<div class="section"><h2>数据备份</h2><span class="meta">云同步之外再留一份保险</span></div>', '<div class="section"><h2>数据备份</h2></div>')
+          s = s.replace('          <div class="meta" style="margin-top:6px">验证码在当前 Web App 内验证，不需要点击邮件链接跳到 Safari。支持 Supabase 配置的 6～10 位验证码。支持 Supabase 配置的 6～10 位验证码。</div>\n', '')
+          s = s.replace('          <div class="meta" style="margin-top:6px">支持 Supabase 配置的 6～10 位验证码。</div>\n', '')
+
+          old_card = '''      <div class="card s6">
+        <div class="section"><h2>当前方案</h2><span class="meta">随时可改</span></div>
+        <div class="field-grid">
+          <div><label for="setStage">目标阶段</label><select id="setStage"><option value="cut">减脂</option><option value="gain">增肌</option><option value="maintain">维持</option></select></div>
+          <div><label for="setK">热量 kcal</label><input id="setK" type="number"></div>
+          <div><label for="setC">碳水 g</label><input id="setC" type="number"></div>
+          <div><label for="setP">蛋白质 g</label><input id="setP" type="number"></div>
+          <div><label for="setF">脂肪 g</label><input id="setF" type="number"></div>
+          <div><label for="setCardio">每周有氧 min</label><input id="setCardio" type="number"></div>
+        </div>
+        <div class="toolbar"><button class="btn" id="saveSettingsBtn">保存方案</button></div>
+      </div>'''
+          new_card = '''      <div class="card s6">
+        <div class="section"><h2>当前方案</h2></div>
+        <div class="field-grid">
+          <div><label for="setStage">目标阶段</label><select id="setStage"><option value="cut">减脂</option><option value="gain">增肌</option><option value="maintain">维持</option></select></div>
+          <div><label for="setCalcWeight">计算体重 kg</label><input id="setCalcWeight" type="number" step="0.1"></div>
+          <div><label for="setHeight">身高 cm</label><input id="setHeight" type="number" step="1"></div>
+          <div><label for="setAge">年龄</label><input id="setAge" type="number" step="1"></div>
+          <div><label for="setActivity">活动系数</label><select id="setActivity"><option value="1.2">1.20 久坐</option><option value="1.35">1.35 轻活动</option><option value="1.4">1.40 常规</option><option value="1.55">1.55 较高</option><option value="1.7">1.70 高活动</option></select></div>
+        </div>
+        <div class="divider"></div>
+        <div class="field-grid">
+          <div><label for="setK">热量 kcal</label><input id="setK" type="number"></div>
+          <div><label for="setC">碳水 g</label><input id="setC" type="number"></div>
+          <div><label for="setP">蛋白质 g</label><input id="setP" type="number"></div>
+          <div><label for="setF">脂肪 g</label><input id="setF" type="number"></div>
+          <div><label for="setCardio">每周有氧 min</label><input id="setCardio" type="number"></div>
+        </div>
+        <div class="toolbar"><button class="btn" id="saveSettingsBtn">保存方案</button></div>
+      </div>'''
+          if old_card not in s:
+              raise SystemExit('settings card target not found')
+          s = s.replace(old_card, new_card, 1)
+
+          old_settings = '  settings:{stage:"cut",kcal:1900,c:200,p:140,f:60,cardioWeekly:90},'
+          new_settings = '  settings:{stage:"cut",kcal:1900,c:200,p:140,f:60,cardioWeekly:90,calcWeight:66,height:168,age:24,activityFactor:1.4},'
+          if old_settings in s:
+              s = s.replace(old_settings, new_settings, 1)
+
+          old_funcs = '''function loadSettingsForm(){
+  $("setStage").value=DB.settings.stage||"cut";
+  $("setK").value=DB.settings.kcal;$("setC").value=DB.settings.c;$("setP").value=DB.settings.p;$("setF").value=DB.settings.f;$("setCardio").value=DB.settings.cardioWeekly;
+}
+function saveSettings(){
+  DB.settings.stage=$("setStage").value||"cut";
+  DB.settings.kcal=+$("setK").value||1900;DB.settings.c=+$("setC").value||200;DB.settings.p=+$("setP").value||140;DB.settings.f=+$("setF").value||60;DB.settings.cardioWeekly=+$("setCardio").value||90;persist();renderToday();renderProgress();toast("方案已保存");
+}'''
+          new_funcs = '''function latestRecordedWeight(){
+  const rows=Object.values(DB.days||{}).filter(d=>d.weight!=null).sort((a,b)=>a.date.localeCompare(b.date));
+  return rows.length ? +rows[rows.length-1].weight : (+DB.settings.calcWeight||66);
+}
+function roundTo5(n){return Math.round(n/5)*5}
+function calculateRecommendedTargets(){
+  const stage=$("setStage").value||"cut";
+  const weight=+$("setCalcWeight").value||latestRecordedWeight()||66;
+  const height=+$("setHeight").value||168;
+  const age=+$("setAge").value||24;
+  const activity=+$("setActivity").value||1.4;
+  const bmr=10*weight+6.25*height-5*age+5;
+  const tdee=bmr*activity;
+  const stageFactor=stage==="cut"?.85:stage==="gain"?1.08:1;
+  const kcal=Math.round((tdee*stageFactor)/10)*10;
+  const protein=roundTo5(weight*(stage==="cut"?2.1:1.8));
+  const fat=roundTo5(weight*(stage==="gain"?1.0:.9));
+  const carbs=Math.max(0,roundTo5((kcal-protein*4-fat*9)/4));
+  $("setK").value=kcal;
+  $("setC").value=carbs;
+  $("setP").value=protein;
+  $("setF").value=fat;
+  $("setCardio").value=stage==="cut"?90:stage==="gain"?45:60;
+}
+function loadSettingsForm(){
+  $("setStage").value=DB.settings.stage||"cut";
+  $("setCalcWeight").value=latestRecordedWeight();
+  $("setHeight").value=DB.settings.height||168;
+  $("setAge").value=DB.settings.age||24;
+  $("setActivity").value=String(DB.settings.activityFactor||1.4);
+  $("setK").value=DB.settings.kcal;$("setC").value=DB.settings.c;$("setP").value=DB.settings.p;$("setF").value=DB.settings.f;$("setCardio").value=DB.settings.cardioWeekly;
+}
+function saveSettings(){
+  DB.settings.stage=$("setStage").value||"cut";
+  DB.settings.calcWeight=+$("setCalcWeight").value||latestRecordedWeight()||66;
+  DB.settings.height=+$("setHeight").value||168;
+  DB.settings.age=+$("setAge").value||24;
+  DB.settings.activityFactor=+$("setActivity").value||1.4;
+  DB.settings.kcal=+$("setK").value||1900;DB.settings.c=+$("setC").value||200;DB.settings.p=+$("setP").value||140;DB.settings.f=+$("setF").value||60;DB.settings.cardioWeekly=+$("setCardio").value||90;persist();renderToday();renderProgress();toast("方案已保存");
+}'''
+          if old_funcs not in s:
+              raise SystemExit('settings functions target not found')
+          s = s.replace(old_funcs, new_funcs, 1)
+
+          old_listener = '$("saveSettingsBtn").addEventListener("click",saveSettings);'
+          new_listener = '''$("saveSettingsBtn").addEventListener("click",saveSettings);
+["setStage","setCalcWeight","setHeight","setAge","setActivity"].forEach(id=>$(id).addEventListener("change",calculateRecommendedTargets));'''
+          if old_listener not in s:
+              raise SystemExit('settings listener target not found')
+          s = s.replace(old_listener, new_listener, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+          sw = Path('sw.js')
+          t = sw.read_text(encoding='utf-8')
+          t = t.replace("const CACHE='chibianying-fitness-v1-6';", "const CACHE='chibianying-fitness-v1-7';")
+          sw.write_text(t, encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "Add stage-based target calculator and fix time input width"
+            git push
+          fi
