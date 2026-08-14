@@ -779,8 +779,11 @@ function saveMeal(){
 function avg(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:null}
 function renderProgress(){
   const rows=Object.values(DB.days).sort((a,b)=>a.date.localeCompare(b.date)),wr=rows.filter(x=>x.weight!=null),last=wr.slice(-7).map(x=>+x.weight),prev=wr.slice(-14,-7).map(x=>+x.weight),a=avg(last),p=avg(prev),diff=(a!=null&&p!=null)?p-a:null;
+const stage=DB.settings.stage||"cut",delta=(a!=null&&p!=null)?a-p:null;
   $("avg7").textContent=a!=null?fmt(a,2)+"kg":"-";$("prev7").textContent=p!=null?fmt(p,2)+"kg":"-";
-  $("weeklyChange").textContent=diff==null?"-":(diff>=0?"↓":"↑")+fmt(Math.abs(diff),2)+"kg";$("weeklyChange").className=diff!=null&&diff>=.15&&diff<=.5?"good":"";
+  $("weeklyChange").textContent=diff==null?"-":(diff>=0?"↓":"↑")+fmt(Math.abs(diff),2)+"kg";
+const changeGood=diff!=null&&(stage==="cut"?(diff>=.15&&diff<=.5):stage==="gain"?(delta>=.05&&delta<=.35):Math.abs(delta)<=.15);
+$("weeklyChange").className=changeGood?"good":"";
   const now=new Date(),dow=(now.getDay()+6)%7,monday=new Date(now);monday.setDate(now.getDate()-dow);monday.setHours(0,0,0,0);
   const cardio=rows.filter(x=>new Date(x.date+"T00:00:00")>=monday).reduce((s,x)=>s+(+x.cardio||0),0);$("cardioWeek").textContent=cardio+"min";
   let t="至少记录两周晨重后，这里会给出稳定判断。";
