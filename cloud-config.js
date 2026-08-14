@@ -12,6 +12,7 @@ window.CHI_BIAN_YING_CLOUD = {
   style.textContent = `
     .row > div{min-width:0}
     #foodTime{width:100%;min-width:0!important;max-width:100%;display:block;box-sizing:border-box}
+    .sheet-panel{width:calc(100% - 24px)!important;border-radius:22px!important;margin:0 auto calc(10px + env(safe-area-inset-bottom))!important;padding:16px 15px!important}
     .plan-card-compact .field-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
     .plan-card-compact input,.plan-card-compact select{padding:8px 9px}
     .plan-card-compact .toolbar{margin-top:8px}
