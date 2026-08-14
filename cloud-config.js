@@ -12,6 +12,17 @@ window.CHI_BIAN_YING_CLOUD = {
   style.textContent = `
     .row > div{min-width:0}
     #foodTime{width:100%;min-width:0!important;max-width:100%;display:block;box-sizing:border-box}
+    .plan-card-compact .field-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+    .plan-card-compact input,.plan-card-compact select{padding:8px 9px}
+    .plan-card-compact .toolbar{margin-top:8px}
+    .plan-calc-details{margin-top:8px;border-top:1px solid var(--line);padding-top:7px}
+    .plan-calc-details summary{cursor:pointer;color:var(--muted);font-size:11px;list-style-position:inside}
+    .plan-calc-details .field-grid{margin-top:7px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    @media(max-width:700px){
+      .plan-card-compact .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .plan-calc-details .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .plan-card-compact label{margin-bottom:3px}
+    }
   `;
   document.head.appendChild(style);
 
@@ -23,6 +34,21 @@ window.CHI_BIAN_YING_CLOUD = {
     "云同步之外再留一份保险",
     "看均值，不看单日"
   ]);
+
+  const hasStoredSession = () => {
+    try {
+      return Object.keys(localStorage).some(k =>
+        /^sb-.*-auth-token$/.test(k) && !!localStorage.getItem(k)
+      );
+    } catch { return false; }
+  };
+
+  const savedCloudEmail = () => {
+    try {
+      const x = JSON.parse(localStorage.getItem("chibianyingCloudOverride") || "{}");
+      return x.email || "";
+    } catch { return ""; }
+  };
 
   let scheduled = false;
   const clean = () => {
@@ -54,11 +80,16 @@ window.CHI_BIAN_YING_CLOUD = {
     });
 
     const cloudStatus = document.getElementById("cloudStatus");
+    const cloudUser = document.getElementById("cloudUserText");
     if (cloudStatus) {
       const t = cloudStatus.textContent.trim();
       if (t.startsWith("Supabase 已配置。使用邮箱验证码登录")) cloudStatus.textContent = "未登录";
       else if (t.startsWith("未配置 Supabase。")) cloudStatus.textContent = "未配置";
       else if (t.startsWith("验证码已发送到 ")) cloudStatus.textContent = "验证码已发送";
+      else if (/^(Supabase 初始化失败|同步失败|上传失败|下载失败)/.test(t) && hasStoredSession()) {
+        cloudStatus.textContent = "离线";
+        if (cloudUser) cloudUser.textContent = savedCloudEmail() || "会话已保存";
+      }
     }
   };
 
@@ -81,40 +112,46 @@ window.CHI_BIAN_YING_CLOUD = {
     return rows.length ? +rows[rows.length - 1].weight : +(db?.settings?.calcWeight || 66);
   };
 
-  const addField = (grid, before, html) => {
-    const box = document.createElement("div");
-    box.innerHTML = html;
-    grid.insertBefore(box, before);
-    return box.firstElementChild;
-  };
-
   const setupCalculator = () => {
     const stage = document.getElementById("setStage");
     if (!stage || document.getElementById("setCalcWeight")) return;
 
     const grid = stage.closest(".field-grid");
-    if (!grid) return;
-    const before = stage.parentElement.nextElementSibling;
+    const card = stage.closest(".card");
+    if (!grid || !card) return;
+    card.classList.add("plan-card-compact");
 
-    const fragment = document.createDocumentFragment();
-    const make = html => {
+    const before = stage.parentElement.nextElementSibling;
+    const makeWrap = html => {
       const wrap = document.createElement("div");
       wrap.innerHTML = html;
-      fragment.appendChild(wrap);
+      return wrap;
     };
 
-    make('<label for="setCalcWeight">计算体重 kg</label><input id="setCalcWeight" type="number" step="0.1">');
-    make('<label for="setHeight">身高 cm</label><input id="setHeight" type="number" step="1">');
-    make('<label for="setAge">年龄</label><input id="setAge" type="number" step="1">');
-    make('<label for="setActivity">活动系数</label><select id="setActivity"><option value="1.2">1.20 久坐</option><option value="1.35">1.35 轻活动</option><option value="1.4">1.40 常规</option><option value="1.55">1.55 较高</option><option value="1.7">1.70 高活动</option></select>');
-    grid.insertBefore(fragment, before);
+    const weightWrap = makeWrap('<label for="setCalcWeight">体重 kg</label><input id="setCalcWeight" type="number" step="0.1">');
+    grid.insertBefore(weightWrap, before);
+
+    const details = document.createElement("details");
+    details.className = "plan-calc-details";
+    details.innerHTML = '<summary>计算参数</summary><div class="field-grid"></div>';
+    card.insertBefore(details, card.querySelector(".toolbar"));
+    const paramGrid = details.querySelector(".field-grid");
+
+    paramGrid.appendChild(makeWrap('<label for="setHeight">身高 cm</label><input id="setHeight" type="number" step="1">'));
+    paramGrid.appendChild(makeWrap('<label for="setAge">年龄</label><input id="setAge" type="number" step="1">'));
+    paramGrid.appendChild(makeWrap('<label for="setActivity">日常活动</label><select id="setActivity"><option value="1.2">低｜久坐</option><option value="1.4">中｜久坐 + 规律训练</option><option value="1.55">较高｜步数较多 / 高频训练</option><option value="1.7">高｜体力工作 / 高活动</option></select>'));
 
     const db = getDB();
     const settings = db.settings || {};
     document.getElementById("setCalcWeight").value = latestWeight(db) || 66;
     document.getElementById("setHeight").value = settings.height || 168;
     document.getElementById("setAge").value = settings.age || 24;
-    document.getElementById("setActivity").value = String(settings.activityFactor || 1.4);
+
+    const activityEl = document.getElementById("setActivity");
+    const savedActivity = +(settings.activityFactor || 1.4);
+    const options = [...activityEl.options].map(o => +o.value);
+    const nearest = options.reduce((best,v) => Math.abs(v-savedActivity) < Math.abs(best-savedActivity) ? v : best, options[0]);
+    activityEl.value = String(nearest);
 
     const round5 = n => Math.round(n / 5) * 5;
     const calculate = () => {
@@ -173,6 +210,8 @@ window.CHI_BIAN_YING_CLOUD = {
     subtree: true,
     characterData: true
   });
+  window.addEventListener("online", scheduleClean);
+  window.addEventListener("offline", scheduleClean);
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setupCalculator);
   else setupCalculator();
