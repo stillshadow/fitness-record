@@ -18,6 +18,7 @@ window.CHI_BIAN_YING_CLOUD = {
     .plan-calc-details{margin-top:8px;border-top:1px solid var(--line);padding-top:7px}
     .plan-calc-details summary{cursor:pointer;color:var(--muted);font-size:11px;list-style-position:inside}
     .plan-calc-details .field-grid{margin-top:7px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .sync.local .sync-dot{background:var(--muted)!important}
     @media(max-width:700px){
       .plan-card-compact .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
       .plan-calc-details .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
@@ -37,9 +38,7 @@ window.CHI_BIAN_YING_CLOUD = {
 
   const hasStoredSession = () => {
     try {
-      return Object.keys(localStorage).some(k =>
-        /^sb-.*-auth-token$/.test(k) && !!localStorage.getItem(k)
-      );
+      return Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k) && !!localStorage.getItem(k));
     } catch { return false; }
   };
 
@@ -48,6 +47,31 @@ window.CHI_BIAN_YING_CLOUD = {
       const x = JSON.parse(localStorage.getItem("chibianyingCloudOverride") || "{}");
       return x.email || "";
     } catch { return ""; }
+  };
+
+  const normalizeHeaderStatus = () => {
+    const badge = document.getElementById("syncBadge");
+    const text = document.getElementById("syncText");
+    const cloudUser = document.getElementById("cloudUserText");
+    const cloudStatus = document.getElementById("cloudStatus");
+    if (!badge || !text || !cloudUser) return;
+
+    const user = cloudUser.textContent.trim();
+    const state = cloudStatus?.textContent.trim() || "";
+
+    if (user === "未登录" || user === "未配置") {
+      badge.classList.remove("warn", "bad");
+      badge.classList.add("local");
+      text.textContent = "仅本地";
+      return;
+    }
+
+    badge.classList.remove("local");
+    if (state === "离线") {
+      badge.classList.remove("bad");
+      badge.classList.add("warn");
+      text.textContent = "离线";
+    }
   };
 
   let scheduled = false;
@@ -91,6 +115,8 @@ window.CHI_BIAN_YING_CLOUD = {
         if (cloudUser) cloudUser.textContent = savedCloudEmail() || "会话已保存";
       }
     }
+
+    normalizeHeaderStatus();
   };
 
   const scheduleClean = () => {
@@ -212,6 +238,7 @@ window.CHI_BIAN_YING_CLOUD = {
   });
   window.addEventListener("online", scheduleClean);
   window.addEventListener("offline", scheduleClean);
+  window.addEventListener("fitness:changed", scheduleClean);
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setupCalculator);
   else setupCalculator();
