@@ -16,11 +16,11 @@ window.CHI_BIAN_YING_CLOUD = {
     .sheet-panel{width:calc(100% - 24px)!important;border-radius:22px!important;margin:0 auto calc(10px + env(safe-area-inset-bottom))!important;padding:16px 15px!important}
     .sync.local .sync-dot{background:var(--muted)!important}
     .macro-only{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-    .simple-goals .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+    .simple-goals .field-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px}
     .simple-goals input{padding:8px 9px}
     @media(max-width:700px){
       .macro-only{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-      .simple-goals .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .simple-goals .field-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
       .simple-goals label{margin-bottom:3px}
     }
   `;
@@ -152,6 +152,7 @@ window.CHI_BIAN_YING_CLOUD = {
     const f = document.getElementById("setF");
     const k = document.getElementById("setK");
     const stage = document.getElementById("setStage");
+    const cardio = document.getElementById("setCardio");
     if (!c || !p || !f || !k || !stage) return;
 
     const card = c.closest(".card");
@@ -162,6 +163,7 @@ window.CHI_BIAN_YING_CLOUD = {
     }
     stage.parentElement.style.display = "none";
     k.parentElement.style.display = "none";
+    if (cardio?.parentElement) cardio.parentElement.style.display = "none";
     document.getElementById("setCalcWeight")?.parentElement?.remove();
     document.querySelector(".plan-calc-details")?.remove();
 
