@@ -158,6 +158,19 @@
     box.querySelectorAll("[data-flex-del]").forEach(b=>b.addEventListener("click",()=>deleteLibraryFood(b.dataset.flexDel)));
   }
 
+  function setServingDefault(input,serving){
+    if(!input)return;
+    if(serving){
+      if(!input.value){
+        input.value="1";
+        input.dataset.servingDefault="1";
+      }
+    }else if(input.dataset.servingDefault==="1"){
+      input.value="";
+      delete input.dataset.servingDefault;
+    }
+  }
+
   function updateSingleAmountLabel(){
     const select=$("foodSelect"),input=$("foodGrams");if(!select||!input)return;
     const f=db().foods?.find(x=>x.id===select.value);
@@ -167,9 +180,11 @@
       const u=f.servingLabel||f.unit||"份";
       label.textContent=`数量（${u}）`;
       input.step="0.1";input.placeholder="1";
+      setServingDefault(input,true);
     }else{
       label.textContent=basisOf(f)==="per100ml"?"用量 ml":"重量 g";
       input.step="1";input.placeholder="";
+      setServingDefault(input,false);
     }
   }
 
@@ -182,12 +197,47 @@
       const u=f.servingLabel||f.unit||"份";
       label.textContent=`数量（${u}）`;
       input.step="0.1";input.placeholder="1";
+      setServingDefault(input,true);
     }else{
       label.textContent=basisOf(f)==="per100ml"?"用量 ml":"重量 g";
       input.step="1";input.placeholder="";
+      setServingDefault(input,false);
     }
   }
   const updateAmountLabels=()=>{updateSingleAmountLabel();updateMealAmountLabel()};
+
+  function setupServingSaveGuard(){
+    const save=$("saveFoodEntryBtn");
+    if(save&&!save.dataset.servingGuard){
+      save.dataset.servingGuard="1";
+      save.addEventListener("click",e=>{
+        if($("foodMode")?.value!=="single")return;
+        const f=db().foods?.find(x=>x.id===$("foodSelect")?.value);
+        if(!isServing(f))return;
+        const input=$("foodGrams");
+        if(input&&!input.value)input.value="1";
+        if(!input||num(input.value)<=0){
+          e.preventDefault();e.stopImmediatePropagation();
+          toast(`请填写${f.servingLabel||f.unit||"份"}数`);
+        }
+      },true);
+    }
+
+    const mealAdd=$("mealAddItemBtn");
+    if(mealAdd&&!mealAdd.dataset.servingGuard){
+      mealAdd.dataset.servingGuard="1";
+      mealAdd.addEventListener("click",e=>{
+        const f=db().foods?.find(x=>x.id===$("mealBuilderFood")?.value);
+        if(!isServing(f))return;
+        const input=$("mealBuilderGrams");
+        if(input&&!input.value)input.value="1";
+        if(!input||num(input.value)<=0){
+          e.preventDefault();e.stopImmediatePropagation();
+          toast(`请填写${f.servingLabel||f.unit||"份"}数`);
+        }
+      },true);
+    }
+  }
 
   function hookOpeners(){
     if(typeof window.openLibFoodModal==="function"&&!window.openLibFoodModal.__flexBasis){
@@ -208,7 +258,9 @@
 
   function setup(){
     if(!window.fitnessApp)return setTimeout(setup,60);
-    setupLibraryModal();hookOpeners();renderLibrary();updateAmountLabels();
+    setupLibraryModal();hookOpeners();renderLibrary();updateAmountLabels();setupServingSaveGuard();
+    $("foodGrams")?.addEventListener("input",()=>delete $("foodGrams").dataset.servingDefault);
+    $("mealBuilderGrams")?.addEventListener("input",()=>delete $("mealBuilderGrams").dataset.servingDefault);
     $("foodSelect")?.addEventListener("change",updateSingleAmountLabel);
     $("mealBuilderFood")?.addEventListener("change",updateMealAmountLabel);
     document.querySelectorAll('[data-page="food"]').forEach(b=>b.addEventListener("click",()=>setTimeout(()=>{renderLibrary();updateAmountLabels()},0)));
