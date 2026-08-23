@@ -14,17 +14,14 @@ window.CHI_BIAN_YING_CLOUD = {
     #foodTime{width:100%!important;inline-size:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;display:block!important;box-sizing:border-box!important;overflow:hidden!important;-webkit-appearance:none!important;appearance:none!important}
     #foodTime::-webkit-date-and-time-value{min-width:0!important;margin:0!important;text-align:left}
     .sheet-panel{width:calc(100% - 24px)!important;border-radius:22px!important;margin:0 auto calc(10px + env(safe-area-inset-bottom))!important;padding:16px 15px!important}
-    .plan-card-compact .field-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-    .plan-card-compact input,.plan-card-compact select{padding:8px 9px}
-    .plan-card-compact .toolbar{margin-top:8px}
-    .plan-calc-details{margin-top:8px;border-top:1px solid var(--line);padding-top:7px}
-    .plan-calc-details summary{cursor:pointer;color:var(--muted);font-size:11px;list-style-position:inside}
-    .plan-calc-details .field-grid{margin-top:7px;grid-template-columns:repeat(3,minmax(0,1fr))}
     .sync.local .sync-dot{background:var(--muted)!important}
+    .macro-only{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+    .simple-goals .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+    .simple-goals input{padding:8px 9px}
     @media(max-width:700px){
-      .plan-card-compact .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-      .plan-calc-details .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-      .plan-card-compact label{margin-bottom:3px}
+      .macro-only{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+      .simple-goals .field-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .simple-goals label{margin-bottom:3px}
     }
   `;
   document.head.appendChild(style);
@@ -51,6 +48,31 @@ window.CHI_BIAN_YING_CLOUD = {
     } catch { return ""; }
   };
 
+  const getDB = () => {
+    if (window.fitnessApp?.getDB) return window.fitnessApp.getDB();
+    try { return JSON.parse(localStorage.getItem("chibianyingFitnessV1") || "{}"); }
+    catch { return {}; }
+  };
+
+  const flash = msg => {
+    const t = document.getElementById("toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(flash._timer);
+    flash._timer = setTimeout(() => t.classList.remove("show"), 1800);
+  };
+
+  const localDateString = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  };
+
+  const activeDate = () => {
+    const t = document.getElementById("activeDateLabel")?.textContent.trim() || "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : localDateString();
+  };
+
   const normalizeHeaderStatus = () => {
     const badge = document.getElementById("syncBadge");
     const text = document.getElementById("syncText");
@@ -74,6 +96,146 @@ window.CHI_BIAN_YING_CLOUD = {
       badge.classList.add("warn");
       text.textContent = "离线";
     }
+  };
+
+  const normalizeMacroUI = () => {
+    const sumK = document.getElementById("sumK");
+    const metrics = sumK?.closest(".metrics");
+    const kcalMetric = sumK?.closest(".metric");
+    if (metrics) metrics.classList.add("macro-only");
+    if (kcalMetric) kcalMetric.style.display = "none";
+
+    const db = getDB();
+    const s = db.settings || {};
+    const target = document.getElementById("macroTargetText");
+    if (target && s.c != null) target.textContent = `${s.c}C / ${s.p}P / ${s.f}F`;
+
+    const C = +(document.getElementById("sumC")?.textContent || 0);
+    const P = +(document.getElementById("sumP")?.textContent || 0);
+    const F = +(document.getElementById("sumF")?.textContent || 0);
+    const advice = document.getElementById("macroAdvice");
+    if (!advice || s.c == null) return;
+
+    if (!(C || P || F)) {
+      advice.textContent = "添加食物后会自动统计。";
+      return;
+    }
+    const tips = [];
+    if (P < (+s.p || 0) - 10) tips.push(`蛋白质还差约 ${Math.round((+s.p||0)-P)}g`);
+    if (C < (+s.c || 0) - 15) tips.push(`碳水还差约 ${Math.round((+s.c||0)-C)}g`);
+    if (F > (+s.f || 0) + 5) tips.push(`脂肪超约 ${Math.round(F-(+s.f||0))}g`);
+    advice.textContent = tips.join(" · ") || "今天已经比较接近目标。";
+  };
+
+  const normalizeTrendAdvice = () => {
+    const el = document.getElementById("trendAdvice");
+    if (!el || !window.fitnessApp?.getDB) return;
+    const rows = Object.values(getDB().days || {})
+      .filter(x => x?.weight != null)
+      .sort((a,b) => String(a.date).localeCompare(String(b.date)));
+    const last = rows.slice(-7).map(x => +x.weight);
+    const prev = rows.slice(-14,-7).map(x => +x.weight);
+    if (!last.length || !prev.length) {
+      el.textContent = "至少记录两周晨重后，这里会显示均重变化。";
+      return;
+    }
+    const avg = a => a.reduce((s,x)=>s+x,0)/a.length;
+    const delta = avg(last) - avg(prev);
+    if (Math.abs(delta) <= .15) el.textContent = "近两组均重基本稳定。";
+    else if (delta < 0) el.textContent = `近7次晨重均值较前7次下降约 ${Math.abs(delta).toFixed(2)} kg。`;
+    else el.textContent = `近7次晨重均值较前7次上升约 ${delta.toFixed(2)} kg。`;
+  };
+
+  const setupSimpleGoals = () => {
+    const c = document.getElementById("setC");
+    const p = document.getElementById("setP");
+    const f = document.getElementById("setF");
+    const k = document.getElementById("setK");
+    const stage = document.getElementById("setStage");
+    if (!c || !p || !f || !k || !stage) return;
+
+    const card = c.closest(".card");
+    if (card) {
+      card.classList.add("simple-goals");
+      const title = card.querySelector(".section h2");
+      if (title) title.textContent = "每日目标";
+    }
+    stage.parentElement.style.display = "none";
+    k.parentElement.style.display = "none";
+    document.getElementById("setCalcWeight")?.parentElement?.remove();
+    document.querySelector(".plan-calc-details")?.remove();
+
+    const syncHiddenKcal = () => {
+      const C = +c.value || 0, P = +p.value || 0, F = +f.value || 0;
+      k.value = Math.round(C*4 + P*4 + F*9);
+    };
+    [c,p,f].forEach(x => x.addEventListener("input", syncHiddenKcal));
+    document.getElementById("saveSettingsBtn")?.addEventListener("click", syncHiddenKcal, true);
+    syncHiddenKcal();
+  };
+
+  const setupManualFood = () => {
+    const fields = document.getElementById("manualFoodFields");
+    const btn = document.getElementById("saveFoodEntryBtn");
+    if (!fields || !btn || btn.dataset.totalMacroReady) return;
+    btn.dataset.totalMacroReady = "1";
+
+    const gramLabel = fields.querySelector('label[for="manualFoodGrams"]');
+    const cLabel = fields.querySelector('label[for="manualFoodC"]');
+    const pLabel = fields.querySelector('label[for="manualFoodP"]');
+    const fLabel = fields.querySelector('label[for="manualFoodF"]');
+    if (gramLabel) gramLabel.textContent = "重量 g/ml（可选）";
+    if (cLabel) cLabel.textContent = "碳水 g（本次）";
+    if (pLabel) pLabel.textContent = "蛋白质 g（本次）";
+    if (fLabel) fLabel.textContent = "脂肪 g（本次）";
+
+    btn.addEventListener("click", e => {
+      if (document.getElementById("foodMode")?.value !== "manual") return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      if (!window.fitnessApp?.getDB || !window.fitnessApp?.replaceDB) return;
+      const name = document.getElementById("manualFoodName")?.value.trim() || "";
+      if (!name) return flash("填写食物名称");
+
+      const grams = +(document.getElementById("manualFoodGrams")?.value || 0);
+      const C = +(document.getElementById("manualFoodC")?.value || 0);
+      const P = +(document.getElementById("manualFoodP")?.value || 0);
+      const F = +(document.getElementById("manualFoodF")?.value || 0);
+      const slot = document.getElementById("mealSlot")?.value || "饮食";
+      const time = document.getElementById("foodTime")?.value || "";
+
+      const db = window.fitnessApp.getDB();
+      const date = activeDate();
+      db.days = db.days || {};
+      if (!db.days[date]) db.days[date] = {date,weight:null,cardio:0,note:"",planExerciseIds:[],planName:"",training:[],foods:[]};
+      db.days[date].foods = db.days[date].foods || [];
+
+      let entry;
+      if (grams > 0) {
+        entry = {
+          id:`fd_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`,
+          name,unit:"g",grams,
+          c:C*100/grams,p:P*100/grams,f:F*100/grams,
+          totalMacros:true,totalC:C,totalP:P,totalF:F,slot,time
+        };
+      } else {
+        entry = {
+          id:`fd_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`,
+          name,unit:"份",grams:1,
+          c:C*100,p:P*100,f:F*100,
+          totalMacros:true,totalC:C,totalP:P,totalF:F,slot,time
+        };
+      }
+      db.days[date].foods.push(entry);
+      db.meta = db.meta || {};
+      db.meta.updatedAt = new Date().toISOString();
+      db.meta.userTouched = true;
+      window.fitnessApp.replaceDB(db);
+      window.dispatchEvent(new CustomEvent("fitness:changed"));
+      document.getElementById("foodModal")?.classList.remove("open");
+      flash("饮食已记录");
+    }, true);
   };
 
   let scheduled = false;
@@ -119,117 +281,14 @@ window.CHI_BIAN_YING_CLOUD = {
     }
 
     normalizeHeaderStatus();
+    normalizeMacroUI();
+    normalizeTrendAdvice();
   };
 
   const scheduleClean = () => {
     if (scheduled) return;
     scheduled = true;
     requestAnimationFrame(clean);
-  };
-
-  const getDB = () => {
-    if (window.fitnessApp?.getDB) return window.fitnessApp.getDB();
-    try { return JSON.parse(localStorage.getItem("chibianyingFitnessV1") || "{}"); }
-    catch { return {}; }
-  };
-
-  const latestWeight = db => {
-    const rows = Object.values(db?.days || {})
-      .filter(d => d?.weight != null)
-      .sort((a,b) => String(a.date).localeCompare(String(b.date)));
-    return rows.length ? +rows[rows.length - 1].weight : +(db?.settings?.calcWeight || 66);
-  };
-
-  const setupCalculator = () => {
-    const stage = document.getElementById("setStage");
-    if (!stage || document.getElementById("setCalcWeight")) return;
-
-    const grid = stage.closest(".field-grid");
-    const card = stage.closest(".card");
-    if (!grid || !card) return;
-    card.classList.add("plan-card-compact");
-
-    const before = stage.parentElement.nextElementSibling;
-    const makeWrap = html => {
-      const wrap = document.createElement("div");
-      wrap.innerHTML = html;
-      return wrap;
-    };
-
-    const weightWrap = makeWrap('<label for="setCalcWeight">体重 kg</label><input id="setCalcWeight" type="number" step="0.1">');
-    grid.insertBefore(weightWrap, before);
-
-    const details = document.createElement("details");
-    details.className = "plan-calc-details";
-    details.innerHTML = '<summary>计算参数</summary><div class="field-grid"></div>';
-    card.insertBefore(details, card.querySelector(".toolbar"));
-    const paramGrid = details.querySelector(".field-grid");
-
-    paramGrid.appendChild(makeWrap('<label for="setHeight">身高 cm</label><input id="setHeight" type="number" step="1">'));
-    paramGrid.appendChild(makeWrap('<label for="setAge">年龄</label><input id="setAge" type="number" step="1">'));
-    paramGrid.appendChild(makeWrap('<label for="setActivity">日常活动</label><select id="setActivity"><option value="1.2">低｜久坐</option><option value="1.4">中｜久坐 + 规律训练</option><option value="1.55">较高｜步数较多 / 高频训练</option><option value="1.7">高｜体力工作 / 高活动</option></select>'));
-
-    const db = getDB();
-    const settings = db.settings || {};
-    document.getElementById("setCalcWeight").value = latestWeight(db) || 66;
-    document.getElementById("setHeight").value = settings.height || 168;
-    document.getElementById("setAge").value = settings.age || 24;
-
-    const activityEl = document.getElementById("setActivity");
-    const savedActivity = +(settings.activityFactor || 1.4);
-    const options = [...activityEl.options].map(o => +o.value);
-    const nearest = options.reduce((best,v) => Math.abs(v-savedActivity) < Math.abs(best-savedActivity) ? v : best, options[0]);
-    activityEl.value = String(nearest);
-
-    const round5 = n => Math.round(n / 5) * 5;
-    const calculate = () => {
-      const weight = +document.getElementById("setCalcWeight").value || latestWeight(getDB()) || 66;
-      const height = +document.getElementById("setHeight").value || 168;
-      const age = +document.getElementById("setAge").value || 24;
-      const activity = +document.getElementById("setActivity").value || 1.4;
-      const phase = stage.value || "cut";
-
-      const bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-      const tdee = bmr * activity;
-      const kcal = Math.round((tdee * (phase === "cut" ? 0.85 : phase === "gain" ? 1.08 : 1)) / 10) * 10;
-      const protein = round5(weight * (phase === "cut" ? 2.1 : 1.8));
-      const fat = round5(weight * (phase === "gain" ? 1.0 : 0.9));
-      const carbs = Math.max(0, round5((kcal - protein * 4 - fat * 9) / 4));
-
-      document.getElementById("setK").value = kcal;
-      document.getElementById("setC").value = carbs;
-      document.getElementById("setP").value = protein;
-      document.getElementById("setF").value = fat;
-      document.getElementById("setCardio").value = phase === "cut" ? 90 : phase === "gain" ? 45 : 60;
-    };
-
-    ["setStage","setCalcWeight","setHeight","setAge","setActivity"].forEach(id => {
-      document.getElementById(id)?.addEventListener("change", calculate);
-    });
-
-    document.querySelectorAll('[data-page="settings"]').forEach(btn => {
-      btn.addEventListener("click", () => {
-        const w = latestWeight(getDB());
-        if (w) document.getElementById("setCalcWeight").value = w;
-      });
-    });
-
-    document.getElementById("saveSettingsBtn")?.addEventListener("click", () => {
-      setTimeout(() => {
-        if (!window.fitnessApp?.getDB || !window.fitnessApp?.replaceDB) return;
-        const next = window.fitnessApp.getDB();
-        next.settings = next.settings || {};
-        next.settings.calcWeight = +document.getElementById("setCalcWeight").value || latestWeight(next) || 66;
-        next.settings.height = +document.getElementById("setHeight").value || 168;
-        next.settings.age = +document.getElementById("setAge").value || 24;
-        next.settings.activityFactor = +document.getElementById("setActivity").value || 1.4;
-        next.meta = next.meta || {};
-        next.meta.updatedAt = new Date().toISOString();
-        next.meta.userTouched = true;
-        window.fitnessApp.replaceDB(next);
-        window.dispatchEvent(new CustomEvent("fitness:changed"));
-      }, 0);
-    });
   };
 
   clean();
@@ -242,6 +301,11 @@ window.CHI_BIAN_YING_CLOUD = {
   window.addEventListener("offline", scheduleClean);
   window.addEventListener("fitness:changed", scheduleClean);
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setupCalculator);
-  else setupCalculator();
+  const setup = () => {
+    setupSimpleGoals();
+    setupManualFood();
+    scheduleClean();
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setup);
+  else setTimeout(setup,0);
 })();
