@@ -1,4 +1,4 @@
-const CACHE='chibianying-fitness-v1-14';
+const CACHE='chibianying-fitness-v1-15';
 const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','update.html','icon-192.png','icon-512.png'];
 
 self.addEventListener('install',e=>e.waitUntil(
