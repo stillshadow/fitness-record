@@ -11,7 +11,8 @@ window.CHI_BIAN_YING_CLOUD = {
   const style = document.createElement("style");
   style.textContent = `
     .row > div{min-width:0}
-    #foodTime{width:100%;min-width:0!important;max-width:100%;display:block;box-sizing:border-box}
+    #foodTime{width:100%!important;inline-size:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;display:block!important;box-sizing:border-box!important;overflow:hidden!important;-webkit-appearance:none!important;appearance:none!important}
+    #foodTime::-webkit-date-and-time-value{min-width:0!important;margin:0!important;text-align:left}
     .sheet-panel{width:calc(100% - 24px)!important;border-radius:22px!important;margin:0 auto calc(10px + env(safe-area-inset-bottom))!important;padding:16px 15px!important}
     .plan-card-compact .field-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
     .plan-card-compact input,.plan-card-compact select{padding:8px 9px}
