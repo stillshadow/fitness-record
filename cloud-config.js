@@ -309,3 +309,15 @@ window.CHI_BIAN_YING_CLOUD = {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setup);
   else setTimeout(setup,0);
 })();
+
+(() => {
+  const load = () => {
+    if (document.querySelector('script[data-food-system]')) return;
+    const s = document.createElement('script');
+    s.src = 'food-system.js?v=13';
+    s.dataset.foodSystem = '1';
+    document.head.appendChild(s);
+  };
+  if (document.readyState === 'complete') setTimeout(load,0);
+  else window.addEventListener('load',load,{once:true});
+})();
