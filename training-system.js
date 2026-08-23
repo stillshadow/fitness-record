@@ -47,7 +47,7 @@
     const save = $("saveTrainingBtn");
     if (save) save.textContent = cardioMode ? "保存有氧" : "加入今日";
 
-    const hint = [...modal.querySelectorAll(".meta")].find(x => x.textContent.includes("自重动作重量可留空"));
+    const hint = modal.querySelector(".row + .meta");
     if (hint) hint.textContent = cardioMode ? "填写本次有氧分钟即可。" : "自重动作重量可留空。";
   }
 
