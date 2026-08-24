@@ -30,22 +30,29 @@
 
     if (cardioMode) {
       if (selectWrap) selectWrap.className = "c6";
-      if (cardioWrap) cardioWrap.className = "c6";
+      if (cardioWrap) {
+        restoreClass(cardioWrap);
+        cardioWrap.className = "c6";
+        cardioWrap.style.display = "block";
+      }
+      cardio.disabled = false;
     } else {
       restoreClass(selectWrap);
-      restoreClass(cardioWrap);
+      if (cardioWrap) cardioWrap.style.display = "none";
+      cardio.value = "";
+      cardio.disabled = true;
     }
 
     const selectLabel = select.previousElementSibling;
     const cardioLabel = cardio.previousElementSibling;
     if (selectLabel?.tagName === "LABEL") selectLabel.textContent = cardioMode ? "记录类型" : "动作";
-    if (cardioLabel?.tagName === "LABEL") cardioLabel.textContent = cardioMode ? "有氧分钟" : "有氧分钟（可选）";
+    if (cardioLabel?.tagName === "LABEL") cardioLabel.textContent = "有氧分钟";
 
     const title = modal.querySelector(".section h2");
-    if (title) title.textContent = cardioMode ? "记录有氧" : "添加训练";
+    if (title) title.textContent = cardioMode ? "记录有氧" : "记录力量训练";
 
     const save = $("saveTrainingBtn");
-    if (save) save.textContent = cardioMode ? "保存有氧" : "加入今日";
+    if (save) save.textContent = cardioMode ? "保存有氧" : "保存训练";
 
     const hint = modal.querySelector(".row + .meta");
     if (hint) hint.textContent = cardioMode ? "填写本次有氧分钟即可。" : "自重动作重量可留空。";
@@ -82,7 +89,7 @@
   const load = () => {
     if (document.querySelector('script[data-history-system]')) return;
     const s = document.createElement('script');
-    s.src = 'history-system.js?v=17';
+    s.src = 'history-system.js?v=18';
     s.dataset.historySystem = '1';
     document.head.appendChild(s);
   };
