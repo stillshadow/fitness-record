@@ -77,3 +77,15 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(setup,0));
   else setTimeout(setup,0);
 })();
+
+(() => {
+  const load = () => {
+    if (document.querySelector('script[data-history-system]')) return;
+    const s = document.createElement('script');
+    s.src = 'history-system.js?v=17';
+    s.dataset.historySystem = '1';
+    document.head.appendChild(s);
+  };
+  if (document.readyState === 'complete') setTimeout(load,0);
+  else window.addEventListener('load',load,{once:true});
+})();
