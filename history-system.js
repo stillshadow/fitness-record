@@ -83,12 +83,13 @@
 
   function updateNav(){
     const date=activeDate(), today=todayString();
-    const btn=$("historyDateButton"), next=$("historyNext");
+    const btn=$("historyDateButton"), next=$("historyNext"), subtitle=$("todayText");
     if(btn)btn.textContent=pretty(date);
     if(next){
       next.disabled=date>=today;
       next.classList.toggle("disabled",date>=today);
     }
+    if(subtitle?.textContent.startsWith("补记 ·"))subtitle.textContent=subtitle.textContent.replace("补记 ·","查看 ·");
   }
 
   const meaningful = d => !!d && (
@@ -98,10 +99,11 @@
   function recordSummary(day){
     const parts=[];
     const unique=new Set((day.training||[]).map(x=>x.exerciseId||x.exerciseName).filter(Boolean)).size;
-    parts.push(unique?`训练 ${unique} 个动作`:"休息");
+    if(unique)parts.push(`训练 ${unique} 个动作`);
+    if((+day.cardio||0)>0)parts.push(`有氧 ${+day.cardio}min`);
+    if(!unique && !(+day.cardio||0))parts.push("休息");
     if((day.foods||[]).length)parts.push(`饮食 ${(day.foods||[]).length} 笔`);
     if(day.weight!=null)parts.push(`晨重 ${Number(day.weight).toFixed(2).replace(/0+$/,"").replace(/\.$/,"")}kg`);
-    if((+day.cardio||0)>0)parts.push(`有氧 ${+day.cardio}min`);
     return parts.join(" · ");
   }
 
