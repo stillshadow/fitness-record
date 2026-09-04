@@ -166,6 +166,9 @@
       .history-record{width:100%;text-align:left;color:var(--text);font:inherit;cursor:pointer}
       .history-record:hover{border-color:var(--accent)}
       .history-chevron{color:var(--muted);font-size:22px;padding-left:6px}
+      #backfillModal .modal-panel{max-width:100%;overflow:hidden}
+      #backfillDate{width:100%!important;inline-size:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;max-inline-size:100%!important;display:block!important;box-sizing:border-box!important;overflow:hidden!important;-webkit-appearance:none!important;appearance:none!important}
+      #backfillDate::-webkit-date-and-time-value{min-width:0!important;margin:0!important;text-align:left}
       @media(max-width:700px){.history-date-nav{grid-template-columns:40px minmax(0,1fr) 40px}.history-arrow,.history-date-button{height:40px}}
     `;
     document.head.appendChild(style);
