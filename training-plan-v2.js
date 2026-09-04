@@ -136,7 +136,7 @@
       }).filter(Boolean).join("<br>");
       if(!lines)return;
       if(!note){note=document.createElement("div");note.className="plan-finisher-note";sub.appendChild(note)}
-      note.innerHTML=lines;
+      if(note.innerHTML!==lines)note.innerHTML=lines;
     });
   }
 
