@@ -102,16 +102,16 @@
 })();
 
 (() => {
-  const load = (src,key) => {
-    if (document.querySelector(`script[data-${key}]`)) return;
+  const load = (src,attr) => {
+    if (document.querySelector(`script[data-${attr}]`)) return;
     const s = document.createElement('script');
     s.src = src;
-    s.dataset[key] = '1';
+    s.setAttribute(`data-${attr}`,'1');
     document.head.appendChild(s);
   };
   const boot = () => {
-    load('day-plan-editor.js?v=27','dayPlanEditor');
-    load('training-plan-v2.js?v=27','trainingPlanV2');
+    load('day-plan-editor.js?v=27','day-plan-editor');
+    load('training-plan-v2.js?v=27','training-plan-v2');
   };
   if (document.readyState === 'complete') setTimeout(boot,0);
   else window.addEventListener('load',boot,{once:true});
