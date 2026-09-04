@@ -166,6 +166,7 @@
       .history-record{width:100%;text-align:left;color:var(--text);font:inherit;cursor:pointer}
       .history-record:hover{border-color:var(--accent)}
       .history-chevron{color:var(--muted);font-size:22px;padding-left:6px}
+      #strengthList .item > div:last-child{text-align:right}
       #backfillModal .modal-panel{max-width:100%;overflow:hidden}
       #backfillDate{width:100%!important;inline-size:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;max-inline-size:100%!important;display:block!important;box-sizing:border-box!important;overflow:hidden!important;-webkit-appearance:none!important;appearance:none!important}
       #backfillDate::-webkit-date-and-time-value{min-width:0!important;margin:0!important;text-align:left}
