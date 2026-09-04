@@ -114,7 +114,7 @@
     box.addEventListener("click",e=>{
       const btn=e.target.closest?.("[data-load-plan]");if(!btn)return;
       const plan=(getDB().plans||[]).find(x=>x.id===btn.dataset.loadPlan);
-      if(!plan?.finisherIds?.length)return;
+      if(!plan)return;
       e.preventDefault();
       e.stopImmediatePropagation();
       loadPlanWithFinisher(plan);
@@ -142,7 +142,8 @@
 
   function protectFinishers(){
     const day=getDB().days?.[activeDate()];
-    const finishers=new Set(day?.planFinisherIds||[]);
+    const loaded=new Set(day?.planExerciseIds||[]);
+    const finishers=new Set((day?.planFinisherIds||[]).filter(id=>loaded.has(id)));
     if(!finishers.size)return;
     document.querySelectorAll("[data-replace-plan-ex]").forEach(btn=>{
       if(finishers.has(btn.dataset.replacePlanEx))btn.remove();
@@ -155,7 +156,8 @@
     box.addEventListener("click",e=>{
       const btn=e.target.closest?.("[data-replace-plan-ex]");if(!btn)return;
       const day=getDB().days?.[activeDate()];
-      if((day?.planFinisherIds||[]).includes(btn.dataset.replacePlanEx)){
+      const loaded=day?.planExerciseIds||[];
+      if(loaded.includes(btn.dataset.replacePlanEx)&&(day?.planFinisherIds||[]).includes(btn.dataset.replacePlanEx)){
         e.preventDefault();e.stopImmediatePropagation();
       }
     },true);
