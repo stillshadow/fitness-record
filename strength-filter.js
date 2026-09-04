@@ -100,3 +100,15 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(setup, 0));
   else setTimeout(setup, 0);
 })();
+
+(() => {
+  const load = () => {
+    if (document.querySelector('script[data-day-plan-editor]')) return;
+    const s = document.createElement('script');
+    s.src = 'day-plan-editor.js?v=26';
+    s.dataset.dayPlanEditor = '1';
+    document.head.appendChild(s);
+  };
+  if (document.readyState === 'complete') setTimeout(load,0);
+  else window.addEventListener('load',load,{once:true});
+})();
