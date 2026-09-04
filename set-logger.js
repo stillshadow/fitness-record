@@ -138,12 +138,10 @@
     updateSaveText();
   }
 
-  function hideLegacyStrengthFields(hide){
+  function hideOriginalStrengthInputs(){
     ["trainingWeight","trainingReps","trainingSets","trainingRir"].forEach(id=>{
-      const input=$(id);if(input?.parentElement)input.parentElement.style.display=hide?"none":"";
+      const input=$(id);if(input?.parentElement)input.parentElement.style.display="none";
     });
-    const hint=$("trainingModal")?.querySelector(".row + .meta");
-    if(hint)hint.style.display=hide?"none":"";
   }
 
   function updateSaveText(){
@@ -155,13 +153,15 @@
   function syncMode(forceReset=false){
     const editor=ensureEditor();if(!editor)return;
     const id=$("trainingExercise")?.value||"";
+    hideOriginalStrengthInputs();
+    const hint=$("trainingModal")?.querySelector(".row + .meta");
     if(!id){
       editor.style.display="none";
-      hideLegacyStrengthFields(false);
+      if(hint)hint.style.display="";
       return;
     }
     if(forceReset||currentExerciseId!==id)resetDrafts(id);
-    hideLegacyStrengthFields(true);
+    if(hint)hint.style.display="none";
     editor.style.display="block";
     renderEditor();
   }
