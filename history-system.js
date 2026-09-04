@@ -186,3 +186,205 @@
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(setup,0));
   else setTimeout(setup,0);
 })();
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const CATEGORIES=[
+    {id:"chest",label:"胸"},
+    {id:"back",label:"背"},
+    {id:"shoulder",label:"肩"},
+    {id:"biceps",label:"二头"},
+    {id:"triceps",label:"三头"},
+    {id:"legs",label:"腿 / 臀"},
+    {id:"calves",label:"小腿"},
+    {id:"core",label:"腹 / 核心"},
+    {id:"other",label:"其他"}
+  ];
+  let activeLibraryCategory="all";
+  let changingPicker=false;
+
+  const getDB=()=>window.fitnessApp?.getDB?.()||{exercises:[]};
+  const categoryOfGroup=group=>{
+    const g=String(group||"");
+    if(g.startsWith("胸"))return "chest";
+    if(g.startsWith("背"))return "back";
+    if(g.startsWith("肩"))return "shoulder";
+    if(g.startsWith("二头"))return "biceps";
+    if(g.startsWith("三头"))return "triceps";
+    if(/^(股四头|腘绳肌|臀|大腿内侧)/.test(g))return "legs";
+    if(g.startsWith("小腿"))return "calves";
+    if(/腹|核心/.test(g))return "core";
+    return "other";
+  };
+  const categoryOfExercise=ex=>categoryOfGroup(ex?.group);
+  const availableCategories=()=>{
+    const present=new Set((getDB().exercises||[]).map(categoryOfExercise));
+    return CATEGORIES.filter(x=>present.has(x.id));
+  };
+  const labelOf=id=>CATEGORIES.find(x=>x.id===id)?.label||"其他";
+
+  function setupStyles(){
+    if($("exerciseCategoryStyle"))return;
+    const style=document.createElement("style");
+    style.id="exerciseCategoryStyle";
+    style.textContent=`
+      .exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0 9px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+      .exercise-category-bar::-webkit-scrollbar{display:none}
+      .exercise-category-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:12px}
+      .exercise-category-chip.active{background:var(--accent);border-color:var(--accent);color:#09101b;font-weight:800}
+      .exercise-library-heading{font-size:12px;font-weight:850;color:var(--accent2);padding:8px 2px 1px}
+      #trainingGroupWrap{min-width:0}
+      @media(max-width:700px){#trainingGroupWrap{grid-column:span 12!important}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensurePickerCategories(preferred=""){
+    const filter=$("trainingGroupFilter");if(!filter)return;
+    const cats=availableCategories();
+    const current=preferred||filter.value||"cardio";
+    filter.innerHTML='<option value="cardio">有氧</option>'+cats.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join("");
+    filter.value=[...filter.options].some(o=>o.value===current)?current:"cardio";
+  }
+
+  function applyPickerLayout(category){
+    const groupWrap=$("trainingGroupWrap"),select=$("trainingExercise"),cardio=$("trainingCardio");
+    const selectWrap=select?.parentElement,cardioWrap=cardio?.parentElement;
+    const cardioMode=category==="cardio";
+    if(groupWrap)groupWrap.className=cardioMode?"c6":"c4";
+    if(selectWrap){
+      selectWrap.style.display=cardioMode?"none":"block";
+      selectWrap.className=cardioMode?"c6":"c8";
+    }
+    if(cardioWrap&&cardioMode)cardioWrap.className="c6";
+  }
+
+  function populateExercises(category,preferred="",dispatch=true){
+    const select=$("trainingExercise");if(!select)return;
+    changingPicker=true;
+    if(category==="cardio"){
+      select.innerHTML='<option value="">仅记录有氧</option>';
+      select.value="";
+    }else{
+      const items=(getDB().exercises||[])
+        .filter(x=>categoryOfExercise(x)===category)
+        .sort((a,b)=>String(a.name).localeCompare(String(b.name),"zh-CN"));
+      select.innerHTML=items.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+      if(preferred&&items.some(x=>x.id===preferred))select.value=preferred;
+      else if(items[0])select.value=items[0].id;
+    }
+    if(dispatch)select.dispatchEvent(new Event("change",{bubbles:true}));
+    applyPickerLayout(category);
+    changingPicker=false;
+  }
+
+  function syncPickerFromCurrent(){
+    const select=$("trainingExercise"),filter=$("trainingGroupFilter");if(!select||!filter)return;
+    const current=select.value,db=getDB();
+    let category="cardio";
+    if(current){
+      const ex=(db.exercises||[]).find(x=>x.id===current);
+      category=categoryOfExercise(ex);
+    }
+    ensurePickerCategories(category);
+    filter.value=category;
+    populateExercises(category,current,false);
+  }
+
+  function setupTrainingPicker(){
+    const select=$("trainingExercise");if(!select)return;
+    const row=select.closest(".row"),selectWrap=select.parentElement;
+    if(!row||!selectWrap)return;
+
+    let wrap=$("trainingGroupWrap");
+    if(!wrap){
+      wrap=document.createElement("div");
+      wrap.id="trainingGroupWrap";
+      wrap.className="c4";
+      wrap.innerHTML='<label for="trainingGroupFilter">分类</label><select id="trainingGroupFilter"></select>';
+      row.insertBefore(wrap,selectWrap);
+      $("trainingGroupFilter").addEventListener("change",e=>populateExercises(e.target.value,"",true));
+    }
+    ensurePickerCategories();
+
+    if(!select.dataset.categorySync){
+      select.dataset.categorySync="1";
+      select.addEventListener("change",()=>{
+        if(changingPicker)return;
+        const ex=(getDB().exercises||[]).find(x=>x.id===select.value);
+        if(ex){
+          const category=categoryOfExercise(ex);
+          const filter=$("trainingGroupFilter");
+          ensurePickerCategories(category);
+          if(filter)filter.value=category;
+          applyPickerLayout(category);
+        }
+      });
+    }
+
+    const modal=$("trainingModal");
+    if(modal&&!modal.dataset.categoryObserved){
+      modal.dataset.categoryObserved="1";
+      new MutationObserver(()=>{
+        if(modal.classList.contains("open"))setTimeout(syncPickerFromCurrent,0);
+      }).observe(modal,{attributes:true,attributeFilter:["class"]});
+    }
+    syncPickerFromCurrent();
+  }
+
+  function renderLibraryBar(){
+    const box=$("exerciseList");if(!box)return;
+    let bar=$("exerciseCategoryBar");
+    if(!bar){
+      bar=document.createElement("div");bar.id="exerciseCategoryBar";bar.className="exercise-category-bar";
+      box.parentElement?.insertBefore(bar,box);
+    }
+    const cats=availableCategories();
+    if(activeLibraryCategory!=="all"&&!cats.some(x=>x.id===activeLibraryCategory))activeLibraryCategory="all";
+    bar.innerHTML=`<button class="exercise-category-chip ${activeLibraryCategory==="all"?"active":""}" data-ex-cat="all">全部</button>`+
+      cats.map(x=>`<button class="exercise-category-chip ${activeLibraryCategory===x.id?"active":""}" data-ex-cat="${x.id}">${esc(x.label)}</button>`).join("");
+    bar.querySelectorAll("[data-ex-cat]").forEach(btn=>btn.addEventListener("click",()=>{
+      activeLibraryCategory=btn.dataset.exCat;
+      renderLibraryBar();
+      organizeLibrary();
+    }));
+  }
+
+  function organizeLibrary(){
+    const box=$("exerciseList");if(!box)return;
+    box.querySelectorAll(".exercise-library-heading").forEach(x=>x.remove());
+    const items=[...box.children].filter(x=>x.classList?.contains("item"));
+    let lastCategory="";
+    items.forEach(item=>{
+      const group=item.querySelector(".item-sub")?.textContent.trim()||"其他";
+      const category=categoryOfGroup(group);
+      const visible=activeLibraryCategory==="all"||activeLibraryCategory===category;
+      item.style.display=visible?"grid":"none";
+      if(visible&&activeLibraryCategory==="all"&&category!==lastCategory){
+        const heading=document.createElement("div");
+        heading.className="exercise-library-heading";
+        heading.textContent=labelOf(category);
+        box.insertBefore(heading,item);
+        lastCategory=category;
+      }
+    });
+  }
+
+  function refreshCategories(){
+    setupTrainingPicker();
+    renderLibraryBar();
+    organizeLibrary();
+  }
+
+  function setup(){
+    if(!window.fitnessApp||!$("trainingExercise"))return setTimeout(setup,80);
+    setupStyles();
+    refreshCategories();
+    window.addEventListener("fitness:changed",()=>setTimeout(refreshCategories,0));
+    document.querySelectorAll('[data-page="training"]').forEach(b=>b.addEventListener("click",()=>setTimeout(refreshCategories,0)));
+  }
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(setup,0));
+  else setTimeout(setup,0);
+})();
