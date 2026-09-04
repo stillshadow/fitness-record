@@ -1,5 +1,5 @@
-const CACHE='chibianying-fitness-v1-25';
-const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','update.html','icon-192.png','icon-512.png'];
+const CACHE='chibianying-fitness-v1-26';
+const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','day-plan-editor.js','update.html','icon-192.png','icon-512.png'];
 
 self.addEventListener('install',e=>e.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())
@@ -32,7 +32,7 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  if(url.origin===location.origin && (url.pathname.endsWith('/cloud-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js'))){
+  if(url.origin===location.origin && (url.pathname.endsWith('/cloud-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js') || url.pathname.endsWith('/day-plan-editor.js'))){
     e.respondWith(networkFirst(e.request));
     return;
   }
