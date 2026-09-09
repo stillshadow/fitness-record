@@ -114,10 +114,9 @@
     document.head.appendChild(s);
   };
   const boot = () => {
-    load('day-plan-editor.js?v=27','day-plan-editor');
-    load('training-plan-v2.js?v=33','training-plan-v2');
-    load('ui-v2.js?v=33','ui-v2');
-    load('training-session.js?v=33','training-session');
+    load('training-plan-v2.js?v=34','training-plan-v2');
+    load('ui-v2.js?v=34','ui-v2');
+    load('training-session.js?v=34','training-session');
   };
   if (document.readyState === 'complete') setTimeout(boot,0);
   else window.addEventListener('load',boot,{once:true});
