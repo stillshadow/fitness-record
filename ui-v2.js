@@ -10,7 +10,7 @@
   function ensureStyle(){
     if(document.querySelector('link[data-ui-v2]'))return;
     const link=document.createElement('link');
-    link.rel='stylesheet';link.href='ui-v2.css?v=31';link.dataset.uiV2='1';
+    link.rel='stylesheet';link.href='ui-v2.css?v=32';link.dataset.uiV2='1';
     document.head.appendChild(link);
   }
 
@@ -30,11 +30,16 @@
     if(settings&&settings.textContent==='方案')settings.textContent='设置';
   }
 
+  function removeQuickFab(){
+    document.getElementById('fab')?.remove();
+  }
+
   function setup(){
     ensureStyle();
     document.body.classList.add('ui-v2');
     decorateNav();
     simplifyLabels();
+    removeQuickFab();
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});
