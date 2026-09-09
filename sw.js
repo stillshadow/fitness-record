@@ -1,5 +1,5 @@
-const CACHE='chibianying-fitness-v1-30';
-const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','day-plan-editor.js','training-plan-v2.js','update.html','icon-192.png','icon-512.png'];
+const CACHE='chibianying-fitness-v1-31';
+const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','day-plan-editor.js','training-plan-v2.js','ui-v2.js','ui-v2.css','update.html','icon-192.png','icon-512.png'];
 
 self.addEventListener('install',e=>e.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())
@@ -32,7 +32,7 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  if(url.origin===location.origin && (url.pathname.endsWith('/cloud-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js') || url.pathname.endsWith('/day-plan-editor.js') || url.pathname.endsWith('/training-plan-v2.js'))){
+  if(url.origin===location.origin && (url.pathname.endsWith('/cloud-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js') || url.pathname.endsWith('/day-plan-editor.js') || url.pathname.endsWith('/training-plan-v2.js') || url.pathname.endsWith('/ui-v2.js') || url.pathname.endsWith('/ui-v2.css'))){
     e.respondWith(networkFirst(e.request));
     return;
   }
