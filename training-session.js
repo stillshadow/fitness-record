@@ -266,11 +266,23 @@
     toast(minutes?`训练完成 · 有氧 ${minutes}min`:"训练完成");
   }
 
+  function fallbackLoadPlan(plan,ids){
+    const db=getDB(),date=activeDate();
+    db.days=db.days||{};
+    if(!db.days[date])db.days[date]={date,weight:null,cardio:0,note:"",planExerciseIds:[],planName:"",training:[],foods:[]};
+    const day=db.days[date];
+    day.planId=plan.id;day.planName=plan.name;day.planExerciseIds=[...ids];
+    delete day.planMainExerciseIds;delete day.planFinisherIds;delete day.planOverrides;
+    db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
+    putDB(db);
+  }
+
   function startTrainingFromPlan(planId){
     const db=getDB(),plan=(db.plans||[]).find(p=>p.id===planId);if(!plan)return;
     const ids=[...(plan.exerciseIds||[]),...(plan.finisherIds||[])].filter(Boolean);
     if(!ids.length)return toast("这个模板还没有动作");
     if(typeof window.loadTrainingPlanToDay==="function")window.loadTrainingPlanToDay(planId);
+    else fallbackLoadPlan(plan,ids);
     session={date:activeDate(),mode:"plan",planId:plan.id,name:plan.name,exerciseIds:ids,index:0};
     saveSession();
     $("startTrainingModal")?.classList.remove("open");
