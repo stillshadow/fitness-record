@@ -90,7 +90,6 @@
       changed=true;
     }
 
-    // 兼容旧版“收尾动作”，仅移除特殊身份，不改变动作顺序或计划内容。
     (db.plans||[]).forEach(plan=>{
       if(!(plan.finisherIds||[]).length)return;
       const merged=[],seen=new Set();
@@ -150,11 +149,11 @@
     box.querySelectorAll("[data-load-plan]").forEach(btn=>{
       const card=btn.closest(".item"),plan=(db.plans||[]).find(x=>x.id===btn.dataset.loadPlan);
       if(!card||!plan)return;
-      btn.textContent="开始";
+      if(btn.textContent!=="开始")btn.textContent="开始";
       const sub=card.querySelector(".item-sub");
       if(sub){
-        const count=(plan.exerciseIds||[]).length;
-        sub.textContent=`${count} 个动作`;
+        const summary=`${(plan.exerciseIds||[]).length} 个动作`;
+        if(sub.textContent!==summary)sub.textContent=summary;
       }
     });
   }
