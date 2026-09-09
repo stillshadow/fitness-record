@@ -11,7 +11,7 @@
     {id:"core",label:"腹 / 核心"},
     {id:"other",label:"其他"}
   ];
-  let activeCategory = "all";
+  let activeCategory = "";
   let scheduled = false;
 
   const getDB = () => window.fitnessApp?.getDB?.() || {exercises:[]};
@@ -65,20 +65,23 @@
     const cards = [...box.children].filter(x => x.classList?.contains("item"));
     const present = new Set(cards.map(card => categoryForCard(card, db)));
     const cats = CATEGORIES.filter(x => present.has(x.id));
-    if (activeCategory !== "all" && !present.has(activeCategory)) activeCategory = "all";
+    if (!cats.length) {
+      bar.style.display = "none";
+      return;
+    }
+    if (!activeCategory || !present.has(activeCategory)) activeCategory = cats[0].id;
 
-    bar.style.display = cards.length ? "flex" : "none";
-    bar.innerHTML = `<button type="button" class="strength-category-chip ${activeCategory === "all" ? "active" : ""}" data-strength-cat="all">全部</button>` +
-      cats.map(x => `<button type="button" class="strength-category-chip ${activeCategory === x.id ? "active" : ""}" data-strength-cat="${x.id}">${x.label}</button>`).join("");
+    bar.style.display = "flex";
+    bar.innerHTML = cats.map(x => `<button type="button" class="strength-category-chip ${activeCategory === x.id ? "active" : ""}" data-strength-cat="${x.id}">${x.label}</button>`).join("");
 
     bar.querySelectorAll("[data-strength-cat]").forEach(btn => btn.addEventListener("click", () => {
-      activeCategory = btn.dataset.strengthCat || "all";
+      activeCategory = btn.dataset.strengthCat || cats[0].id;
       render();
     }));
 
     cards.forEach(card => {
       const cat = categoryForCard(card, db);
-      card.style.display = activeCategory === "all" || cat === activeCategory ? "grid" : "none";
+      card.style.display = cat === activeCategory ? "grid" : "none";
     });
   }
 
@@ -111,8 +114,9 @@
   };
   const boot = () => {
     load('day-plan-editor.js?v=27','day-plan-editor');
-    load('training-plan-v2.js?v=30','training-plan-v2');
-    load('ui-v2.js?v=31','ui-v2');
+    load('training-plan-v2.js?v=32','training-plan-v2');
+    load('ui-v2.js?v=32','ui-v2');
+    load('training-session.js?v=32','training-session');
   };
   if (document.readyState === 'complete') setTimeout(boot,0);
   else window.addEventListener('load',boot,{once:true});
