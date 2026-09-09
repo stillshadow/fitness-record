@@ -290,7 +290,6 @@
   function replaceCurrentExercise(){
     if(!session?.exerciseIds?.length)return;
     const oldId=session.exerciseIds[session.index];
-    const used=session.exerciseIds.filter((_,i)=>i!==session.index);
     openExercisePicker(newId=>{
       if(!session||!newId)return;
       const oldRx=session.prescriptions?.[oldId]||"";
@@ -300,7 +299,7 @@
       if(oldRx)session.prescriptions[newId]=oldRx;
       saveSession();syncSessionPlanToDay();renderSession();openSession();
       toast("本次训练动作已替换");
-    },"替换当前动作",used);
+    },"替换当前动作",session.exerciseIds);
   }
 
   function addExerciseAfterCurrent(){
@@ -482,8 +481,11 @@
     const db=getDB();
     $("planList")?.querySelectorAll(".item").forEach(card=>{
       const edit=card.querySelector("[data-edit-plan]"),plan=(db.plans||[]).find(p=>p.id===edit?.dataset.editPlan);
-      card.querySelector("[data-load-plan]")?.remove();
-      if(plan){const sub=card.querySelector(".item-sub");if(sub)sub.textContent=`${(plan.exerciseIds||[]).length} 个动作`}
+      const load=card.querySelector("[data-load-plan]");if(load)load.style.display="none";
+      if(plan){
+        const sub=card.querySelector(".item-sub"),summary=`${(plan.exerciseIds||[]).length} 个动作`;
+        if(sub&&sub.textContent!==summary)sub.textContent=summary;
+      }
     });
   }
 
