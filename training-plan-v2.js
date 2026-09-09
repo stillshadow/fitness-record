@@ -3,6 +3,8 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const clone = x => JSON.parse(JSON.stringify(x));
   const PLAN_VERSION = 2;
+  let editingPlanId = "";
+  let editingPlanRows = [];
 
   const DEFAULT_PLANS = [
     {
@@ -127,42 +129,119 @@
     const db=getDB();
     box.querySelectorAll("[data-load-plan]").forEach(btn=>{
       const card=btn.closest(".item"),plan=(db.plans||[]).find(x=>x.id===btn.dataset.loadPlan);
-      if(!card||!plan?.finisherIds?.length)return;
+      if(!card||!plan)return;
       const sub=card.querySelector(".item-sub");if(!sub)return;
       let note=card.querySelector(".plan-finisher-note");
       const lines=(plan.finisherIds||[]).map(id=>{
         const ex=(db.exercises||[]).find(x=>x.id===id);
         if(!ex)return "";
-        return `收尾：${esc(ex.name)} · ${esc(plan.prescriptions?.[id]||"")}`;
+        return `收尾：${esc(ex.name)}${plan.prescriptions?.[id]?` · ${esc(plan.prescriptions[id])}`:""}`;
       }).filter(Boolean).join("<br>");
-      if(!lines)return;
+      if(!lines){note?.remove();return}
       if(!note){note=document.createElement("div");note.className="plan-finisher-note";sub.appendChild(note)}
       if(note.innerHTML!==lines)note.innerHTML=lines;
     });
   }
 
-  function protectFinishers(){
-    const day=getDB().days?.[activeDate()];
-    const loaded=new Set(day?.planExerciseIds||[]);
-    const finishers=new Set((day?.planFinisherIds||[]).filter(id=>loaded.has(id)));
-    if(!finishers.size)return;
-    document.querySelectorAll("[data-replace-plan-ex]").forEach(btn=>{
-      if(finishers.has(btn.dataset.replacePlanEx))btn.remove();
-    });
+  function ensurePlanItemsModal(){
+    if($("planItemsModal"))return;
+    const modal=document.createElement("div");
+    modal.className="modal";modal.id="planItemsModal";
+    modal.innerHTML=`
+      <div class="modal-panel wide">
+        <div class="section"><h2>编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div>
+        <label for="planItemsName">模板名称</label><input id="planItemsName">
+        <div class="meta" style="margin:8px 0 10px">系统模板和自建模板使用同一套规则。每个动作都可以删除、增加、修改计划，也可以设为收尾。</div>
+        <div id="planItemsList" class="list"></div>
+        <div class="row" style="margin-top:12px;align-items:end">
+          <div class="c8"><label for="planItemsAddSelect">添加动作</label><select id="planItemsAddSelect"></select></div>
+          <div class="c4"><button class="btn soft" id="planItemsAddBtn" style="width:100%">＋ 添加</button></div>
+        </div>
+        <div class="modal-actions"><button class="btn" id="savePlanItemsBtn">保存模板</button></div>
+      </div>`;
+    document.body.appendChild(modal);
+    $("closePlanItemsModal").addEventListener("click",()=>modal.classList.remove("open"));
+    modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});
+    $("planItemsAddBtn").addEventListener("click",addPlanItem);
+    $("savePlanItemsBtn").addEventListener("click",savePlanItems);
   }
 
-  function hookFinisherProtection(){
-    const box=$("todayTrainingList");if(!box||box.dataset.finisherProtected)return;
-    box.dataset.finisherProtected="1";
+  function openPlanItemsEditor(planId){
+    ensurePlanItemsModal();
+    const db=getDB(),plan=(db.plans||[]).find(x=>x.id===planId);if(!plan)return;
+    editingPlanId=plan.id;
+    const finishers=new Set(plan.finisherIds||[]),seen=new Set();
+    editingPlanRows=[];
+    [...(plan.exerciseIds||[]),...(plan.finisherIds||[])].forEach(id=>{
+      if(seen.has(id))return;seen.add(id);
+      editingPlanRows.push({id,finisher:finishers.has(id),rx:plan.prescriptions?.[id]||""});
+    });
+    $("planItemsName").value=plan.name||"";
+    renderPlanItemsEditor();
+    $("planItemsModal").classList.add("open");
+  }
+
+  function renderPlanItemsEditor(){
+    const db=getDB(),box=$("planItemsList");if(!box)return;
+    if(!editingPlanRows.length)box.innerHTML='<div class="empty">模板里还没有动作，可以从下方添加。</div>';
+    else box.innerHTML=editingPlanRows.map((row,i)=>{
+      const ex=(db.exercises||[]).find(x=>x.id===row.id)||{name:"未知动作",group:"其他"};
+      return `<div class="template-plan-row" data-plan-row="${i}">
+        <div class="template-plan-head"><div><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")}</div></div><button type="button" class="btn danger" data-remove-plan-item="${i}">删</button></div>
+        <div class="template-plan-fields"><div><label>计划</label><input data-plan-rx="${i}" value="${esc(row.rx)}" placeholder="例如 3 × 8–12"></div><label class="template-finisher-toggle"><input type="checkbox" data-plan-finisher="${i}" ${row.finisher?"checked":""}> 收尾动作</label></div>
+      </div>`;
+    }).join("");
+    box.querySelectorAll("[data-remove-plan-item]").forEach(b=>b.addEventListener("click",()=>{
+      editingPlanRows.splice(+b.dataset.removePlanItem,1);renderPlanItemsEditor();
+    }));
+    box.querySelectorAll("[data-plan-rx]").forEach(input=>input.addEventListener("input",()=>{
+      const row=editingPlanRows[+input.dataset.planRx];if(row)row.rx=input.value;
+    }));
+    box.querySelectorAll("[data-plan-finisher]").forEach(input=>input.addEventListener("change",()=>{
+      const row=editingPlanRows[+input.dataset.planFinisher];if(row)row.finisher=input.checked;
+    }));
+    refreshPlanAddSelect();
+  }
+
+  function refreshPlanAddSelect(){
+    const select=$("planItemsAddSelect");if(!select)return;
+    const db=getDB(),used=new Set(editingPlanRows.map(x=>x.id));
+    const available=(db.exercises||[]).filter(x=>!used.has(x.id));
+    select.innerHTML=available.length?available.map(x=>`<option value="${esc(x.id)}">${esc(x.group||"其他")}｜${esc(x.name)}</option>`).join(""):'<option value="">没有可添加动作</option>';
+    $("planItemsAddBtn").disabled=!available.length;
+  }
+
+  function addPlanItem(){
+    const id=$("planItemsAddSelect")?.value;if(!id)return;
+    editingPlanRows.push({id,finisher:false,rx:""});
+    renderPlanItemsEditor();
+  }
+
+  function savePlanItems(){
+    const name=$("planItemsName")?.value.trim()||"";
+    if(!name)return toast("填写模板名称");
+    if(!editingPlanRows.length)return toast("模板至少保留一个动作");
+    const db=getDB(),plan=(db.plans||[]).find(x=>x.id===editingPlanId);if(!plan)return;
+    plan.name=name;
+    plan.exerciseIds=editingPlanRows.filter(x=>!x.finisher).map(x=>x.id);
+    plan.finisherIds=editingPlanRows.filter(x=>x.finisher).map(x=>x.id);
+    plan.prescriptions={};
+    editingPlanRows.forEach(x=>{const rx=String(x.rx||"").trim();if(rx)plan.prescriptions[x.id]=rx});
+    db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
+    putDB(db);
+    $("planItemsModal")?.classList.remove("open");
+    window.renderTrainingPage?.();
+    toast("模板已保存");
+  }
+
+  function hookUnifiedPlanEditing(){
+    const box=$("planList");if(!box||box.dataset.unifiedPlanEditing)return;
+    box.dataset.unifiedPlanEditing="1";
     box.addEventListener("click",e=>{
-      const btn=e.target.closest?.("[data-replace-plan-ex]");if(!btn)return;
-      const day=getDB().days?.[activeDate()];
-      const loaded=day?.planExerciseIds||[];
-      if(loaded.includes(btn.dataset.replacePlanEx)&&(day?.planFinisherIds||[]).includes(btn.dataset.replacePlanEx)){
-        e.preventDefault();e.stopImmediatePropagation();
-      }
+      const btn=e.target.closest?.("[data-edit-plan]");if(!btn)return;
+      e.preventDefault();e.stopImmediatePropagation();
+      openPlanItemsEditor(btn.dataset.editPlan);
     },true);
-    new MutationObserver(()=>requestAnimationFrame(protectFinishers)).observe(box,{childList:true,subtree:true});
   }
 
   function setupStyles(){
@@ -170,11 +249,17 @@
     const style=document.createElement("style");style.id="personalPlanStyle";
     style.textContent=`
       .plan-finisher-note{margin-top:5px;color:var(--accent2);font-weight:750}
+      .template-plan-row{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}
+      .template-plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+      .template-plan-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:9px}
+      .template-finisher-toggle{display:flex;align-items:center;gap:6px;white-space:nowrap;padding-bottom:9px;color:var(--muted)}
+      .template-finisher-toggle input{width:auto}
       #trainingGuidanceCard .training-cycle{font-size:14px;font-weight:850;letter-spacing:.2px}
       #trainingGuidanceCard details{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
       #trainingGuidanceCard summary{cursor:pointer;font-weight:800;color:var(--text)}
       #trainingGuidanceCard .guidance-copy{margin-top:9px;color:var(--muted);font-size:13px;line-height:1.75}
       #trainingGuidanceCard .guidance-copy b{color:var(--text)}
+      @media(max-width:640px){.template-plan-fields{grid-template-columns:1fr}.template-finisher-toggle{padding-bottom:0}}
     `;
     document.head.appendChild(style);
   }
@@ -187,7 +272,7 @@
     card.id="trainingGuidanceCard";card.className="card s12";
     card.innerHTML=`
       <div class="section"><h2>训练调整备忘</h2><span class="meta">先固定训练，再根据表现调整</span></div>
-      <div class="callout"><div class="training-cycle">推 → 拉 → 休 → 推 → 拉 → 腿 → 休</div><div class="meta" style="margin-top:5px">推 / 拉 / 腿各 5 个主动作；每次训练结束悬垂举腿 3 × 8。</div></div>
+      <div class="callout"><div class="training-cycle">推 → 拉 → 休 → 推 → 拉 → 腿 → 休</div><div class="meta" style="margin-top:5px">当前基准：推 / 拉 / 腿各 5 个主动作；每次训练结束悬垂举腿 3 × 8。模板内容可以随时编辑，历史训练不会因此改变。</div></div>
       <details>
         <summary>执行与进步规则</summary>
         <div class="guidance-copy">
@@ -210,7 +295,7 @@
   }
 
   function scheduleDecorate(){
-    requestAnimationFrame(()=>{decoratePlanCards();protectFinishers();ensureGuidance()});
+    requestAnimationFrame(()=>{decoratePlanCards();ensureGuidance()});
   }
 
   function setup(){
@@ -218,7 +303,8 @@
     setupStyles();
     migratePlan();
     hookPlanLoading();
-    hookFinisherProtection();
+    hookUnifiedPlanEditing();
+    ensurePlanItemsModal();
     ensureGuidance();
     decoratePlanCards();
     const plans=$("planList");
