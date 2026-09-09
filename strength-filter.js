@@ -108,6 +108,7 @@
   const load = (src,attr) => {
     if (document.querySelector(`script[data-${attr}]`)) return;
     const s = document.createElement('script');
+    s.async = false;
     s.src = src;
     s.setAttribute(`data-${attr}`,'1');
     document.head.appendChild(s);
