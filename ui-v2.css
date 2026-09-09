@@ -48,6 +48,7 @@ body.ui-v2 .card{
 body.ui-v2 .section{margin-bottom:11px}
 body.ui-v2 .section h2{font-size:14px;font-weight:760;letter-spacing:.01em}
 body.ui-v2 .meta{font-size:11px;color:#7f8997}
+body.ui-v2 #planHint,body.ui-v2 #clearLoadedPlanBtn{display:none!important}
 
 body.ui-v2 .summary{gap:0;border-top:1px solid rgba(255,255,255,.055);border-bottom:1px solid rgba(255,255,255,.055)}
 body.ui-v2 .summary-item{
@@ -212,13 +213,23 @@ body.ui-v2 .training-session-group{font-size:11px;color:var(--accent2);margin-bo
 body.ui-v2 .training-session-exercise h1{font-size:32px;line-height:1.15;margin:0 0 12px;font-weight:780;letter-spacing:-.02em}
 body.ui-v2 .training-session-prescription{font-size:15px;color:#c9d1dc}
 body.ui-v2 .training-session-next{font-size:12px;color:var(--muted);margin-top:28px}
+body.ui-v2 .training-session-edit-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+body.ui-v2 .training-session-edit-actions .btn{min-height:40px;color:#b5becb}
+body.ui-v2 .training-session-edit-actions .session-remove{color:#ff9aa4}
 body.ui-v2 .training-session-record{
-  width:100%;border:0;border-radius:15px;margin-top:14px;padding:16px 18px;background:linear-gradient(180deg,#b6c3ff,#94a8ff);
+  width:100%;border:0;border-radius:15px;margin-top:10px;padding:16px 18px;background:linear-gradient(180deg,#b6c3ff,#94a8ff);
   color:#0b1018;font-weight:820;font-size:15px
 }
 body.ui-v2 .training-session-record:active{transform:scale(.985)}
 body.ui-v2 .training-session-actions{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:10px}
 body.ui-v2 .training-session-actions .btn{min-height:44px}
+body.ui-v2 .training-session-actions .wide{grid-column:1/-1;width:100%}
+
+body.ui-v2 .finish-training-label{font-size:11px;color:var(--muted);margin-bottom:7px}
+body.ui-v2 .finish-training-summary{display:grid;gap:6px}
+body.ui-v2 .finish-training-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);border-radius:11px;padding:9px 11px}
+body.ui-v2 .finish-training-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.ui-v2 .finish-training-row b{font-size:12px;color:var(--accent2);white-space:nowrap}
 
 body.ui-v2 .page.active{animation:uiV2PageIn .16s ease-out}
 @keyframes uiV2PageIn{from{opacity:.65;transform:translateY(3px)}to{opacity:1;transform:none}}
@@ -243,7 +254,7 @@ body.ui-v2 .page.active{animation:uiV2PageIn .16s ease-out}
   body.ui-v2 .summary-item:last-child{grid-column:auto}
   body.ui-v2 .metrics{grid-template-columns:repeat(3,1fr)!important}
   body.ui-v2 .metric strong{font-size:19px}
-  body.ui-v2 .training-session-actions{grid-template-columns:1fr 1fr}
+  body.ui-v2 .training-session-edit-actions{grid-template-columns:repeat(3,1fr)}
 }
 
 @media(prefers-reduced-motion:reduce){
