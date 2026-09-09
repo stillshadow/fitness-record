@@ -9,41 +9,41 @@
   const DEFAULT_PLANS = [
     {
       id:"push",name:"推｜胸 + 中束 + 三头",
-      exerciseIds:["bench","incline_machine_press","dip","cable_lateral_raise","overhead_triceps_extension"],
-      finisherIds:["legraise"],
+      exerciseIds:["bench","incline_machine_press","dip","cable_lateral_raise","overhead_triceps_extension","legraise"],
+      finisherIds:[],
       prescriptions:{
         bench:"4 × 6–10",
         incline_machine_press:"3 × 8–12",
         dip:"3 × 8–12 · 前倾",
         cable_lateral_raise:"4 × 12–20",
         overhead_triceps_extension:"3 × 10–15",
-        legraise:"3 × 8 · 收尾"
+        legraise:"3 × 8"
       }
     },
     {
       id:"pull",name:"拉｜背 + 后束 + 二头",
-      exerciseIds:["cable_single_pulldown","neutral_pulldown","machine_single_row","seated_row_high_elbow","cable_curl"],
-      finisherIds:["legraise"],
+      exerciseIds:["cable_single_pulldown","neutral_pulldown","machine_single_row","seated_row_high_elbow","cable_curl","legraise"],
+      finisherIds:[],
       prescriptions:{
         cable_single_pulldown:"3 × 10–12",
         neutral_pulldown:"3 × 8–12",
         machine_single_row:"3 × 8–12",
         seated_row_high_elbow:"3 × 12–15",
         cable_curl:"3 × 10–15",
-        legraise:"3 × 8 · 收尾"
+        legraise:"3 × 8"
       }
     },
     {
       id:"legs",name:"腿｜股四头 + 臀 + 腘绳肌 + 小腿",
-      exerciseIds:["barbell_squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise"],
-      finisherIds:["legraise"],
+      exerciseIds:["barbell_squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise","legraise"],
+      finisherIds:[],
       prescriptions:{
         barbell_squat:"4 × 6–10",
         bulgarian_split_squat:"3 × 8–12",
         rdl:"3 × 8–12",
         seated_leg_curl:"3 × 10–15",
         standing_calf_raise:"4 × 10–15",
-        legraise:"3 × 8 · 收尾"
+        legraise:"3 × 8"
       }
     }
   ];
@@ -75,23 +75,39 @@
   function migratePlan(){
     const db=getDB();
     db.meta=db.meta||{};
-    if((+db.meta.personalTrainingPlanVersion||0)>=PLAN_VERSION)return false;
-    db.exercises=Array.isArray(db.exercises)?db.exercises:[];
-    EXTRA_EXERCISES.forEach(ex=>{
-      const i=db.exercises.findIndex(x=>x.id===ex.id);
-      if(i<0)db.exercises.push(clone(ex));
-      else db.exercises[i]={...db.exercises[i],...clone(ex)};
+    let changed=false;
+    if((+db.meta.personalTrainingPlanVersion||0)<PLAN_VERSION){
+      db.exercises=Array.isArray(db.exercises)?db.exercises:[];
+      EXTRA_EXERCISES.forEach(ex=>{
+        const i=db.exercises.findIndex(x=>x.id===ex.id);
+        if(i<0)db.exercises.push(clone(ex));
+        else db.exercises[i]={...db.exercises[i],...clone(ex)};
+      });
+      const reserved=new Set(DEFAULT_PLANS.map(x=>x.id));
+      const custom=(db.plans||[]).filter(p=>!reserved.has(p.id));
+      db.plans=[...DEFAULT_PLANS.map(clone),...custom];
+      db.meta.personalTrainingPlanVersion=PLAN_VERSION;
+      changed=true;
+    }
+
+    // 兼容旧版“收尾动作”，仅移除特殊身份，不改变动作顺序或计划内容。
+    (db.plans||[]).forEach(plan=>{
+      if(!(plan.finisherIds||[]).length)return;
+      const merged=[],seen=new Set();
+      [...(plan.exerciseIds||[]),...(plan.finisherIds||[])].forEach(id=>{if(id&&!seen.has(id)){seen.add(id);merged.push(id)}});
+      plan.exerciseIds=merged;
+      plan.finisherIds=[];
+      changed=true;
     });
-    const reserved=new Set(DEFAULT_PLANS.map(x=>x.id));
-    const custom=(db.plans||[]).filter(p=>!reserved.has(p.id));
-    db.plans=[...DEFAULT_PLANS.map(clone),...custom];
-    db.meta.personalTrainingPlanVersion=PLAN_VERSION;
-    db.meta.updatedAt=new Date().toISOString();
-    putDB(db);
-    return true;
+
+    if(changed){
+      db.meta.updatedAt=new Date().toISOString();
+      putDB(db);
+    }
+    return changed;
   }
 
-  function loadPlanWithFinisher(plan){
+  function loadPlanToDay(plan){
     const db=getDB(),current=(db.plans||[]).find(x=>x.id===plan.id)||plan;
     const date=activeDate();
     db.days=db.days||{};
@@ -99,16 +115,16 @@
     const day=db.days[date];
     day.planId=current.id;
     day.planName=current.name;
-    day.planMainExerciseIds=clone(current.exerciseIds||[]);
-    day.planFinisherIds=clone(current.finisherIds||[]);
-    day.planExerciseIds=[...day.planMainExerciseIds,...day.planFinisherIds];
+    day.planExerciseIds=clone(current.exerciseIds||[]);
+    delete day.planMainExerciseIds;
+    delete day.planFinisherIds;
     delete day.planOverrides;
     db.meta=db.meta||{};
     db.meta.updatedAt=new Date().toISOString();
     db.meta.userTouched=true;
     putDB(db);
     window.renderTodayTraining?.(day);
-    toast(`已载入 ${current.name}`);
+    return day;
   }
 
   function hookPlanLoading(){
@@ -120,7 +136,11 @@
       if(!plan)return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      loadPlanWithFinisher(plan);
+      if(typeof window.startTrainingFromPlan==="function")window.startTrainingFromPlan(plan.id);
+      else{
+        loadPlanToDay(plan);
+        toast(`已载入 ${plan.name}`);
+      }
     },true);
   }
 
@@ -130,16 +150,12 @@
     box.querySelectorAll("[data-load-plan]").forEach(btn=>{
       const card=btn.closest(".item"),plan=(db.plans||[]).find(x=>x.id===btn.dataset.loadPlan);
       if(!card||!plan)return;
-      const sub=card.querySelector(".item-sub");if(!sub)return;
-      let note=card.querySelector(".plan-finisher-note");
-      const lines=(plan.finisherIds||[]).map(id=>{
-        const ex=(db.exercises||[]).find(x=>x.id===id);
-        if(!ex)return "";
-        return `收尾：${esc(ex.name)}${plan.prescriptions?.[id]?` · ${esc(plan.prescriptions[id])}`:""}`;
-      }).filter(Boolean).join("<br>");
-      if(!lines){note?.remove();return}
-      if(!note){note=document.createElement("div");note.className="plan-finisher-note";sub.appendChild(note)}
-      if(note.innerHTML!==lines)note.innerHTML=lines;
+      btn.textContent="开始";
+      const sub=card.querySelector(".item-sub");
+      if(sub){
+        const count=(plan.exerciseIds||[]).length;
+        sub.textContent=`${count} 个动作`;
+      }
     });
   }
 
@@ -151,7 +167,7 @@
       <div class="modal-panel wide">
         <div class="section"><h2>编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div>
         <label for="planItemsName">模板名称</label><input id="planItemsName">
-        <div class="meta" style="margin:8px 0 10px">系统模板和自建模板使用同一套规则。每个动作都可以删除、增加、修改计划，也可以设为收尾。</div>
+        <div class="meta" style="margin:8px 0 10px">动作可以增删，计划文字按需要填写。顺序就是训练顺序。</div>
         <div id="planItemsList" class="list"></div>
         <div class="row" style="margin-top:12px;align-items:end">
           <div class="c8"><label for="planItemsAddSelect">添加动作</label><select id="planItemsAddSelect"></select></div>
@@ -170,11 +186,11 @@
     ensurePlanItemsModal();
     const db=getDB(),plan=(db.plans||[]).find(x=>x.id===planId);if(!plan)return;
     editingPlanId=plan.id;
-    const finishers=new Set(plan.finisherIds||[]),seen=new Set();
+    const seen=new Set();
     editingPlanRows=[];
     [...(plan.exerciseIds||[]),...(plan.finisherIds||[])].forEach(id=>{
       if(seen.has(id))return;seen.add(id);
-      editingPlanRows.push({id,finisher:finishers.has(id),rx:plan.prescriptions?.[id]||""});
+      editingPlanRows.push({id,rx:plan.prescriptions?.[id]||""});
     });
     $("planItemsName").value=plan.name||"";
     renderPlanItemsEditor();
@@ -188,7 +204,7 @@
       const ex=(db.exercises||[]).find(x=>x.id===row.id)||{name:"未知动作",group:"其他"};
       return `<div class="template-plan-row" data-plan-row="${i}">
         <div class="template-plan-head"><div><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")}</div></div><button type="button" class="btn danger" data-remove-plan-item="${i}">删</button></div>
-        <div class="template-plan-fields"><div><label>计划</label><input data-plan-rx="${i}" value="${esc(row.rx)}" placeholder="例如 3 × 8–12"></div><label class="template-finisher-toggle"><input type="checkbox" data-plan-finisher="${i}" ${row.finisher?"checked":""}> 收尾动作</label></div>
+        <div class="template-plan-fields"><div><label>计划</label><input data-plan-rx="${i}" value="${esc(row.rx)}" placeholder="例如 3 × 8–12"></div></div>
       </div>`;
     }).join("");
     box.querySelectorAll("[data-remove-plan-item]").forEach(b=>b.addEventListener("click",()=>{
@@ -196,9 +212,6 @@
     }));
     box.querySelectorAll("[data-plan-rx]").forEach(input=>input.addEventListener("input",()=>{
       const row=editingPlanRows[+input.dataset.planRx];if(row)row.rx=input.value;
-    }));
-    box.querySelectorAll("[data-plan-finisher]").forEach(input=>input.addEventListener("change",()=>{
-      const row=editingPlanRows[+input.dataset.planFinisher];if(row)row.finisher=input.checked;
     }));
     refreshPlanAddSelect();
   }
@@ -213,7 +226,7 @@
 
   function addPlanItem(){
     const id=$("planItemsAddSelect")?.value;if(!id)return;
-    editingPlanRows.push({id,finisher:false,rx:""});
+    editingPlanRows.push({id,rx:""});
     renderPlanItemsEditor();
   }
 
@@ -223,8 +236,8 @@
     if(!editingPlanRows.length)return toast("模板至少保留一个动作");
     const db=getDB(),plan=(db.plans||[]).find(x=>x.id===editingPlanId);if(!plan)return;
     plan.name=name;
-    plan.exerciseIds=editingPlanRows.filter(x=>!x.finisher).map(x=>x.id);
-    plan.finisherIds=editingPlanRows.filter(x=>x.finisher).map(x=>x.id);
+    plan.exerciseIds=editingPlanRows.map(x=>x.id);
+    plan.finisherIds=[];
     plan.prescriptions={};
     editingPlanRows.forEach(x=>{const rx=String(x.rx||"").trim();if(rx)plan.prescriptions[x.id]=rx});
     db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
@@ -248,54 +261,19 @@
     if($("personalPlanStyle"))return;
     const style=document.createElement("style");style.id="personalPlanStyle";
     style.textContent=`
-      .plan-finisher-note{margin-top:5px;color:var(--accent2);font-weight:750}
       .template-plan-row{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}
       .template-plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-      .template-plan-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:9px}
-      .template-finisher-toggle{display:flex;align-items:center;gap:6px;white-space:nowrap;padding-bottom:9px;color:var(--muted)}
-      .template-finisher-toggle input{width:auto}
-      #trainingGuidanceCard .training-cycle{font-size:14px;font-weight:850;letter-spacing:.2px}
-      #trainingGuidanceCard details{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
-      #trainingGuidanceCard summary{cursor:pointer;font-weight:800;color:var(--text)}
-      #trainingGuidanceCard .guidance-copy{margin-top:9px;color:var(--muted);font-size:13px;line-height:1.75}
-      #trainingGuidanceCard .guidance-copy b{color:var(--text)}
-      @media(max-width:640px){.template-plan-fields{grid-template-columns:1fr}.template-finisher-toggle{padding-bottom:0}}
+      .template-plan-fields{margin-top:9px}
     `;
     document.head.appendChild(style);
   }
 
-  function ensureGuidance(){
-    if($("trainingGuidanceCard"))return;
-    const grid=$("page-training")?.querySelector(".grid"),exercise=$("exerciseList")?.closest(".card");
-    if(!grid||!exercise)return;
-    const card=document.createElement("div");
-    card.id="trainingGuidanceCard";card.className="card s12";
-    card.innerHTML=`
-      <div class="section"><h2>训练调整备忘</h2><span class="meta">先固定训练，再根据表现调整</span></div>
-      <div class="callout"><div class="training-cycle">推 → 拉 → 休 → 推 → 拉 → 腿 → 休</div><div class="meta" style="margin-top:5px">当前基准：推 / 拉 / 腿各 5 个主动作；每次训练结束悬垂举腿 3 × 8。模板内容可以随时编辑，历史训练不会因此改变。</div></div>
-      <details>
-        <summary>执行与进步规则</summary>
-        <div class="guidance-copy">
-          <b>动作先固定 6–8 周。</b> 优先增加同重量下的次数，稳定到次数区间上沿后再加重量。复合动作大多数正式组保持 RIR 1–2；侧平举、弯举、臂屈伸等孤立动作最后一组可到 RIR 0–1。悬垂举腿不用每次力竭，优先通过减少摆动、腿更直、下降更慢来增加难度。
-        </div>
-      </details>
-      <details>
-        <summary>后期什么时候调整</summary>
-        <div class="guidance-copy">
-          <b>胸：</b>如果连续 2–3 次推日表现下降或肩肘恢复不过来，先把上斜器械或双杠各减 1 组，卧推优先保留。<br>
-          <b>背：</b>如果第二个拉日明显疲劳，先让一个辅助背部动作从 3 组降到 2 组，不急着换动作。<br>
-          <b>二头：</b>如果 6–8 周后背在进步而二头明显落后，钢线弯举从 3 组加到 4 组，先不新增第六个动作。<br>
-          <b>肩：</b>如果肩宽发展落后，钢线侧平举从 4 组加到 5 组；当前不需要单独肩日。<br>
-          <b>三头：</b>如果成为卧推瓶颈或围度明显落后，过顶臂屈伸从 3 组加到 4 组；当前不需要单独手臂日。<br>
-          <b>腿：</b>目前腿一周一次。如果以后腿部变成重点，优先提高训练频率，而不是把单次腿日无限堆组数。<br>
-          <b>恢复：</b>关节不适、同部位持续酸痛超过 3 天、连续数次力量下滑时，先减量或短暂降载，再判断是否需要换动作。
-        </div>
-      </details>`;
-    grid.insertBefore(card,exercise);
+  function removeLegacyGuidance(){
+    $("trainingGuidanceCard")?.remove();
   }
 
   function scheduleDecorate(){
-    requestAnimationFrame(()=>{decoratePlanCards();ensureGuidance()});
+    requestAnimationFrame(()=>{decoratePlanCards();removeLegacyGuidance()});
   }
 
   function setup(){
@@ -305,8 +283,12 @@
     hookPlanLoading();
     hookUnifiedPlanEditing();
     ensurePlanItemsModal();
-    ensureGuidance();
+    removeLegacyGuidance();
     decoratePlanCards();
+    window.loadTrainingPlanToDay=planId=>{
+      const plan=(getDB().plans||[]).find(x=>x.id===planId);if(!plan)return null;
+      return loadPlanToDay(plan);
+    };
     const plans=$("planList");
     new MutationObserver(scheduleDecorate).observe(plans,{childList:true,subtree:true});
     window.addEventListener("fitness:changed",scheduleDecorate);
