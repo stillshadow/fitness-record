@@ -2,7 +2,7 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const clone = x => JSON.parse(JSON.stringify(x));
-  const PLAN_VERSION = 1;
+  const PLAN_VERSION = 2;
 
   const DEFAULT_PLANS = [
     {
@@ -33,10 +33,10 @@
     },
     {
       id:"legs",name:"腿｜股四头 + 臀 + 腘绳肌 + 小腿",
-      exerciseIds:["front_squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise"],
+      exerciseIds:["barbell_squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise"],
       finisherIds:["legraise"],
       prescriptions:{
-        front_squat:"4 × 6–10",
+        barbell_squat:"4 × 6–10",
         bulgarian_split_squat:"3 × 8–12",
         rdl:"3 × 8–12",
         seated_leg_curl:"3 × 10–15",
@@ -47,7 +47,8 @@
   ];
 
   const EXTRA_EXERCISES = [
-    {id:"incline_machine_press",name:"上斜器械推胸",group:"胸"}
+    {id:"incline_machine_press",name:"上斜器械推胸",group:"胸"},
+    {id:"barbell_squat",name:"杠铃深蹲",group:"股四头/臀"}
   ];
 
   const todayString = () => {
