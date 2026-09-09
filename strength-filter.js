@@ -111,7 +111,7 @@
   };
   const boot = () => {
     load('day-plan-editor.js?v=27','day-plan-editor');
-    load('training-plan-v2.js?v=29','training-plan-v2');
+    load('training-plan-v2.js?v=30','training-plan-v2');
   };
   if (document.readyState === 'complete') setTimeout(boot,0);
   else window.addEventListener('load',boot,{once:true});
