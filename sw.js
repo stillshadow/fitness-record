@@ -1,6 +1,6 @@
-const CACHE='chibianying-fitness-v1-41';
-const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','training-plan-v2.js','training-session.js','ui-v2.js','ui-v2.css','ui-v3.js','ui-v5.js','ui-final.js','update.html','icon-192.png','icon-512.png'];
-const EARLY_UI='<script src="ui-v5.js?v=41" data-ui-v5="1"></script><script src="ui-final.js?v=41" data-ui-final="1"></script>';
+const CACHE='chibianying-fitness-v1-42';
+const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','training-plan-v2.js','training-session.js','ui-v2.js','ui-v2.css','ui-v3.js','ui-v5.js','ui-final.js','ui-keyboard.js','update.html','icon-192.png','icon-512.png'];
+const EARLY_UI='<script src="ui-v5.js?v=42" data-ui-v5="1"></script><script src="ui-final.js?v=42" data-ui-final="1"></script><script src="ui-keyboard.js?v=42" data-ui-keyboard="1"></script>';
 
 self.addEventListener('install',e=>e.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())
@@ -60,7 +60,7 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  if(url.origin===location.origin && (url.pathname.endsWith('/cloud-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js') || url.pathname.endsWith('/training-plan-v2.js') || url.pathname.endsWith('/training-session.js') || url.pathname.endsWith('/ui-v2.js') || url.pathname.endsWith('/ui-v2.css') || url.pathname.endsWith('/ui-v3.js') || url.pathname.endsWith('/ui-v5.js') || url.pathname.endsWith('/ui-final.js'))){
+  if(url.origin===location.origin && (url.pathname.endsWith('/cloud-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js') || url.pathname.endsWith('/training-plan-v2.js') || url.pathname.endsWith('/training-session.js') || url.pathname.endsWith('/ui-v2.js') || url.pathname.endsWith('/ui-v2.css') || url.pathname.endsWith('/ui-v3.js') || url.pathname.endsWith('/ui-v5.js') || url.pathname.endsWith('/ui-final.js') || url.pathname.endsWith('/ui-keyboard.js'))){
     e.respondWith(networkFirst(e.request));
     return;
   }
