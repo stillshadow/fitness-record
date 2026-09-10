@@ -7,6 +7,27 @@ window.CHI_BIAN_YING_CLOUD = {
   autoSync: true
 };
 
+// V3 在基础数据层初始化之前就开始加载，同时先遮住旧首页，避免旧模板数据闪一下再消失。
+(() => {
+  const app = document.querySelector(".app");
+  if (app) app.style.visibility = "hidden";
+  if (!document.querySelector('script[data-ui-v3]')) {
+    const s = document.createElement("script");
+    s.src = "ui-v3.js?v=37";
+    s.async = false;
+    s.dataset.uiV3 = "1";
+    document.head.appendChild(s);
+  }
+  let tries = 0;
+  const reveal = setInterval(() => {
+    tries++;
+    if (document.getElementById("v3Home") || tries > 80) {
+      clearInterval(reveal);
+      if (app) app.style.visibility = "";
+    }
+  }, 35);
+})();
+
 (() => {
   const style = document.createElement("style");
   style.textContent = `
