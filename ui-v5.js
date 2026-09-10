@@ -13,7 +13,7 @@
 
     /* 真正的首帧启动层。由 head 中的 ui-v5 提前建立，旧页面没有机会先露出来。 */
     html.ui-v5:not(.v5-ready) body{overflow:hidden!important;background:#07090d!important}
-    html.ui-v5:not(.v5-ready) body::before{
+    html.ui-v5 body::before{
       content:"池边影の健身记录";
       position:fixed;inset:0;z-index:2147483646;
       display:grid;place-items:center;
@@ -24,17 +24,22 @@
       transition:opacity .34s ease,visibility .34s ease;
       pointer-events:auto;
     }
-    html.ui-v5:not(.v5-ready) body::after{
+    html.ui-v5 body::after{
       content:"";position:fixed;z-index:2147483647;
       left:50%;top:calc(50% + 34px);width:34px;height:2px;
       border-radius:999px;background:#9badff;
-      transform:translateX(-50%) scaleX(1);
+      transform:translateX(-50%) scaleX(0);
+      transform-origin:center;
       box-shadow:0 0 18px rgba(155,173,255,.28);
+      animation:v5BootLine .58s .15s ease forwards;
+      opacity:1;visibility:visible;
+      transition:opacity .28s ease,visibility .28s ease;
       pointer-events:none;
     }
     html.ui-v5.v5-ready body::before,
     html.ui-v5.v5-ready body::after{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
     html.ui-v5 #v3Splash{display:none!important}
+    @keyframes v5BootLine{to{transform:translateX(-50%) scaleX(1)}}
 
     /* hidden 必须拥有最终解释权。修复设置页出现在首页下方。 */
     html.ui-v5 body #v3Home[hidden],
@@ -83,7 +88,8 @@
       html.ui-v5 body .v3-action-stack,html.ui-v5 body .v3-grid{gap:6px!important}
     }
     @media(prefers-reduced-motion:reduce){
-      html.ui-v5:not(.v5-ready) body::before{transition:none!important}
+      html.ui-v5 body::before,html.ui-v5 body::after{transition:none!important;animation:none!important}
+      html.ui-v5 body::after{transform:translateX(-50%) scaleX(1)!important}
     }
   `;
   document.head.appendChild(style);
