@@ -75,6 +75,14 @@ window.CHI_BIAN_YING_CLOUD = {
     catch { return {}; }
   };
 
+  const setTextIfChanged = (el, value) => {
+    if (!el) return false;
+    const next = String(value ?? "");
+    if (el.textContent === next) return false;
+    el.textContent = next;
+    return true;
+  };
+
   const flash = msg => {
     const t = document.getElementById("toast");
     if (!t) return;
@@ -107,7 +115,7 @@ window.CHI_BIAN_YING_CLOUD = {
     if (user === "未登录" || user === "未配置") {
       badge.classList.remove("warn", "bad");
       badge.classList.add("local");
-      text.textContent = "仅本地";
+      setTextIfChanged(text, "仅本地");
       return;
     }
 
@@ -115,7 +123,7 @@ window.CHI_BIAN_YING_CLOUD = {
     if (state === "离线") {
       badge.classList.remove("bad");
       badge.classList.add("warn");
-      text.textContent = "离线";
+      setTextIfChanged(text, "离线");
     }
   };
 
@@ -129,7 +137,7 @@ window.CHI_BIAN_YING_CLOUD = {
     const db = getDB();
     const s = db.settings || {};
     const target = document.getElementById("macroTargetText");
-    if (target && s.c != null) target.textContent = `${s.c}C / ${s.p}P / ${s.f}F`;
+    if (target && s.c != null) setTextIfChanged(target, `${s.c}C / ${s.p}P / ${s.f}F`);
 
     const C = +(document.getElementById("sumC")?.textContent || 0);
     const P = +(document.getElementById("sumP")?.textContent || 0);
@@ -138,14 +146,14 @@ window.CHI_BIAN_YING_CLOUD = {
     if (!advice || s.c == null) return;
 
     if (!(C || P || F)) {
-      advice.textContent = "添加食物后会自动统计。";
+      setTextIfChanged(advice, "添加食物后会自动统计。");
       return;
     }
     const tips = [];
     if (P < (+s.p || 0) - 10) tips.push(`蛋白质还差约 ${Math.round((+s.p||0)-P)}g`);
     if (C < (+s.c || 0) - 15) tips.push(`碳水还差约 ${Math.round((+s.c||0)-C)}g`);
     if (F > (+s.f || 0) + 5) tips.push(`脂肪超约 ${Math.round(F-(+s.f||0))}g`);
-    advice.textContent = tips.join(" · ") || "今天已经比较接近目标。";
+    setTextIfChanged(advice, tips.join(" · ") || "今天已经比较接近目标。");
   };
 
   const normalizeTrendAdvice = () => {
@@ -157,14 +165,14 @@ window.CHI_BIAN_YING_CLOUD = {
     const last = rows.slice(-7).map(x => +x.weight);
     const prev = rows.slice(-14,-7).map(x => +x.weight);
     if (!last.length || !prev.length) {
-      el.textContent = "至少记录两周晨重后，这里会显示均重变化。";
+      setTextIfChanged(el, "至少记录两周晨重后，这里会显示均重变化。");
       return;
     }
     const avg = a => a.reduce((s,x)=>s+x,0)/a.length;
     const delta = avg(last) - avg(prev);
-    if (Math.abs(delta) <= .15) el.textContent = "近两组均重基本稳定。";
-    else if (delta < 0) el.textContent = `近7次晨重均值较前7次下降约 ${Math.abs(delta).toFixed(2)} kg。`;
-    else el.textContent = `近7次晨重均值较前7次上升约 ${delta.toFixed(2)} kg。`;
+    if (Math.abs(delta) <= .15) setTextIfChanged(el, "近两组均重基本稳定。");
+    else if (delta < 0) setTextIfChanged(el, `近7次晨重均值较前7次下降约 ${Math.abs(delta).toFixed(2)} kg。`);
+    else setTextIfChanged(el, `近7次晨重均值较前7次上升约 ${delta.toFixed(2)} kg。`);
   };
 
   const setupSimpleGoals = () => {
@@ -315,7 +323,16 @@ window.CHI_BIAN_YING_CLOUD = {
   };
 
   clean();
-  new MutationObserver(scheduleClean).observe(document.body, {
+  new MutationObserver(records => {
+    // Strength set entry changes frequently while typing. None of those mutations
+    // require the global copy-normalization pass.
+    const onlyTrainingInput = records.length && records.every(r =>
+      r.target?.nodeType === 1
+        ? r.target.closest?.("#trainingModal,#strengthSetEditor")
+        : r.target?.parentElement?.closest?.("#trainingModal,#strengthSetEditor")
+    );
+    if (!onlyTrainingInput) scheduleClean();
+  }).observe(document.body, {
     childList: true,
     subtree: true,
     characterData: true
