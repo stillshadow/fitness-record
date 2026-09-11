@@ -50,6 +50,7 @@
       .set-grid-head,.set-row{display:grid;grid-template-columns:28px minmax(0,1.2fr) minmax(62px,.75fr) minmax(58px,.65fr) 34px;gap:6px;align-items:center}.set-grid-head{font-size:11px;color:var(--muted);padding:0 2px 5px}.set-row{margin-bottom:7px}.set-index{font-size:12px;color:var(--muted);text-align:center}.set-row input{width:100%;min-width:0;box-sizing:border-box;padding:9px 8px}.set-delete{height:38px;width:34px;padding:0;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--bad);font-size:17px}.set-toolbar{display:flex;gap:8px;margin-top:3px}.set-toolbar .btn{flex:1}
       .training-card-actions{display:flex!important;gap:7px!important;align-items:center!important;flex-wrap:nowrap!important}.training-card-actions .btn{white-space:nowrap;padding:8px 11px!important;min-width:auto!important}.training-set-lines{line-height:1.7}
       #trainingModal.workout-entry .training-session-hidden-field{display:none!important}
+      body.training-save-settling *{transition:none!important}
       @media(max-width:430px){.set-grid-head,.set-row{grid-template-columns:24px minmax(0,1.12fr) minmax(55px,.7fr) minmax(52px,.62fr) 32px;gap:5px}.set-row input{padding:8px 6px}.set-delete{width:32px;height:36px}.training-card-actions .btn{padding:7px 9px!important}}
     `;document.head.appendChild(style);
   }
@@ -109,7 +110,23 @@
     const groupId=uid("setgroup"),time=timeString();
     valid.forEach((s,i)=>day.training.push({id:uid("tr"),setGroupId:groupId,setIndex:i+1,exerciseId:ex.id,exerciseName:ex.name,weight:+s.weight||0,reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===""?"":+s.rir,time,...(targetWorkoutId?{workoutId:targetWorkoutId}:{})}));
     db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
-    const wasEdit=!!editingExerciseId;editingExerciseId="";editingWorkoutId="";setPickerDisabled(false);putDB(db);$("trainingModal")?.classList.remove("open");toast(wasEdit?"训练记录已更新":`已记录 ${valid.length} 组`);
+    const wasEdit=!!editingExerciseId;
+    editingExerciseId="";editingWorkoutId="";setPickerDisabled(false);
+
+    // Close the input surface before broadcasting the expensive global refresh.
+    // On iOS this keeps keyboard dismissal and application rerender out of the same frame.
+    const modal=$("trainingModal");
+    const active=document.activeElement;
+    if(active?.blur)active.blur();
+    modal?.classList.remove("open");
+    document.body?.classList.add("training-save-settling");
+
+    const message=wasEdit?"训练记录已更新":`已记录 ${valid.length} 组`;
+    setTimeout(()=>{
+      putDB(db);
+      document.body?.classList.remove("training-save-settling");
+      toast(message);
+    },220);
   }
 
   function deleteExerciseRecord(exerciseId){
