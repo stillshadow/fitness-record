@@ -456,8 +456,13 @@
     syncScreens();
     syncScroll();
     observe();
-    window.addEventListener('resize',viewportHeight,{passive:true});
-    window.visualViewport?.addEventListener('resize',viewportHeight,{passive:true});
+    window.addEventListener('resize',()=>{
+      if(!document.body?.classList.contains('keyboard-open')) viewportHeight();
+    },{passive:true});
+    window.visualViewport?.addEventListener('resize',()=>{
+      // ui-keyboard owns viewport sizing while the software keyboard is visible.
+      if(!document.body?.classList.contains('keyboard-open') && !document.querySelector('#trainingModal.open input:focus,#trainingModal.open textarea:focus,#trainingModal.open select:focus')) viewportHeight();
+    },{passive:true});
     window.addEventListener('scroll',syncScroll,{passive:true});
     document.addEventListener('pointerdown',addRipple,{passive:true});
     window.addEventListener('fitness:changed',()=>requestAnimationFrame(()=>{polishDOM();syncScreens()}));
