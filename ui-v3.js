@@ -142,7 +142,7 @@
   function showLegacy(name,title,sub){
     $('v3Home').hidden=true; $('v3SettingsRoot').hidden=true; document.body.classList.add('v3-legacy-open'); showBasePage(name);
     const page=$(`page-${name}`); ensurePageBar(page,title,sub,name==='today'||name==='progress'?'home':'settings');
-    if(name==='progress') renderProgressV3();
+    if(name==='progress'){ window.renderStrength?.(); renderProgressV3(); }
     if(name==='today') moveRecentRecords();
     window.scrollTo({top:0,behavior:'instant'});
   }
@@ -228,8 +228,8 @@
     const stage=$('v3AvatarStage'),avatar=$('v3Avatar');
     stage?.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;avatar?.style.setProperty('--px',`${x*7}px`);avatar?.style.setProperty('--py',`${y*4}px`)});
     stage?.addEventListener('pointerleave',()=>{avatar?.style.setProperty('--px','0px');avatar?.style.setProperty('--py','0px')});
-    window.addEventListener('fitness:changed',()=>{refreshHome();if(document.body.classList.contains('v3-legacy-open')&&$('page-progress')?.classList.contains('active'))renderProgressV3()});
-    setInterval(refreshHome,1200);
+    window.addEventListener('fitness:changed',()=>{refreshHome();if(document.body.classList.contains('v3-legacy-open')&&$('page-progress')?.classList.contains('active')){window.renderStrength?.();renderProgressV3()}});
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshHome()});
   }
 
   function prepareLegacyPages(){
