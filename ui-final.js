@@ -396,6 +396,8 @@
       animation:none!important;
       transition:none!important;
       scroll-behavior:auto!important;
+      backdrop-filter:none!important;
+      -webkit-backdrop-filter:none!important;
     }
     html.ui-v5 body.ui-final .v3-avatar{transform:none!important;will-change:auto!important}
     html.ui-v5 body.ui-final .v3-avatar-orbit,
