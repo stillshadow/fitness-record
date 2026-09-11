@@ -22,7 +22,7 @@
       font:780 25px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
       letter-spacing:.035em;
       opacity:1;visibility:visible;
-      transition:opacity .42s cubic-bezier(.22,.8,.24,1),visibility .42s ease;
+      transition:none;
       pointer-events:auto;
       text-shadow:0 0 30px rgba(160,178,255,.08);
     }
@@ -32,9 +32,9 @@
       border-radius:999px;background:linear-gradient(90deg,rgba(155,173,255,.18),#aebcff,rgba(155,173,255,.18));
       transform:translateX(-50%) scaleX(0);transform-origin:center;
       box-shadow:0 0 20px rgba(155,173,255,.28);
-      animation:v5BootLine .62s .12s cubic-bezier(.22,.8,.24,1) forwards;
+      animation:none;transform:translateX(-50%) scaleX(1);
       opacity:1;visibility:visible;
-      transition:opacity .3s ease,visibility .3s ease;
+      transition:none;
       pointer-events:none;
     }
     html.ui-v5.v5-ready body::before,
@@ -86,8 +86,7 @@
     const home = document.getElementById('v3Home');
     const ready = !!home && document.body?.classList.contains('ui-v3') && document.body?.classList.contains('ui-final');
     if (!ready) return setTimeout(revealWhenReady,25);
-    const delay = Math.max(0,960 - (performance.now() - bootStarted));
-    setTimeout(()=>root.classList.add('v5-ready'),delay);
+    root.classList.add('v5-ready');
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',revealWhenReady,{once:true});
   else revealWhenReady();
