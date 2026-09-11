@@ -323,20 +323,7 @@ window.CHI_BIAN_YING_CLOUD = {
   };
 
   clean();
-  new MutationObserver(records => {
-    // Strength set entry changes frequently while typing. None of those mutations
-    // require the global copy-normalization pass.
-    const onlyTrainingInput = records.length && records.every(r =>
-      r.target?.nodeType === 1
-        ? r.target.closest?.("#trainingModal,#strengthSetEditor")
-        : r.target?.parentElement?.closest?.("#trainingModal,#strengthSetEditor")
-    );
-    if (!onlyTrainingInput) scheduleClean();
-  }).observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true
-  });
+  // Cosmetic normalization does not need to watch every DOM mutation.
   window.addEventListener("online", scheduleClean);
   window.addEventListener("offline", scheduleClean);
   window.addEventListener("fitness:changed", scheduleClean);
