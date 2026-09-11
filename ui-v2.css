@@ -260,3 +260,10 @@ body.ui-v2 .page.active{animation:uiV2PageIn .16s ease-out}
 @media(prefers-reduced-motion:reduce){
   body.ui-v2 *,body.ui-v2 *::before,body.ui-v2 *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
+
+/* Calm UI v49 */
+body.ui-v2 *,body.ui-v2 *::before,body.ui-v2 *::after{
+  animation:none!important;
+  transition:none!important;
+}
+body.ui-v2 .btn:active,body.ui-v2 button:active{transform:scale(.985)!important}
