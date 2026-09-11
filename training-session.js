@@ -516,8 +516,6 @@
     window.addEventListener("fitness:changed",()=>requestAnimationFrame(()=>{if(session)renderSession();addHomeActions();simplifyTrainingPage()}));
     const dateLabel=$("activeDateLabel");
     if(dateLabel)new MutationObserver(()=>{restoreSession();updateHomeTrainingAction();$("trainingSessionShell")?.classList.remove("open");simplifyHomeTraining()}).observe(dateLabel,{childList:true,subtree:true,characterData:true});
-    const todayList=$("todayTrainingList");if(todayList)new MutationObserver(()=>requestAnimationFrame(simplifyHomeTraining)).observe(todayList,{childList:true,subtree:true});
-    const planList=$("planList");if(planList)new MutationObserver(()=>requestAnimationFrame(simplifyTrainingPage)).observe(planList,{childList:true,subtree:true});
     document.querySelectorAll('[data-page="today"],[data-page="training"]').forEach(btn=>btn.addEventListener("click",()=>setTimeout(()=>{addHomeActions();simplifyTrainingPage()},0)));
   }
 
