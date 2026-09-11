@@ -149,12 +149,12 @@ body.ui-v2 .bottom-nav button.active::before{
 body.ui-v2 .nav-icon{width:18px;height:18px;display:block;opacity:.9}
 body.ui-v2 .bottom-nav button.active .nav-icon{opacity:1}
 
-body.ui-v2 .modal{background:rgba(0,0,0,.66);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+body.ui-v2 .modal{background:rgba(0,0,0,.72);backdrop-filter:none;-webkit-backdrop-filter:none}
 body.ui-v2 .modal-panel,
 body.ui-v2 .sheet-panel{
-  background:linear-gradient(180deg,#141920,#10141a);
+  background:#141a23;
   border-color:rgba(255,255,255,.075);
-  box-shadow:0 24px 70px rgba(0,0,0,.42);
+  box-shadow:0 18px 44px rgba(0,0,0,.36);
 }
 body.ui-v2 .sheet-panel{border-radius:22px 22px 0 0}
 
