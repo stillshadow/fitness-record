@@ -138,14 +138,30 @@
     const inWorkout=!!targetWorkoutId;
     setTimeout(()=>{
       try{
-        putDB(db,{workout:inWorkout});
+        // Set logging is a hot path. Always write quietly and never broadcast a
+        // full app/session rerender while the iOS keyboard is closing.
+        if(window.fitnessApp?.replaceDBQuiet) window.fitnessApp.replaceDBQuiet(db);
+        else window.fitnessApp?.replaceDB?.(db);
+
+        if(inWorkout){
+          const recorded=$("sessionRecorded");
+          const recordBtn=$("recordSessionExercise");
+          if(recorded)recorded.textContent=`已记录 ${valid.length} 组`;
+          if(recordBtn)recordBtn.textContent="查看 / 编辑记录";
+        }else{
+          window.renderTodayTraining?.(db.days?.[date]);
+          requestAnimationFrame(compactTodayTrainingCards);
+        }
+
+        // Sync later, after the save/keyboard frame is finished.
+        setTimeout(()=>window.dispatchEvent(new CustomEvent("fitness:sync-needed")),450);
         toast(message);
       }finally{
         savingSets=false;
         if(saveBtn)saveBtn.disabled=false;
         document.body?.classList.remove("training-save-settling");
       }
-    },inWorkout?90:220);
+    },220);
   }
 
   function deleteExerciseRecord(exerciseId){
@@ -175,9 +191,25 @@
     const select=$("trainingExercise");if(select&&!select.dataset.perSetReady){select.dataset.perSetReady="1";select.addEventListener("change",()=>setTimeout(()=>syncMode(true),0))}
     const group=$("trainingGroupFilter");if(group&&!group.dataset.perSetReady){group.dataset.perSetReady="1";group.addEventListener("change",()=>setTimeout(()=>syncMode(true),0))}
     $("saveTrainingBtn").addEventListener("click",saveStrengthSets,true);
-    const modal=$("trainingModal");new MutationObserver(()=>{
-      if(modal.classList.contains("open")){currentExerciseId="";setTimeout(()=>syncMode(true),0)}
-      else{editingExerciseId="";editingWorkoutId="";setPickerDisabled(false);modal.classList.remove("workout-entry");["trainingExercise","trainingGroupFilter"].forEach(id=>$(id)?.parentElement?.classList.remove("training-session-hidden-field"))}
+    const modal=$("trainingModal");
+    let modalWasOpen=modal.classList.contains("open");
+    new MutationObserver(()=>{
+      const isOpen=modal.classList.contains("open");
+      if(isOpen===modalWasOpen)return;
+      modalWasOpen=isOpen;
+      if(isOpen){
+        currentExerciseId="";
+        setTimeout(()=>syncMode(true),0);
+      }else{
+        editingExerciseId="";
+        editingWorkoutId="";
+        setPickerDisabled(false);
+        if(modal.classList.contains("workout-entry"))modal.classList.remove("workout-entry");
+        ["trainingExercise","trainingGroupFilter"].forEach(id=>{
+          const p=$(id)?.parentElement;
+          if(p?.classList.contains("training-session-hidden-field"))p.classList.remove("training-session-hidden-field");
+        });
+      }
     }).observe(modal,{attributes:true,attributeFilter:["class"]});
     setTimeout(()=>{syncMode(true);compactTodayTrainingCards()},0);
   }
@@ -186,6 +218,6 @@
 })();
 
 (() => {
-  const load=()=>{if(document.querySelector('script[data-strength-filter]'))return;const s=document.createElement('script');s.src='strength-filter.js?v=35';s.dataset.strengthFilter='1';document.head.appendChild(s)};
+  const load=()=>{if(document.querySelector('script[data-strength-filter]'))return;const s=document.createElement('script');s.src='strength-filter.js?v=50';s.dataset.strengthFilter='1';document.head.appendChild(s)};
   if(document.readyState==='complete')setTimeout(load,0);else window.addEventListener('load',load,{once:true});
 })();
