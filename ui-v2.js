@@ -10,7 +10,7 @@
   function ensureStyle(){
     if(document.querySelector('link[data-ui-v2]'))return;
     const link=document.createElement('link');
-    link.rel='stylesheet';link.href='ui-v2.css?v=34';link.dataset.uiV2='1';
+    link.rel='stylesheet';link.href='ui-v2.css?v=51';link.dataset.uiV2='1';
     document.head.appendChild(link);
   }
 
