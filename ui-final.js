@@ -318,15 +318,15 @@
 
     /* sheets and modals */
     html.ui-v5 body.ui-final .modal,
-    html.ui-v5 body.ui-final .sheet{background:rgba(1,3,7,.46)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important}
+    html.ui-v5 body.ui-final .sheet{background:rgba(1,3,7,.68)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
     html.ui-v5 body.ui-final .modal.open .modal-panel,
     html.ui-v5 body.ui-final .sheet.open .sheet-panel{animation:vfSheetIn .34s cubic-bezier(.2,.82,.2,1) both}
     html.ui-v5 body.ui-final .modal-panel,
     html.ui-v5 body.ui-final .sheet-panel{
       border:1px solid rgba(255,255,255,.12)!important;
-      background:linear-gradient(160deg,rgba(38,45,58,.84),rgba(17,22,30,.88))!important;
-      backdrop-filter:blur(34px) saturate(145%)!important;-webkit-backdrop-filter:blur(34px) saturate(145%)!important;
-      box-shadow:0 -8px 60px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.1)!important;
+      background:#171d27!important;
+      backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+      box-shadow:0 -8px 36px rgba(0,0,0,.34)!important;
     }
 
     .vf-ripple{
@@ -413,8 +413,8 @@
   document.head.appendChild(style);
 
   function viewportHeight(){
-    const h = Math.round(window.visualViewport?.height || window.innerHeight || 0);
-    if (h > 0) root.style.setProperty('--v4-screen-h', `${h}px`);
+    const h=Math.round(window.innerHeight||document.documentElement.clientHeight||0);
+    if(h>0)root.style.setProperty('--v4-screen-h',`${h}px`);
   }
 
   function syncScreens(){
@@ -474,12 +474,11 @@
     syncScroll();
     observe();
     window.addEventListener('resize',()=>{
-      if(!document.body?.classList.contains('keyboard-open')) viewportHeight();
+      // Keyboard resizes must not resize the app shell or move modal hit targets.
+      const editing=document.querySelector('.modal.open input:focus,.modal.open textarea:focus,.modal.open select:focus,.sheet.open input:focus,.sheet.open textarea:focus,.sheet.open select:focus');
+      if(!document.body?.classList.contains('keyboard-open')&&!editing)viewportHeight();
     },{passive:true});
-    window.visualViewport?.addEventListener('resize',()=>{
-      // ui-keyboard owns viewport sizing while the software keyboard is visible.
-      if(!document.body?.classList.contains('keyboard-open') && !document.querySelector('#trainingModal.open input:focus,#trainingModal.open textarea:focus,#trainingModal.open select:focus')) viewportHeight();
-    },{passive:true});
+    window.addEventListener('orientationchange',()=>setTimeout(viewportHeight,320),{passive:true});
     window.addEventListener('scroll',syncScroll,{passive:true});
     window.addEventListener('fitness:changed',()=>requestAnimationFrame(()=>{polishDOM();syncScreens()}));
   }
