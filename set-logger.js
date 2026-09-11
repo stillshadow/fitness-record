@@ -3,13 +3,22 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const fmt = n => Number(n || 0).toFixed(1).replace(/\.0$/,"");
-  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",setDrafts=[];
+  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",setDrafts=[],savingSets=false;
 
   const todayString=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
   const activeDate=()=>{const t=$("activeDateLabel")?.textContent.trim()||"";return /^\d{4}-\d{2}-\d{2}$/.test(t)?t:todayString()};
   const timeString=()=>{const d=new Date();return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
   const getDB=()=>window.fitnessApp?.getDB?.()||{exercises:[],plans:[],days:{}};
-  const putDB=db=>{window.fitnessApp.replaceDB(db);window.dispatchEvent(new CustomEvent("fitness:changed"))};
+  const putDB=(db,{workout=false}={})=>{
+    if(workout&&window.fitnessApp?.replaceDBQuiet){
+      window.fitnessApp.replaceDBQuiet(db);
+      window.dispatchEvent(new CustomEvent("fitness:workout-changed"));
+      window.dispatchEvent(new CustomEvent("fitness:sync-needed"));
+      return;
+    }
+    window.fitnessApp.replaceDB(db);
+    window.dispatchEvent(new CustomEvent("fitness:changed"));
+  };
   const toast=msg=>{const t=$("toast");if(!t)return;t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),1800)};
   const workoutContext=()=>{const c=window.fitnessWorkoutContext;return c?.workoutId&&c?.date===activeDate()?c:null};
 
@@ -100,9 +109,13 @@
 
   function saveStrengthSets(e){
     if(!isStrengthMode())return;e.preventDefault();e.stopImmediatePropagation();
-    const ex=currentExercise();if(!ex)return toast("请选择动作");
-    for(let i=0;i<setDrafts.length;i++){const s=setDrafts[i],any=String(s.weight).trim()||String(s.reps).trim()||String(s.rir).trim();if(any&&!(+s.reps>0))return toast(`请填写第 ${i+1} 组次数`)}
-    const valid=setDrafts.filter(x=>+x.reps>0);if(!valid.length)return toast("至少记录一组");
+    if(savingSets)return;
+    savingSets=true;
+    const saveBtn=$("saveTrainingBtn");
+    if(saveBtn)saveBtn.disabled=true;
+    const ex=currentExercise();if(!ex){savingSets=false;if(saveBtn)saveBtn.disabled=false;return toast("请选择动作")}
+    for(let i=0;i<setDrafts.length;i++){const s=setDrafts[i],any=String(s.weight).trim()||String(s.reps).trim()||String(s.rir).trim();if(any&&!(+s.reps>0)){savingSets=false;if(saveBtn)saveBtn.disabled=false;return toast(`请填写第 ${i+1} 组次数`)}}
+    const valid=setDrafts.filter(x=>+x.reps>0);if(!valid.length){savingSets=false;if(saveBtn)saveBtn.disabled=false;return toast("至少记录一组")}
     const ctx=workoutContext(),targetWorkoutId=editingWorkoutId||ctx?.workoutId||"",db=getDB(),date=ctx?.date||activeDate();
     db.days=db.days||{};if(!db.days[date])db.days[date]={date,weight:null,cardio:0,note:"",planExerciseIds:[],planName:"",training:[],foods:[]};
     const day=db.days[date];day.training=day.training||[];
@@ -122,11 +135,17 @@
     document.body?.classList.add("training-save-settling");
 
     const message=wasEdit?"训练记录已更新":`已记录 ${valid.length} 组`;
+    const inWorkout=!!targetWorkoutId;
     setTimeout(()=>{
-      putDB(db);
-      document.body?.classList.remove("training-save-settling");
-      toast(message);
-    },220);
+      try{
+        putDB(db,{workout:inWorkout});
+        toast(message);
+      }finally{
+        savingSets=false;
+        if(saveBtn)saveBtn.disabled=false;
+        document.body?.classList.remove("training-save-settling");
+      }
+    },inWorkout?90:220);
   }
 
   function deleteExerciseRecord(exerciseId){
