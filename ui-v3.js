@@ -44,6 +44,14 @@
     @keyframes v3Float{0%,100%{translate:0 0}50%{translate:0 -7px}}@keyframes v3Glow{0%,100%{transform:scale(.96);opacity:.72}50%{transform:scale(1.05);opacity:1}}@keyframes v3Shadow{0%,100%{transform:scaleX(.92);opacity:.62}50%{transform:scaleX(.78);opacity:.42}}@keyframes v3Orbit{to{transform:rotate(360deg)}}@keyframes v3PageIn{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes v3SplashName{from{opacity:0;transform:translateY(7px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}@keyframes v3SplashLine{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
     @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-avatar-stage{height:43vh;min-height:285px}.v3-avatar{height:38vh;max-height:350px}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
     @media(max-width:430px){.v3-avatar-stage{height:41vh;min-height:270px}.v3-avatar{height:36vh}.v3-grid{gap:8px}.v3-action{min-height:78px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}}
+    /* Calm UI: keep the interface static and predictable. */
+    body.ui-v3 *,body.ui-v3 *::before,body.ui-v3 *::after,#v3Splash *{
+      animation:none!important;
+      transition:none!important;
+    }
+    body.ui-v3 .v3-avatar{transform:none!important;will-change:auto!important}
+    body.ui-v3 .v3-avatar-orbit{display:none!important}
+    body.ui-v3 .v3-action:active,body.ui-v3 .v3-start:active,body.ui-v3 .btn:active{transform:scale(.985)!important}
     @media(prefers-reduced-motion:reduce){body.ui-v3 *,#v3Splash *{animation:none!important;transition:none!important}.v3-avatar{transform:none!important}}
   `;
 
@@ -225,9 +233,6 @@
       else if(p==='food') showLegacy('food','饮食设置','餐食模板与食物库');
       else showLegacy('settings','目标与数据','每日目标、同步与备份');
     });
-    const stage=$('v3AvatarStage'),avatar=$('v3Avatar');
-    stage?.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;avatar?.style.setProperty('--px',`${x*7}px`);avatar?.style.setProperty('--py',`${y*4}px`)});
-    stage?.addEventListener('pointerleave',()=>{avatar?.style.setProperty('--px','0px');avatar?.style.setProperty('--py','0px')});
     window.addEventListener('fitness:changed',()=>{refreshHome();if(document.body.classList.contains('v3-legacy-open')&&$('page-progress')?.classList.contains('active')){window.renderStrength?.();renderProgressV3()}});
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshHome()});
   }
