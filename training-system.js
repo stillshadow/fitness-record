@@ -294,10 +294,17 @@
     $("exerciseModal").classList.add("open");
   }
 
+  let savingExercise=false;
   function saveExercise(){
+    if(savingExercise)return;
     const id=$("editingExerciseId")?.value||"";
     const name=$("exerciseName")?.value.trim()||"";
     if(!name)return toast("填写动作名称");
+
+    savingExercise=true;
+    const saveBtn=$("saveExerciseBtn");
+    if(saveBtn)saveBtn.disabled=true;
+
     const db=getDB(), old=db.exercises?.find(x=>x.id===id);
     const factor=old?.bodyweightFactor || inferBodyweightFactor(name);
     const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",...(factor?{bodyweightFactor:factor}:{})};
@@ -308,22 +315,25 @@
     db.meta.updatedAt=new Date().toISOString();
     db.meta.userTouched=true;
 
-    // Saving an exercise only needs a small part of the UI to change. A full
-    // replaceDB() rebuilds every page, then fitness:changed rebuilds them again.
-    // On iOS that can block the main thread long enough to look like a freeze.
-    if(window.fitnessApp?.replaceDBQuiet){
-      window.fitnessApp.replaceDBQuiet(normalizeDB(db));
-      $("exerciseModal")?.classList.remove("open");
-      renderTrainingPage();
-      refreshTrainingSelector();
-      window.dispatchEvent(new CustomEvent("fitness:exercise-changed"));
-      window.dispatchEvent(new CustomEvent("fitness:workout-changed"));
-      window.dispatchEvent(new CustomEvent("fitness:sync-needed"));
-    }else{
-      putDB(db);
-      $("exerciseModal")?.classList.remove("open");
-    }
-    toast("动作已保存");
+    // Let iOS start dismissing the keyboard before doing the synchronous
+    // localStorage write. Nothing on this path needs a full training-page rebuild.
+    document.activeElement?.blur?.();
+    $("exerciseModal")?.classList.remove("open");
+    document.body?.classList.add("training-save-settling");
+
+    setTimeout(()=>{
+      try{
+        if(window.fitnessApp?.replaceDBQuiet) window.fitnessApp.replaceDBQuiet(db);
+        else window.fitnessApp?.replaceDB?.(db);
+        refreshTrainingSelector();
+        window.dispatchEvent(new CustomEvent("fitness:sync-needed"));
+        toast("动作已保存");
+      }finally{
+        savingExercise=false;
+        if(saveBtn)saveBtn.disabled=false;
+        document.body?.classList.remove("training-save-settling");
+      }
+    },220);
   }
 
   function refreshTrainingSelector(){
@@ -473,7 +483,7 @@
     }
   }
 
-  function renderTrainingPage(){renderPlans();renderExercises();renderStrength()}
+  function renderTrainingPage(){renderPlans();renderExercises()}
 
   function hookExerciseButtons(){
     const newBtn=$("newExerciseBtn"),saveBtn=$("saveExerciseBtn");
@@ -523,7 +533,6 @@
     if(day)renderTodayTraining(day);
     window.addEventListener("fitness:changed",()=>{
       requestAnimationFrame(()=>{
-        refreshTrainingSelector();renderTrainingPage();
         const d=getDB().days?.[activeDate()];if(d)syncPlanHint(d);
       });
     });
