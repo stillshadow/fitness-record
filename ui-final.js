@@ -389,8 +389,25 @@
       html.ui-v5 body.ui-final.vf-home .app{max-width:760px!important}
       html.ui-v5 body.ui-final .v3-avatar{max-width:340px!important}
     }
+    /* Calm mode: recording speed over decorative motion. */
+    html.ui-v5 body.ui-final *,
+    html.ui-v5 body.ui-final *::before,
+    html.ui-v5 body.ui-final *::after{
+      animation:none!important;
+      transition:none!important;
+      scroll-behavior:auto!important;
+    }
+    html.ui-v5 body.ui-final .v3-avatar{transform:none!important;will-change:auto!important}
+    html.ui-v5 body.ui-final .v3-avatar-orbit,
+    html.ui-v5 body.ui-final .vf-ripple{display:none!important}
+    html.ui-v5 body.ui-final .v3-action:active,
+    html.ui-v5 body.ui-final .v3-start:active,
+    html.ui-v5 body.ui-final .v3-icon-btn:active,
+    html.ui-v5 body.ui-final .v3-setting-row:active,
+    html.ui-v5 body.ui-final .btn:active,
+    html.ui-v5 body.ui-final .v3-back:active{transform:scale(.985)!important}
     @media(prefers-reduced-motion:reduce){
-      html.ui-v5 body.ui-final *,html.ui-v5 body.ui-final *::before,html.ui-v5 body.ui-final *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+      html.ui-v5 body.ui-final *,html.ui-v5 body.ui-final *::before,html.ui-v5 body.ui-final *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     }
   `;
   document.head.appendChild(style);
@@ -464,7 +481,6 @@
       if(!document.body?.classList.contains('keyboard-open') && !document.querySelector('#trainingModal.open input:focus,#trainingModal.open textarea:focus,#trainingModal.open select:focus')) viewportHeight();
     },{passive:true});
     window.addEventListener('scroll',syncScroll,{passive:true});
-    document.addEventListener('pointerdown',addRipple,{passive:true});
     window.addEventListener('fitness:changed',()=>requestAnimationFrame(()=>{polishDOM();syncScreens()}));
   }
 
