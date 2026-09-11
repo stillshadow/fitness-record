@@ -37,7 +37,11 @@
 
   function isKeyboardOpen(){
     const viewport=vv();
-    return !!(viewport && stableHeight && editable(document.activeElement) && stableHeight-viewport.height>120);
+    if(!viewport||!stableHeight)return false;
+    const visiblyShrunk=stableHeight-viewport.height>120;
+    // focusout happens before iOS finishes closing the keyboard. Keep the cheap
+    // keyboard layout active until visualViewport has actually recovered.
+    return visiblyShrunk && (editable(document.activeElement) || document.body?.classList.contains('keyboard-open'));
   }
 
   function exposeViewportVars(){
@@ -193,7 +197,7 @@
 
   document.addEventListener('focusout',()=>{
     clearTimeout(focusTimer);
-    focusTimer=setTimeout(scheduleSync,180);
+    focusTimer=setTimeout(scheduleSync,260);
   });
 
   window.addEventListener('orientationchange',()=>{
