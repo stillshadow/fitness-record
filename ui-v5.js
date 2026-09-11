@@ -78,8 +78,9 @@
     if (h > 0) root.style.setProperty('--v4-screen-h', `${h}px`);
   }
   viewportHeight();
-  window.addEventListener('resize',viewportHeight,{passive:true});
-  window.visualViewport?.addEventListener('resize',viewportHeight,{passive:true});
+  // ui-final + ui-keyboard own live viewport changes. A second visualViewport
+  // listener here doubled layout work during iOS keyboard animations.
+  window.addEventListener('orientationchange',()=>setTimeout(viewportHeight,280),{passive:true});
 
   function revealWhenReady(){
     const home = document.getElementById('v3Home');
