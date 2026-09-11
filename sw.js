@@ -1,6 +1,6 @@
-const CACHE='chibianying-fitness-v1-43';
+const CACHE='chibianying-fitness-v1-44';
 const ASSETS=['./','index.html','manifest.json','cloud-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','training-plan-v2.js','training-session.js','last-performance.js','ui-v2.js','ui-v2.css','ui-v3.js','ui-v5.js','ui-final.js','ui-keyboard.js','update.html','icon-192.png','icon-512.png'];
-const EARLY_UI='<script src="ui-v5.js?v=43" data-ui-v5="1"></script><script src="ui-final.js?v=43" data-ui-final="1"></script><script src="ui-keyboard.js?v=43" data-ui-keyboard="1"></script>';
+const EARLY_UI='<script src="ui-v5.js?v=44" data-ui-v5="1"></script><script src="ui-final.js?v=44" data-ui-final="1"></script><script src="ui-keyboard.js?v=44" data-ui-keyboard="1"></script>';
 
 self.addEventListener('install',e=>e.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())
