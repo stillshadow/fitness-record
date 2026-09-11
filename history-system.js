@@ -383,6 +383,7 @@
     setupStyles();
     refreshCategories();
     window.addEventListener("fitness:changed",()=>setTimeout(refreshCategories,0));
+    window.addEventListener("fitness:exercise-changed",()=>setTimeout(refreshCategories,0));
     document.querySelectorAll('[data-page="training"]').forEach(b=>b.addEventListener("click",()=>setTimeout(refreshCategories,0)));
   }
 
