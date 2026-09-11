@@ -385,6 +385,12 @@
     }
     const doneCount=entries.length;
     endSessionState();
+    if(!minutes&&doneCount){
+      // Set rows were written quietly during the workout. Rebuild the rest of the app once,
+      // after the workout is actually finished and no keyboard is involved.
+      window.fitnessApp?.refresh?.();
+      window.dispatchEvent(new CustomEvent("fitness:changed"));
+    }
     toast(minutes?`训练完成 · 有氧 ${minutes}min`:(doneCount?"训练完成":"本次训练未保存"));
   }
 
@@ -502,6 +508,11 @@
   }
 
   function setupObservers(){
+    window.addEventListener("fitness:workout-changed",()=>requestAnimationFrame(()=>{
+      if(!session)return;
+      renderSession();
+      if($("sessionActionsModal")?.classList.contains("open"))renderActionsModal();
+    }));
     window.addEventListener("fitness:changed",()=>requestAnimationFrame(()=>{if(session)renderSession();addHomeActions();simplifyTrainingPage()}));
     const dateLabel=$("activeDateLabel");
     if(dateLabel)new MutationObserver(()=>{restoreSession();updateHomeTrainingAction();$("trainingSessionShell")?.classList.remove("open");simplifyHomeTraining()}).observe(dateLabel,{childList:true,subtree:true,characterData:true});
