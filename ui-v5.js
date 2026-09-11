@@ -74,7 +74,7 @@
   document.head.appendChild(style);
 
   function viewportHeight(){
-    const h = Math.round(window.visualViewport?.height || window.innerHeight || 0);
+    const h = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
     if (h > 0) root.style.setProperty('--v4-screen-h', `${h}px`);
   }
   viewportHeight();
