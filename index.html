@@ -871,12 +871,16 @@ $("importFile").addEventListener("change",e=>{if(e.target.files[0])importJSON(e.
 refreshAll();
 if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
 
+function replaceDBInternal(incoming,refresh=true){
+  DB={...clone(DEFAULT_DB),...incoming,settings:{...clone(DEFAULT_DB.settings),...(incoming.settings||{})},meta:{...clone(DEFAULT_DB.meta),...(incoming.meta||{})}};
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(DB));
+  if(refresh)refreshAll();
+}
 window.fitnessApp={
   getDB:()=>clone(DB),
-  replaceDB:(incoming)=>{
-    DB={...clone(DEFAULT_DB),...incoming,settings:{...clone(DEFAULT_DB.settings),...(incoming.settings||{})},meta:{...clone(DEFAULT_DB.meta),...(incoming.meta||{})}};
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(DB));refreshAll();
-  },
+  replaceDB:(incoming)=>replaceDBInternal(incoming,true),
+  // Workout set logging uses this path so saving a set does not rebuild every page.
+  replaceDBQuiet:(incoming)=>replaceDBInternal(incoming,false),
   refresh:refreshAll,
   setSyncUI
 };
@@ -1010,6 +1014,7 @@ function schedule(){
   if(!session||!cfg().autoSync)return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>smartSync(false),1300);
 }
 window.addEventListener("fitness:changed",schedule);
+window.addEventListener("fitness:sync-needed",schedule);
 $c("cloudSaveConfig").addEventListener("click",saveConfig);
 $c("cloudLogin").addEventListener("click",login);
 $c("cloudVerify").addEventListener("click",verifyOtp);
