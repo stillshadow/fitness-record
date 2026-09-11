@@ -74,7 +74,8 @@
         contain:none!important;
       }
 
-      html.ui-v5 body.ui-final.keyboard-open{
+      html.ui-v5 body.ui-final.keyboard-open,
+      html.ui-v5 body.ui-final.keyboard-settling{
         overflow:hidden!important;
       }
 
@@ -106,8 +107,6 @@
   },{passive:true});
 
   vv()?.addEventListener('resize',schedule,{passive:true});
-  vv()?.addEventListener('scroll',schedule,{passive:true});
-
   document.addEventListener('focusin',e=>{
     if(!editable(e.target))return;
     document.body?.classList.add('keyboard-settling');
