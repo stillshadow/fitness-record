@@ -304,7 +304,26 @@
     db.exercises=db.exercises||[];
     const i=db.exercises.findIndex(x=>x.id===id);
     if(i>=0)db.exercises[i]=obj;else db.exercises.push(obj);
-    putDB(db);$("exerciseModal")?.classList.remove("open");renderTrainingPage();refreshTrainingSelector();toast("动作已保存");
+    db.meta=db.meta||{};
+    db.meta.updatedAt=new Date().toISOString();
+    db.meta.userTouched=true;
+
+    // Saving an exercise only needs a small part of the UI to change. A full
+    // replaceDB() rebuilds every page, then fitness:changed rebuilds them again.
+    // On iOS that can block the main thread long enough to look like a freeze.
+    if(window.fitnessApp?.replaceDBQuiet){
+      window.fitnessApp.replaceDBQuiet(normalizeDB(db));
+      $("exerciseModal")?.classList.remove("open");
+      renderTrainingPage();
+      refreshTrainingSelector();
+      window.dispatchEvent(new CustomEvent("fitness:exercise-changed"));
+      window.dispatchEvent(new CustomEvent("fitness:workout-changed"));
+      window.dispatchEvent(new CustomEvent("fitness:sync-needed"));
+    }else{
+      putDB(db);
+      $("exerciseModal")?.classList.remove("open");
+    }
+    toast("动作已保存");
   }
 
   function refreshTrainingSelector(){
