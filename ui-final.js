@@ -412,6 +412,126 @@
       html.ui-v5 body.ui-final *,html.ui-v5 body.ui-final *::before,html.ui-v5 body.ui-final *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     }
   `;
+  style.textContent += `
+    /* Simple form pages: no floating modal layer on mobile. */
+    @media(max-width:700px){
+      html.ui-v5 body.ui-final:has(.modal.open),
+      html.ui-v5 body.ui-final:has(.sheet.open){
+        height:auto!important;
+        min-height:100dvh!important;
+        overflow:auto!important;
+        overscroll-behavior:auto!important;
+        padding:0!important;
+        background:#0b0f14!important;
+      }
+
+      html.ui-v5 body.ui-final:has(.modal.open) > .app,
+      html.ui-v5 body.ui-final:has(.sheet.open) > .app,
+      html.ui-v5 body.ui-final:has(.modal.open) > #v3Home,
+      html.ui-v5 body.ui-final:has(.sheet.open) > #v3Home,
+      html.ui-v5 body.ui-final:has(.modal.open) > .bottom-nav,
+      html.ui-v5 body.ui-final:has(.sheet.open) > .bottom-nav,
+      html.ui-v5 body.ui-final:has(.modal.open) > .fab,
+      html.ui-v5 body.ui-final:has(.sheet.open) > .fab{
+        display:none!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open,
+      html.ui-v5 body.ui-final .sheet.open{
+        position:static!important;
+        inset:auto!important;
+        z-index:auto!important;
+        display:block!important;
+        width:100%!important;
+        height:auto!important;
+        min-height:100dvh!important;
+        margin:0!important;
+        padding:0!important;
+        overflow:visible!important;
+        background:#0b0f14!important;
+        transform:none!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open .modal-panel,
+      html.ui-v5 body.ui-final .modal.open .modal-panel.wide,
+      html.ui-v5 body.ui-final .sheet.open .sheet-panel{
+        box-sizing:border-box!important;
+        position:static!important;
+        width:100%!important;
+        max-width:720px!important;
+        min-height:100dvh!important;
+        max-height:none!important;
+        margin:0 auto!important;
+        padding:calc(14px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom))!important;
+        overflow:visible!important;
+        border:0!important;
+        border-radius:0!important;
+        background:#0b0f14!important;
+        box-shadow:none!important;
+        transform:none!important;
+        contain:none!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open .section:first-child,
+      html.ui-v5 body.ui-final .sheet.open .section:first-child{
+        min-height:48px!important;
+        margin:0 0 18px!important;
+        padding:0 0 12px!important;
+        border-bottom:1px solid rgba(255,255,255,.08)!important;
+        background:#0b0f14!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open .section:first-child h2,
+      html.ui-v5 body.ui-final .sheet.open .section:first-child h2{
+        font-size:20px!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open .modal-actions,
+      html.ui-v5 body.ui-final .sheet.open .modal-actions{
+        margin-top:20px!important;
+        padding-bottom:8px!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open input,
+      html.ui-v5 body.ui-final .modal.open select,
+      html.ui-v5 body.ui-final .modal.open textarea,
+      html.ui-v5 body.ui-final .sheet.open input,
+      html.ui-v5 body.ui-final .sheet.open select,
+      html.ui-v5 body.ui-final .sheet.open textarea{
+        font-size:16px!important;
+        min-height:44px!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open .row,
+      html.ui-v5 body.ui-final .sheet.open .row{
+        gap:12px!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open .c2,
+      html.ui-v5 body.ui-final .modal.open .c3,
+      html.ui-v5 body.ui-final .modal.open .c4,
+      html.ui-v5 body.ui-final .modal.open .c6,
+      html.ui-v5 body.ui-final .modal.open .c8,
+      html.ui-v5 body.ui-final .modal.open .c12,
+      html.ui-v5 body.ui-final .sheet.open .c2,
+      html.ui-v5 body.ui-final .sheet.open .c3,
+      html.ui-v5 body.ui-final .sheet.open .c4,
+      html.ui-v5 body.ui-final .sheet.open .c6,
+      html.ui-v5 body.ui-final .sheet.open .c8,
+      html.ui-v5 body.ui-final .sheet.open .c12{
+        grid-column:span 12!important;
+      }
+
+      html.ui-v5 body.ui-final .modal.open .btn,
+      html.ui-v5 body.ui-final .sheet.open .btn{
+        min-height:44px!important;
+      }
+    }
+  `;
   document.head.appendChild(style);
 
   function viewportHeight(){
@@ -475,11 +595,6 @@
     syncScreens();
     syncScroll();
     observe();
-    window.addEventListener('resize',()=>{
-      // Keyboard resizes must not resize the app shell or move modal hit targets.
-      const editing=document.querySelector('.modal.open input:focus,.modal.open textarea:focus,.modal.open select:focus,.sheet.open input:focus,.sheet.open textarea:focus,.sheet.open select:focus');
-      if(!document.body?.classList.contains('keyboard-open')&&!editing)viewportHeight();
-    },{passive:true});
     window.addEventListener('orientationchange',()=>setTimeout(viewportHeight,320),{passive:true});
     window.addEventListener('scroll',syncScroll,{passive:true});
     window.addEventListener('fitness:changed',()=>requestAnimationFrame(()=>{polishDOM();syncScreens()}));
