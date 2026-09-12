@@ -425,6 +425,11 @@
         background:#0b0f14!important;
       }
 
+      html.ui-v5 body.ui-final:has(.modal.open) #trainingSessionShell,
+      html.ui-v5 body.ui-final:has(.sheet.open) #trainingSessionShell{
+        display:none!important;
+      }
+
       html.ui-v5 body.ui-final:has(.modal.open) > .app,
       html.ui-v5 body.ui-final:has(.sheet.open) > .app,
       html.ui-v5 body.ui-final:has(.modal.open) > #v3Home,
