@@ -17,14 +17,14 @@
 (() => {
   const load=(src,attr)=>{if(document.querySelector(`script[data-${attr}]`))return;const s=document.createElement('script');s.async=false;s.src=src;s.setAttribute(`data-${attr}`,'1');document.head.appendChild(s)};
   const boot=()=>{
-    load('ui-v5.js?v=52','ui-v5');
-    load('ui-v3.js?v=52','ui-v3');
-    load('training-plan-v2.js?v=52','training-plan-v2');
-    load('ui-v2.js?v=52','ui-v2');
-    load('training-session.js?v=52','training-session');
-    load('last-performance.js?v=52','last-performance');
-    load('ui-final.js?v=52','ui-final');
-    load('ui-keyboard.js?v=52','ui-keyboard');
+    load('ui-v5.js?v=53','ui-v5');
+    load('ui-v3.js?v=53','ui-v3');
+    load('training-plan-v2.js?v=53','training-plan-v2');
+    load('ui-v2.js?v=53','ui-v2');
+    load('training-session.js?v=53','training-session');
+    load('last-performance.js?v=53','last-performance');
+    load('ui-final.js?v=53','ui-final');
+    load('ui-keyboard.js?v=53','ui-keyboard');
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
