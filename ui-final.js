@@ -544,6 +544,7 @@
     if(h>0)root.style.setProperty('--v4-screen-h',`${h}px`);
   }
 
+  let lastScreen="";
   function syncScreens(){
     const home = $('v3Home');
     const settings = $('v3SettingsRoot');
@@ -559,7 +560,11 @@
     const settingsActive = !legacy && !settings.hidden;
     document.body.classList.toggle('vf-home',homeActive);
     document.body.classList.toggle('vf-settings',settingsActive);
-    if (homeActive) window.scrollTo(0,0);
+    const screen=legacy?"legacy":settingsActive?"settings":"home";
+    if(screen!==lastScreen){
+      lastScreen=screen;
+      window.scrollTo(0,0);
+    }
   }
 
   function syncScroll(){

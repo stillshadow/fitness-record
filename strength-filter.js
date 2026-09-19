@@ -18,13 +18,14 @@
   const load=(src,attr)=>{if(document.querySelector(`script[data-${attr}]`))return;const s=document.createElement('script');s.async=false;s.src=src;s.setAttribute(`data-${attr}`,'1');document.head.appendChild(s)};
   const boot=()=>{
     load('ui-v5.js?v=54','ui-v5');
-    load('ui-v3.js?v=60','ui-v3');
+    load('ui-v3.js?v=62','ui-v3');
     load('training-plan-v2.js?v=54','training-plan-v2');
     load('ui-v2.js?v=54','ui-v2');
     load('training-batch.js?v=56','training-batch');
     load('ai-system.js?v=4','ai-system');
+    load('github-backup.js?v=1','github-backup');
     load('last-performance.js?v=54','last-performance');
-    load('ui-final.js?v=54','ui-final');
+    load('ui-final.js?v=62','ui-final');
     load('ui-keyboard.js?v=54','ui-keyboard');
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
