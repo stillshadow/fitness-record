@@ -143,7 +143,7 @@
       opacity:.48;
     }
     html.ui-v5 body.ui-final .v3-start{
-      min-height:58px!important;border-radius:19px!important;padding:13px 16px!important;
+      min-height:54px!important;border-radius:19px!important;padding:11px 16px!important;
       color:#0a1020!important;text-align:left!important;
       background:linear-gradient(135deg,rgba(228,233,255,.94),rgba(169,187,255,.86) 54%,rgba(139,162,255,.78))!important;
       border-color:rgba(255,255,255,.39)!important;
@@ -159,7 +159,7 @@
     html.ui-v5 body.ui-final .v3-start .v3-arrow{font-size:25px!important;opacity:.7}
 
     html.ui-v5 body.ui-final .v3-action{
-      min-height:65px!important;border-radius:17px!important;padding:10px 13px!important;text-align:left!important;
+      min-height:58px!important;border-radius:17px!important;padding:10px 13px!important;text-align:left!important;
       background:linear-gradient(145deg,rgba(34,41,53,.58),rgba(18,23,31,.43))!important;
       color:var(--final-text)!important;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.075),0 12px 34px rgba(0,0,0,.13)!important;
@@ -378,7 +378,7 @@
     @media(max-width:390px){
       html.ui-v5 body.ui-final .v3-avatar-stage{height:252px!important;min-height:252px!important}
       html.ui-v5 body.ui-final .v3-avatar{height:226px!important;max-height:226px!important}
-      html.ui-v5 body.ui-final .v3-action{min-height:59px!important;padding:9px 11px!important}
+      html.ui-v5 body.ui-final .v3-action{min-height:56px!important;padding:9px 11px!important}
       html.ui-v5 body.ui-final .v3-start{min-height:54px!important;padding:11px 13px!important}
     }
     @media(min-width:760px) and (min-height:740px){
