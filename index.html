@@ -951,6 +951,7 @@ function updateUser(extra=""){
     $c("cloudUserText").textContent=session.user?.is_anonymous?"本机 AI 身份":(session.user?.email||"AI 后端已连接");
     setOtpUI(false);
     status(extra||"AI 后端已连接；训练、饮食和体重只保存在本机。","good");
+    window.dispatchEvent(new CustomEvent("fitness:cloud-ready"));
   }else{
     $c("cloudUserText").textContent="未连接";
     status("本机记录可正常使用；AI 需要 Supabase Anonymous Sign-ins。","warn");
