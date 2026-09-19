@@ -398,7 +398,7 @@
     const grid=$("page-settings")?.querySelector(".grid");if(!grid||$("aiSettingsCard"))return;
     const card=document.createElement("div");card.className="card s12";card.id="aiSettingsCard";
     card.innerHTML='<div class="section"><h2>AI 服务</h2><span class="meta" id="aiSettingsStatus">DeepSeek Flash · 检查中…</span></div>'+
-      '<div class="meta">不再使用 Supabase。Key 可以直接保存在这台手机，也可以写进 deepseek-config.js。App 会从浏览器直接调用 DeepSeek。</div>'+
+      '<div class="meta">Key 可以直接保存在这台手机，也可以写进 deepseek-config.js。App 会从浏览器直接调用 DeepSeek。</div>'+
       '<div class="ai-key-field"><label for="aiApiKey">DeepSeek API Key</label><input id="aiApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 API Key"></div>'+
       '<div class="ai-key-actions"><button type="button" class="btn" id="aiSaveKey">保存并验证</button><button type="button" class="btn soft" id="aiTestConnection">测试连接</button><button type="button" class="btn danger" id="aiDeleteKey" style="display:none">移除本机 Key</button></div>';
     grid.appendChild(card);
