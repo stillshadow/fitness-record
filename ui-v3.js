@@ -9,20 +9,20 @@
     body.ui-v3 .page{display:none!important}
     body.ui-v3.v3-legacy-open .page.active{display:block!important;animation:v3PageIn .18s ease-out}
     #v3Home,#v3SettingsRoot{min-height:100vh;padding:calc(18px + env(safe-area-inset-top)) 0 32px}
-    #v3Home{padding-top:calc(32px + env(safe-area-inset-top))}
+    #v3Home{padding-top:calc(40px + env(safe-area-inset-top))}
     #v3Home[hidden],#v3SettingsRoot[hidden]{display:none!important}
     .v3-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px}
     .v3-today{font-size:12px;color:var(--v3-muted);letter-spacing:.04em}.v3-today b{display:block;color:var(--v3-text);font-size:17px;letter-spacing:0;margin-top:1px}
     .v3-icon-btn{width:40px;height:40px;border:1px solid var(--v3-line);border-radius:13px;background:rgba(18,23,31,.68);color:#cbd3e3;display:grid;place-items:center;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
     .v3-icon-btn svg{width:19px;height:19px}
-    .v3-avatar-stage{height:min(48vh,440px);min-height:300px;display:grid;place-items:center;position:relative;isolation:isolate;perspective:700px;overflow:hidden}
+    .v3-avatar-stage{height:clamp(250px,38vh,360px);min-height:0;display:grid;place-items:center;position:relative;isolation:isolate;perspective:700px;overflow:visible;padding:14px 0 8px}
     .v3-avatar-stage:before{content:"";position:absolute;width:min(72vw,390px);height:min(72vw,390px);border-radius:50%;background:radial-gradient(circle,rgba(119,145,255,.15),rgba(119,145,255,.035) 48%,transparent 70%);filter:blur(2px);animation:v3Glow 5.5s ease-in-out infinite;z-index:-2}
     .v3-avatar-stage:after{content:"";position:absolute;bottom:14%;width:180px;height:30px;border-radius:50%;background:rgba(0,0,0,.56);filter:blur(18px);animation:v3Shadow 4.4s ease-in-out infinite;z-index:-1}
     .v3-avatar-orbit{position:absolute;width:290px;height:290px;border:1px solid rgba(154,174,255,.055);border-radius:50%;animation:v3Orbit 18s linear infinite;z-index:-1}.v3-avatar-orbit:before,.v3-avatar-orbit:after{content:"";position:absolute;width:4px;height:4px;background:#9badff;border-radius:1px;box-shadow:0 0 14px rgba(155,173,255,.8)}.v3-avatar-orbit:before{top:22px;left:55px}.v3-avatar-orbit:after{right:24px;bottom:70px;opacity:.5}
-    .v3-avatar{height:min(42vh,390px);max-height:390px;width:auto;max-width:78vw;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 18px 28px rgba(0,0,0,.28));animation:v3Float 4.4s ease-in-out infinite;transform:translate3d(var(--px,0),var(--py,0),0);transition:transform .22s ease-out;will-change:transform}
-    .v3-today-strip{margin:-5px 2px 10px;text-align:center;color:var(--v3-muted);font-size:11px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .v3-avatar{height:min(33vh,310px);max-height:310px;width:auto;max-width:72vw;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 16px 24px rgba(0,0,0,.26));animation:v3Float 4.4s ease-in-out infinite;transform:translate3d(var(--px,0),var(--py,0),0);transition:transform .22s ease-out;will-change:transform}
+    .v3-today-strip{margin:2px 2px 12px;text-align:center;color:var(--v3-muted);font-size:11px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .v3-today-strip b{color:#dbe2f2;font-weight:720}.v3-today-strip .done{color:#aab9ff}
-    .v3-action-stack{display:grid;gap:10px;margin-top:-6px;position:relative;z-index:2}
+    .v3-action-stack{display:grid;gap:10px;margin-top:0;position:relative;z-index:2}
     .v3-start{width:100%;border:0;border-radius:18px;padding:17px 18px;background:linear-gradient(135deg,#b9c5ff,#8fa4ff);color:#080d17;display:flex;align-items:center;justify-content:space-between;text-align:left;box-shadow:0 12px 38px rgba(104,130,255,.16)}
     .v3-start strong{font-size:17px}.v3-start small{display:block;font-size:11px;opacity:.64;margin-top:2px}.v3-start .v3-arrow{font-size:24px;font-weight:400}
     .v3-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -38,6 +38,7 @@
     body.ui-v3 #page-training #planList [data-load-plan]{display:none!important}
     body.ui-v3 #page-today .summary-item:has(#todayCardio),body.ui-v3 #page-progress .metric:has(#cardioWeek),body.ui-v3 #page-settings div:has(>label[for="setCardio"]){display:none!important}
     body.ui-v3 #page-today .summary:has(#todayCardio){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    body.ui-v3 #page-settings .card:has(#cloudUserText){display:none!important}
     body.ui-v3 #todayTrainingList .item-actions{display:none!important}
     .v3-settings-title{font-size:25px;font-weight:790;margin:28px 2px 5px}.v3-settings-sub{color:var(--v3-muted);font-size:12px;margin:0 2px 20px}
     .v3-settings-list{display:grid;gap:9px}.v3-setting-row{width:100%;border:1px solid var(--v3-line);background:linear-gradient(180deg,#10151d,#0d1117);color:var(--v3-text);border-radius:17px;padding:15px 16px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:11px;text-align:left}.v3-setting-icon{width:38px;height:38px;border-radius:12px;background:#171e2a;display:grid;place-items:center;color:#aab9ff}.v3-setting-icon svg{width:18px;height:18px}.v3-setting-copy b{display:block;font-size:14px}.v3-setting-copy small{display:block;color:var(--v3-muted);font-size:10px;margin-top:2px}.v3-setting-chevron{font-size:21px;color:#586271}
@@ -48,8 +49,8 @@
     .v3-old-progress{display:none!important}
     #v3Splash{position:fixed;inset:0;z-index:1000;background:#07090d;display:grid;place-items:center;opacity:1;transition:opacity .38s ease;pointer-events:auto}#v3Splash.hide{opacity:0;pointer-events:none}.v3-splash-inner{text-align:center;transform:translateY(-4vh)}.v3-splash-kicker{font-size:10px;letter-spacing:.34em;color:#687489;margin-bottom:12px;text-transform:uppercase}.v3-splash-name{font-size:25px;font-weight:800;letter-spacing:.04em;color:#f2f5fb;animation:v3SplashName .7s ease-out both}.v3-splash-line{height:2px;width:34px;border-radius:99px;background:#9badff;margin:16px auto 0;animation:v3SplashLine .8s .12s ease both}
     @keyframes v3Float{0%,100%{translate:0 0}50%{translate:0 -7px}}@keyframes v3Glow{0%,100%{transform:scale(.96);opacity:.72}50%{transform:scale(1.05);opacity:1}}@keyframes v3Shadow{0%,100%{transform:scaleX(.92);opacity:.62}50%{transform:scaleX(.78);opacity:.42}}@keyframes v3Orbit{to{transform:rotate(360deg)}}@keyframes v3PageIn{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes v3SplashName{from{opacity:0;transform:translateY(7px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}@keyframes v3SplashLine{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
-    @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-avatar-stage{height:43vh;min-height:285px}.v3-avatar{height:38vh;max-height:350px}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
-    @media(max-width:430px){.v3-avatar-stage{height:41vh;min-height:270px}.v3-avatar{height:36vh}.v3-grid{gap:8px}.v3-action{min-height:78px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}}
+    @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-avatar-stage{height:clamp(240px,36vh,330px);min-height:0}.v3-avatar{height:min(31vh,290px);max-height:290px}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
+    @media(max-width:430px){#v3Home{padding-top:calc(38px + env(safe-area-inset-top))}.v3-avatar-stage{height:clamp(225px,34vh,300px);min-height:0;padding:12px 0 6px}.v3-avatar{height:min(29vh,270px);max-height:270px;max-width:70vw}.v3-grid{gap:8px}.v3-action{min-height:78px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}}
     /* Calm UI: keep the interface static and predictable. */
     body.ui-v3 *,body.ui-v3 *::before,body.ui-v3 *::after,#v3Splash *{
       animation:none!important;
@@ -122,7 +123,7 @@
       <div class="v3-settings-list">
         <button class="v3-setting-row" data-v3-open="training"><span class="v3-setting-icon">${icon('training')}</span><span class="v3-setting-copy"><b>训练设置</b><small>训练模板与自定义动作</small></span><span class="v3-setting-chevron">›</span></button>
         <button class="v3-setting-row" data-v3-open="food"><span class="v3-setting-icon">${icon('food')}</span><span class="v3-setting-copy"><b>饮食设置</b><small>餐食模板与食物库</small></span><span class="v3-setting-chevron">›</span></button>
-        <button class="v3-setting-row" data-v3-open="settings"><span class="v3-setting-icon">${icon('target')}</span><span class="v3-setting-copy"><b>目标与数据</b><small>碳蛋脂、云同步与备份</small></span><span class="v3-setting-chevron">›</span></button>
+        <button class="v3-setting-row" data-v3-open="settings"><span class="v3-setting-icon">${icon('target')}</span><span class="v3-setting-copy"><b>目标与数据</b><small>每日目标、AI 与本机备份</small></span><span class="v3-setting-chevron">›</span></button>
       </div>`;
     app.insertBefore(settings,home.nextSibling);
   }
@@ -252,7 +253,7 @@
     ensurePageBar($('page-progress'),'我的进度','体重、力量与饮食执行','home');
     ensurePageBar($('page-training'),'训练设置','训练模板与自定义动作','settings');
     ensurePageBar($('page-food'),'饮食设置','餐食模板与食物库','settings');
-    ensurePageBar($('page-settings'),'目标与数据','每日目标、同步与备份','settings');
+    ensurePageBar($('page-settings'),'目标与数据','每日目标、AI 与本机备份','settings');
     moveStrengthToProgress(); moveRecentRecords(); renderProgressV3();
   }
 
