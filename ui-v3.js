@@ -9,6 +9,7 @@
     body.ui-v3 .page{display:none!important}
     body.ui-v3.v3-legacy-open .page.active{display:block!important;animation:v3PageIn .18s ease-out}
     #v3Home,#v3SettingsRoot{min-height:100vh;padding:calc(18px + env(safe-area-inset-top)) 0 32px}
+    #v3Home{padding-top:calc(32px + env(safe-area-inset-top))}
     #v3Home[hidden],#v3SettingsRoot[hidden]{display:none!important}
     .v3-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px}
     .v3-today{font-size:12px;color:var(--v3-muted);letter-spacing:.04em}.v3-today b{display:block;color:var(--v3-text);font-size:17px;letter-spacing:0;margin-top:1px}
