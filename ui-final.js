@@ -112,9 +112,9 @@
       border-color:rgba(190,202,255,.055)!important;opacity:.72!important;
     }
     html.ui-v5 body.ui-final .v3-avatar{
-      height:min(42vh,380px)!important;max-height:min(42vh,380px)!important;
-      max-width:min(77vw,365px)!important;
-      filter:drop-shadow(0 22px 32px rgba(0,0,0,.32)) drop-shadow(0 0 18px rgba(125,146,255,.035))!important;
+      height:246px!important;max-height:246px!important;
+      max-width:min(72vw,330px)!important;
+      filter:drop-shadow(0 20px 30px rgba(0,0,0,.3)) drop-shadow(0 0 18px rgba(125,146,255,.035))!important;
       animation:vfAvatarFloat 5.2s ease-in-out infinite!important;
       will-change:transform,filter;
     }
@@ -375,18 +375,11 @@
         padding:16px 14px calc(17px + env(safe-area-inset-bottom))!important;
       }
     }
-    @media(max-height:720px){
+    @media(max-width:390px){
       html.ui-v5 body.ui-final .v3-avatar-stage{height:252px!important;min-height:252px!important}
-      html.ui-v5 body.ui-final .v3-avatar{height:230px!important;max-height:230px!important}
-      html.ui-v5 body.ui-final .v3-action{min-height:59px!important;padding:8px 11px!important}
-      html.ui-v5 body.ui-final .v3-start{min-height:53px!important;padding:10px 13px!important}
-    }
-    @media(max-height:610px){
-      html.ui-v5 body.ui-final .v3-avatar-stage{height:230px!important;min-height:230px!important}
-      html.ui-v5 body.ui-final .v3-avatar{height:210px!important;max-height:210px!important}
-      html.ui-v5 body.ui-final .v3-action{min-height:53px!important}
-      html.ui-v5 body.ui-final .v3-action small,html.ui-v5 body.ui-final .v3-start small{display:none!important}
-      html.ui-v5 body.ui-final .v3-action-stack,html.ui-v5 body.ui-final .v3-grid{gap:6px!important}
+      html.ui-v5 body.ui-final .v3-avatar{height:226px!important;max-height:226px!important}
+      html.ui-v5 body.ui-final .v3-action{min-height:59px!important;padding:9px 11px!important}
+      html.ui-v5 body.ui-final .v3-start{min-height:54px!important;padding:11px 13px!important}
     }
     @media(min-width:760px) and (min-height:740px){
       html.ui-v5 body.ui-final.vf-home .app{max-width:760px!important}
