@@ -1,5 +1,5 @@
-const CACHE='chibianying-fitness-v1-61';
-const ASSETS=['./','index.html','manifest.json','deepseek-config.js','app-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','training-plan-v2.js','training-batch.js','ai-system.js','last-performance.js','ui-v2.js','ui-v2.css','ui-v3.js','ui-v5.js','ui-final.js','ui-keyboard.js','update.html','icon-192.png','icon-512.png'];
+const CACHE='chibianying-fitness-v1-62';
+const ASSETS=['./','index.html','manifest.json','deepseek-config.js','app-config.js','food-system.js','training-system.js','history-system.js','set-logger.js','strength-filter.js','training-plan-v2.js','training-batch.js','ai-system.js','github-backup.js','last-performance.js','ui-v2.js','ui-v2.css','ui-v3.js','ui-v5.js','ui-final.js','ui-keyboard.js','update.html','icon-192.png','icon-512.png'];
 const EARLY_UI='<script src="ui-v5.js?v=54" data-ui-v5="1"></script><script src="ui-final.js?v=54" data-ui-final="1"></script><script src="ui-keyboard.js?v=54" data-ui-keyboard="1"></script>';
 
 self.addEventListener('install',e=>e.waitUntil(
@@ -60,7 +60,7 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  if(url.origin===location.origin && (url.pathname.endsWith('/deepseek-config.js') || url.pathname.endsWith('/app-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js') || url.pathname.endsWith('/training-plan-v2.js') || url.pathname.endsWith('/training-batch.js') || url.pathname.endsWith('/ai-system.js') || url.pathname.endsWith('/last-performance.js') || url.pathname.endsWith('/ui-v2.js') || url.pathname.endsWith('/ui-v2.css') || url.pathname.endsWith('/ui-v3.js') || url.pathname.endsWith('/ui-v5.js') || url.pathname.endsWith('/ui-final.js') || url.pathname.endsWith('/ui-keyboard.js'))){
+  if(url.origin===location.origin && (url.pathname.endsWith('/deepseek-config.js') || url.pathname.endsWith('/app-config.js') || url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/food-system.js') || url.pathname.endsWith('/training-system.js') || url.pathname.endsWith('/history-system.js') || url.pathname.endsWith('/set-logger.js') || url.pathname.endsWith('/strength-filter.js') || url.pathname.endsWith('/training-plan-v2.js') || url.pathname.endsWith('/training-batch.js') || url.pathname.endsWith('/ai-system.js') || url.pathname.endsWith('/github-backup.js') || url.pathname.endsWith('/last-performance.js') || url.pathname.endsWith('/ui-v2.js') || url.pathname.endsWith('/ui-v2.css') || url.pathname.endsWith('/ui-v3.js') || url.pathname.endsWith('/ui-v5.js') || url.pathname.endsWith('/ui-final.js') || url.pathname.endsWith('/ui-keyboard.js'))){
     e.respondWith(networkFirst(e.request));
     return;
   }
