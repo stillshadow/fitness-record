@@ -42,24 +42,26 @@
 
     /* home */
     html.ui-v5 body.ui-final.vf-home{
-      height:var(--v4-screen-h,100dvh)!important;
-      overflow:hidden!important;
-      overscroll-behavior:none!important;
+      height:auto!important;
+      min-height:100svh!important;
+      overflow-x:hidden!important;
+      overflow-y:auto!important;
+      overscroll-behavior-y:auto!important;
     }
     html.ui-v5 body.ui-final.vf-home .app{
-      height:var(--v4-screen-h,100dvh)!important;
-      overflow:hidden!important;
+      height:auto!important;
+      min-height:100svh!important;
+      overflow:visible!important;
       padding:0 13px!important;
     }
     html.ui-v5 body.ui-final #v3Home:not([hidden]){
       box-sizing:border-box!important;
-      height:var(--v4-screen-h,100dvh)!important;
-      min-height:0!important;
-      max-height:var(--v4-screen-h,100dvh)!important;
-      display:grid!important;
-      grid-template-rows:auto minmax(0,1fr) auto!important;
-      overflow:hidden!important;
-      padding:calc(12px + env(safe-area-inset-top)) 0 max(calc(env(safe-area-inset-bottom) + 64px),96px)!important;
+      height:auto!important;
+      min-height:100svh!important;
+      max-height:none!important;
+      display:block!important;
+      overflow:visible!important;
+      padding:calc(20px + env(safe-area-inset-top)) 0 calc(36px + env(safe-area-inset-bottom))!important;
       position:relative!important;
       isolation:isolate;
       animation:vfHomeIn .48s cubic-bezier(.22,.8,.24,1) both;
@@ -94,9 +96,10 @@
     html.ui-v5 body.ui-final .v3-icon-btn{width:42px!important;height:42px!important;border-radius:50%!important}
 
     html.ui-v5 body.ui-final .v3-avatar-stage{
-      height:auto!important;min-height:0!important;align-self:stretch!important;
-      overflow:hidden!important;display:grid!important;place-items:center!important;
-      transform:translateY(-4px);
+      height:272px!important;min-height:272px!important;
+      overflow:visible!important;display:grid!important;place-items:center!important;
+      transform:none!important;
+      margin:4px 0 2px!important;
     }
     html.ui-v5 body.ui-final .v3-avatar-stage:before{
       width:min(70vw,370px)!important;height:min(70vw,370px)!important;
@@ -109,9 +112,9 @@
       border-color:rgba(190,202,255,.055)!important;opacity:.72!important;
     }
     html.ui-v5 body.ui-final .v3-avatar{
-      height:min(42vh,380px)!important;max-height:min(42vh,380px)!important;
-      max-width:min(77vw,365px)!important;
-      filter:drop-shadow(0 22px 32px rgba(0,0,0,.32)) drop-shadow(0 0 18px rgba(125,146,255,.035))!important;
+      height:246px!important;max-height:246px!important;
+      max-width:min(72vw,330px)!important;
+      filter:drop-shadow(0 20px 30px rgba(0,0,0,.3)) drop-shadow(0 0 18px rgba(125,146,255,.035))!important;
       animation:vfAvatarFloat 5.2s ease-in-out infinite!important;
       will-change:transform,filter;
     }
@@ -362,7 +365,7 @@
     @media(max-width:700px){
       html.ui-v5 body.ui-final .app{padding-left:12px!important;padding-right:12px!important}
       html.ui-v5 body.ui-final.vf-home .app{padding:0 12px!important}
-      html.ui-v5 body.ui-final #v3Home:not([hidden]){padding-top:calc(11px + env(safe-area-inset-top))!important}
+      html.ui-v5 body.ui-final #v3Home:not([hidden]){padding-top:calc(18px + env(safe-area-inset-top))!important}
       html.ui-v5 body.ui-final .v3-pagebar{margin-left:-12px!important;margin-right:-12px!important;padding-left:12px!important;padding-right:12px!important}
       html.ui-v5 body.ui-final .modal{align-items:flex-end!important;padding:0!important}
       html.ui-v5 body.ui-final .modal-panel,
@@ -372,18 +375,11 @@
         padding:16px 14px calc(17px + env(safe-area-inset-bottom))!important;
       }
     }
-    @media(max-height:720px){
-      html.ui-v5 body.ui-final #v3Home:not([hidden]){padding-bottom:max(calc(env(safe-area-inset-bottom) + 38px),66px)!important}
-      html.ui-v5 body.ui-final .v3-avatar{height:min(37vh,285px)!important;max-height:min(37vh,285px)!important}
-      html.ui-v5 body.ui-final .v3-action{min-height:59px!important;padding:8px 11px!important}
-      html.ui-v5 body.ui-final .v3-start{min-height:53px!important;padding:10px 13px!important}
-    }
-    @media(max-height:610px){
-      html.ui-v5 body.ui-final #v3Home:not([hidden]){padding-bottom:max(calc(env(safe-area-inset-bottom) + 16px),42px)!important}
-      html.ui-v5 body.ui-final .v3-avatar{height:min(31vh,220px)!important;max-height:min(31vh,220px)!important}
-      html.ui-v5 body.ui-final .v3-action{min-height:53px!important}
-      html.ui-v5 body.ui-final .v3-action small,html.ui-v5 body.ui-final .v3-start small{display:none!important}
-      html.ui-v5 body.ui-final .v3-action-stack,html.ui-v5 body.ui-final .v3-grid{gap:6px!important}
+    @media(max-width:390px){
+      html.ui-v5 body.ui-final .v3-avatar-stage{height:252px!important;min-height:252px!important}
+      html.ui-v5 body.ui-final .v3-avatar{height:226px!important;max-height:226px!important}
+      html.ui-v5 body.ui-final .v3-action{min-height:59px!important;padding:9px 11px!important}
+      html.ui-v5 body.ui-final .v3-start{min-height:54px!important;padding:11px 13px!important}
     }
     @media(min-width:760px) and (min-height:740px){
       html.ui-v5 body.ui-final.vf-home .app{max-width:760px!important}

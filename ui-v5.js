@@ -46,25 +46,21 @@
 
     /* final geometry exists before splash disappears, preventing a second layout jump */
     html.ui-v5 body #v3Home:not([hidden]){
-      box-sizing:border-box!important;height:var(--v4-screen-h,100dvh)!important;min-height:0!important;max-height:var(--v4-screen-h,100dvh)!important;
-      overflow:hidden!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;
-      padding:calc(12px + env(safe-area-inset-top)) 0 max(calc(env(safe-area-inset-bottom) + 64px),96px)!important;
+      box-sizing:border-box!important;
+      height:auto!important;min-height:100svh!important;max-height:none!important;
+      overflow:visible!important;display:block!important;
+      padding:calc(18px + env(safe-area-inset-top)) 0 calc(34px + env(safe-area-inset-bottom))!important;
     }
-    html.ui-v5 body .v3-avatar-stage{height:auto!important;min-height:0!important;align-self:stretch!important;overflow:hidden!important}
-    html.ui-v5 body .v3-action-stack{align-self:end!important;margin:0!important;padding-top:0!important;gap:9px!important}
+    html.ui-v5 body .v3-avatar-stage{height:272px!important;min-height:272px!important;overflow:visible!important}
+    html.ui-v5 body .v3-action-stack{margin:0!important;padding-top:0!important;gap:9px!important}
     html.ui-v5 body .v3-start{min-height:58px!important;padding:13px 16px!important}
     html.ui-v5 body .v3-action{min-height:65px!important;padding:10px 13px!important}
     html.ui-v5 body #v3SettingsRoot:not([hidden]){display:block!important;width:100%!important;min-height:var(--v4-screen-h,100dvh)!important}
 
-    @media(max-height:720px){
-      html.ui-v5 body #v3Home:not([hidden]){padding-bottom:max(calc(env(safe-area-inset-bottom) + 38px),66px)!important}
-      html.ui-v5 body .v3-action{min-height:59px!important;padding:8px 11px!important}
-      html.ui-v5 body .v3-start{min-height:53px!important;padding:10px 13px!important}
-    }
-    @media(max-height:610px){
-      html.ui-v5 body #v3Home:not([hidden]){padding-bottom:max(calc(env(safe-area-inset-bottom) + 16px),42px)!important}
-      html.ui-v5 body .v3-action{min-height:53px!important}
-      html.ui-v5 body .v3-action-stack,html.ui-v5 body .v3-grid{gap:6px!important}
+    @media(max-width:390px){
+      html.ui-v5 body .v3-avatar-stage{height:252px!important;min-height:252px!important}
+      html.ui-v5 body .v3-action{min-height:59px!important;padding:9px 11px!important}
+      html.ui-v5 body .v3-start{min-height:54px!important;padding:11px 13px!important}
     }
     @media(prefers-reduced-motion:reduce){
       html.ui-v5 body::before,html.ui-v5 body::after{transition:none!important;animation:none!important}

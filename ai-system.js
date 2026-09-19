@@ -194,20 +194,40 @@
     ].join("\n");
     if(mode==="exercise")return [
       "你是力量训练记录分析助手。",
-      "基于用户传入的某个动作最近训练记录，分析重量、次数、RIR、估算1RM和训练间隔的变化。",
-      "优先描述数据能支持的趋势，不把单次波动说成停滞或退步。",
-      "如果数据不足，明确说数据不足。",
-      "建议应保守、可执行，不要自行修改用户计划，不要声称医学诊断或恢复状态。",
-      "输出简洁中文。"
+      "基于用户传入的某个动作最近训练记录，分析工作重量、重复次数、RIR、最佳组、估算1RM和训练间隔的变化。",
+      "优先判断：是否持续进步、基本持平、出现连续退步，还是数据不足。单次状态波动不能定义为停滞。",
+      "如果重量不变但次数或RIR改善，也应识别为进步。如果重量提高但次数明显下降，要结合e1RM而不是只看重量。",
+      "建议最多给2到3条，必须具体可执行，例如维持重量争取次数、达到某条件后小幅加重。不要替用户自动修改计划。",
+      "不要声称医学诊断、过度训练、恢复不良或受伤原因，除非输入数据明确支持且只做描述。",
+      "输出简洁中文，先给结论，再给依据。"
+    ].join("\n");
+    if(mode==="today")return [
+      "你是个人健身记录的今日简报助手。",
+      "用户提供的是程序已经计算好的今日饮食、训练、体重目标，以及最近几天的上下文。算术结果以输入为准，不重新编造数字。",
+      "今天可能尚未结束，因此碳水、蛋白质或热量暂时不足时，不要直接评价为执行失败。只描述当前进度，并把真正异常的点放在前面。",
+      "区分单日波动和连续趋势。单日脂肪稍高、体重变化或某次训练表现变化，不要过度解读。",
+      "如果今天训练已记录，指出最值得关注的表现；没有训练就不要强行建议训练。",
+      "建议最多3条，具体、克制、能在今天剩余时间执行。不要自动修改目标。",
+      "不要做医学诊断，也不要推断疾病、激素或精神状态。",
+      "输出简洁中文，summary用2到4句话概括今天最重要的信息。"
+    ].join("\n");
+    if(mode==="weekly")return [
+      "你是个人健身记录的7日趋势分析助手。",
+      "比较最近7天与之前7天的体重均值、宏量营养、记录完整度和训练频率。输入中的统计值已经由程序计算，以这些数字为准。",
+      "优先看趋势而不是单日极值。体重均值只有在记录数量足够时才下结论；饮食记录天数少时必须降低结论强度。",
+      "饮食部分重点看平均摄入与目标的偏差、是否稳定执行，而不是要求每天完全一致。",
+      "训练部分重点看训练频率和已有动作表现，不因为一周训练天数变化就自行判断过度或不足。",
+      "建议最多3条，优先给是否需要保持现状、继续观察或做很小调整。不要自动修改用户目标。",
+      "不要做医学诊断，也不要推断疾病、激素或精神状态。",
+      "输出简洁中文，并明确哪些结论证据充分、哪些只是需要继续观察。"
     ].join("\n");
     return [
       "你是个人健身记录分析助手。",
-      "用户会提供由程序提前计算好的体重、饮食宏量营养和力量训练数据。",
-      "算术结果以输入数据为准，你负责解释趋势，不要重新臆算不存在的数据。",
-      "区分单日波动与多日趋势。数据不足时明确指出。",
-      "建议应保守、具体，不要因为一天超标就建议大幅调整饮食，也不要直接修改用户目标。",
-      "不要做医学诊断，不要推断疾病、激素、精神状态或受伤原因。",
-      "输出简洁中文，重点放在最值得关注的2到4件事。"
+      "只解释用户提供的数据，不编造缺失信息。",
+      "区分短期波动和长期趋势，数据不足时明确指出。",
+      "建议应保守、具体，不直接修改用户设置。",
+      "不要做医学诊断。",
+      "输出简洁中文。"
     ].join("\n");
   }
   function userText(mode,payload){
@@ -248,23 +268,111 @@
     try{return JSON.parse(text)}catch{throw new Error("DeepSeek 返回了无效 JSON")}
   }
 
+  const INSIGHT_CACHE_STORAGE="chibianyingAiInsightCacheV2";
+  let currentInsight={mode:null,exerciseId:null,payload:null,fingerprint:"",entry:null};
+  let insightReturnScroll=0;
+
+  function payloadFingerprint(payload){
+    const str=JSON.stringify(payload||{});
+    let h=2166136261;
+    for(let i=0;i<str.length;i++){
+      h^=str.charCodeAt(i);
+      h=Math.imul(h,16777619);
+    }
+    return (h>>>0).toString(36);
+  }
+  function readInsightCache(){
+    try{
+      const x=JSON.parse(localStorage.getItem(INSIGHT_CACHE_STORAGE)||"{}");
+      return {version:2,today:x.today||null,weekly:x.weekly||null,exercises:x.exercises||{}};
+    }catch{return{version:2,today:null,weekly:null,exercises:{}}}
+  }
+  function writeInsightCache(cache){
+    try{localStorage.setItem(INSIGHT_CACHE_STORAGE,JSON.stringify(cache))}catch{}
+  }
+  function insightPayload(mode,exerciseId){
+    return mode==="today"?buildTodayPayload():mode==="weekly"?buildWeeklyPayload():buildExercisePayload(exerciseId);
+  }
+  function cacheEntryFor(mode,exerciseId){
+    const cache=readInsightCache();
+    return mode==="exercise"?cache.exercises?.[exerciseId]||null:cache[mode]||null;
+  }
+  function validCacheEntry(mode,exerciseId,entry,fingerprint){
+    if(!entry?.data)return false;
+    if(mode==="today"||mode==="weekly")return entry.date===today();
+    return !!exerciseId&&entry.fingerprint===fingerprint;
+  }
+  function saveInsightEntry(mode,exerciseId,data,fingerprint){
+    const cache=readInsightCache();
+    const entry={date:today(),generatedAt:new Date().toISOString(),fingerprint,data};
+    if(mode==="exercise")cache.exercises[exerciseId]=entry;
+    else cache[mode]=entry;
+    writeInsightCache(cache);
+    return entry;
+  }
+  function formatGeneratedTime(iso){
+    if(!iso)return "";
+    const d=new Date(iso);
+    return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+  function insightLabel(mode){
+    return mode==="today"?"今日简报":mode==="weekly"?"最近 7 天":"动作分析";
+  }
+  function currentCacheState(mode,exerciseId){
+    try{
+      const payload=insightPayload(mode,exerciseId),fingerprint=payloadFingerprint(payload),entry=cacheEntryFor(mode,exerciseId);
+      const valid=validCacheEntry(mode,exerciseId,entry,fingerprint);
+      const stale=valid&&entry.fingerprint!==fingerprint;
+      return {payload,fingerprint,entry,valid,stale};
+    }catch{return{payload:null,fingerprint:"",entry:null,valid:false,stale:false}}
+  }
+
   function ensureStyles(){
     if($("fitnessAiStyle"))return;
-    const style=document.createElement("style");style.id="fitnessAiStyle";style.textContent=
-      ".ai-home-card{margin-top:12px;border:1px solid rgba(155,173,255,.13);background:linear-gradient(180deg,rgba(19,24,34,.94),rgba(12,16,23,.96));border-radius:17px;padding:13px 14px}"+
-      ".ai-home-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.ai-home-head b{font-size:13px}.ai-home-head small{font-size:9px;color:var(--v3-muted,#7c8797)}"+
-      ".ai-home-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ai-home-actions button,.ai-food-shortcut button{border:1px solid rgba(155,173,255,.16);background:#151b26;color:#dce3f5;border-radius:12px;padding:10px 11px;font-size:11px;text-align:left}"+
-      ".ai-food-shortcut{margin:8px 0 12px}.ai-food-shortcut button{width:100%;display:flex;align-items:center;justify-content:space-between}.ai-food-shortcut small{color:var(--muted);font-size:9px}"+
-      "#aiFoodModal .modal-panel,#aiInsightModal .modal-panel{width:min(620px,100%);max-height:92vh}"+
-      ".ai-upload{border:1px dashed var(--line);border-radius:14px;padding:12px;text-align:center;background:var(--panel2)}.ai-upload input{display:none}.ai-upload-preview{display:none;max-height:210px;max-width:100%;margin:0 auto 10px;border-radius:12px;object-fit:contain}.ai-upload.has-image .ai-upload-preview{display:block}"+
-      ".ai-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.ai-fields .wide{grid-column:1/-1}.ai-fields textarea{min-height:82px;resize:vertical}"+
-      ".ai-result-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:12px 0}.ai-result-macro{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px;text-align:center}.ai-result-macro small{display:block;color:var(--muted);font-size:9px}.ai-result-macro b{font-size:15px}"+
-      ".ai-result-note{font-size:11px;color:var(--muted);line-height:1.65}.ai-loading{padding:28px 8px;text-align:center;color:var(--muted)}"+
-      ".ai-analysis-summary{font-size:13px;line-height:1.7;margin-bottom:12px}.ai-observation{border-top:1px solid var(--line);padding:11px 1px}.ai-observation b{font-size:12px}.ai-observation p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.6}"+
-      ".ai-tag{display:inline-block;font-size:8px;padding:2px 6px;border-radius:999px;margin-left:6px;background:#171e2a;color:#aab9ff}.ai-tag.attention{color:#f0ba5e}.ai-tag.positive{color:#71d7a4}"+
-      ".ai-exercise-btn{margin-top:5px;border:0;background:transparent;color:#9badff;font-size:9px;padding:1px 0}"+
-      ".ai-key-field{display:grid;gap:6px;margin:10px 0}.ai-key-field input{width:100%}.ai-key-actions{display:flex;gap:7px;flex-wrap:wrap}.ai-key-actions .btn{flex:1 1 120px}"+
-      "@media(max-width:430px){.ai-result-macros{grid-template-columns:repeat(2,1fr)}.ai-fields{grid-template-columns:1fr}.ai-fields .wide{grid-column:auto}}";
+    const style=document.createElement("style");style.id="fitnessAiStyle";style.textContent=`
+      .ai-home-card{margin-top:14px;border:1px solid rgba(155,173,255,.14);background:linear-gradient(180deg,rgba(19,24,34,.96),rgba(12,16,23,.97));border-radius:19px;padding:14px}
+      .ai-home-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+      .ai-home-head-copy b{display:block;font-size:14px}.ai-home-head-copy small{display:block;margin-top:2px;font-size:9px;color:var(--v3-muted,#7c8797)}
+      .ai-home-provider{font-size:9px;color:#8590a3;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 7px}
+      .ai-home-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+      .ai-home-action,.ai-food-shortcut button{border:1px solid rgba(155,173,255,.14);background:#151b26;color:#dce3f5;border-radius:14px;padding:11px 12px;text-align:left}
+      .ai-home-action{min-height:70px;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+      .ai-home-action strong{font-size:12px}.ai-home-action small{display:block;color:#7f899a;font-size:9px;line-height:1.35}
+      .ai-home-action.has-cache{border-color:rgba(126,215,171,.2);background:linear-gradient(180deg,rgba(19,31,31,.8),#151b26)}
+      .ai-home-action.stale{border-color:rgba(240,186,94,.22)}.ai-home-action.stale small{color:#d5ad68}
+      .ai-food-shortcut{margin:8px 0 12px}.ai-food-shortcut button{width:100%;display:flex;align-items:center;justify-content:space-between}.ai-food-shortcut small{color:var(--muted);font-size:9px}
+      #aiFoodModal .modal-panel{width:min(620px,100%)!important;max-height:92vh}
+      #aiInsightModal .ai-report-panel{width:min(680px,100%)!important;max-height:92vh!important;padding:0!important;overflow:auto!important}
+      .ai-modal-head,.ai-report-head{display:grid;grid-template-columns:minmax(0,1fr) 40px;align-items:center;gap:12px;margin:0;padding:15px 15px 12px;border-bottom:1px solid rgba(255,255,255,.075);background:#171d27;position:sticky;top:0;z-index:5}
+      .ai-modal-head b,.ai-report-head h2{margin:0;font-size:18px;line-height:1.25}.ai-modal-head small,.ai-report-head small{display:block;margin-top:3px;color:#7e8999;font-size:9px}
+      .ai-modal-close,.ai-report-close{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;padding:0!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:50%!important;background:#111720!important;color:#dbe2ef!important;font-size:23px!important;font-weight:400!important;line-height:1!important;display:grid!important;place-items:center!important}
+      #aiFoodModal .ai-upload,#aiFoodModal .ai-fields,#aiFoodModal #aiFoodResult,#aiFoodModal .modal-actions{margin-left:15px;margin-right:15px}
+      #aiFoodModal .modal-actions{margin-bottom:15px}
+      .ai-upload{border:1px dashed var(--line);border-radius:14px;padding:12px;text-align:center;background:var(--panel2)}.ai-upload input{display:none}.ai-upload-preview{display:none;max-height:210px;max-width:100%;margin:0 auto 10px;border-radius:12px;object-fit:contain}.ai-upload.has-image .ai-upload-preview{display:block}
+      .ai-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.ai-fields .wide{grid-column:1/-1}.ai-fields textarea{min-height:82px;resize:vertical}
+      .ai-result-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:12px 0}.ai-result-macro{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px;text-align:center}.ai-result-macro small{display:block;color:var(--muted);font-size:9px}.ai-result-macro b{font-size:15px}
+      .ai-result-note{font-size:11px;color:var(--muted);line-height:1.65}.ai-loading{padding:42px 18px;text-align:center;color:var(--muted)}
+      .ai-report-body{padding:15px}
+      .ai-report-meta{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.ai-report-pill{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.08);background:#121823;border-radius:999px;padding:4px 8px;color:#8490a1;font-size:9px}.ai-report-pill.cached{color:#78d4a4}.ai-report-pill.stale{color:#e2b768}
+      .ai-analysis-summary{padding:14px 15px;border:1px solid rgba(160,180,255,.14);border-radius:15px;background:linear-gradient(145deg,rgba(28,35,48,.88),rgba(17,22,30,.82));font-size:13px;line-height:1.75;color:#e7ebf4;margin-bottom:15px}
+      .ai-report-section-title{font-size:10px;color:#788495;letter-spacing:.08em;margin:16px 2px 8px;text-transform:uppercase}
+      .ai-observation-list{display:grid;gap:8px}.ai-observation{border:1px solid rgba(255,255,255,.065);border-radius:13px;padding:11px 12px;background:rgba(255,255,255,.018)}
+      .ai-observation-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.ai-observation b{font-size:12px}.ai-observation p{margin:5px 0 0;color:#939dab;font-size:11px;line-height:1.65}
+      .ai-tag{display:inline-flex;flex:0 0 auto;font-size:8px;padding:2px 6px;border-radius:999px;background:#171e2a;color:#aab9ff}.ai-tag.attention{color:#f0ba5e}.ai-tag.positive{color:#71d7a4}
+      .ai-report-quality{margin-top:13px;color:#707b8b;font-size:9px}
+      .ai-report-actions{display:flex;gap:8px;justify-content:flex-end;padding:0 15px 15px}.ai-report-actions button{min-height:40px}
+      .ai-report-error{margin:18px 15px}
+      .ai-exercise-btn{margin-top:5px;border:0;background:transparent;color:#9badff;font-size:9px;padding:1px 0}
+      .ai-key-field{display:grid;gap:6px;margin:10px 0}.ai-key-field input{width:100%}.ai-key-actions{display:flex;gap:7px;flex-wrap:wrap}.ai-key-actions .btn{flex:1 1 120px}
+      @media(max-width:700px){
+        #aiInsightModal.open .ai-report-panel{width:100%!important;max-width:none!important;max-height:none!important;min-height:100dvh!important;padding:0 0 calc(16px + env(safe-area-inset-bottom))!important}
+        #aiInsightModal .ai-report-head{padding:calc(12px + env(safe-area-inset-top)) 14px 12px!important;background:#0b0f14!important}
+        #aiInsightModal .ai-report-body{padding:14px!important}
+        #aiInsightModal .ai-report-actions{padding:0 14px 14px!important}
+        #aiFoodModal .ai-modal-head{padding:calc(12px + env(safe-area-inset-top)) 14px 12px!important;background:#0b0f14!important}
+      }
+      @media(max-width:430px){.ai-result-macros{grid-template-columns:repeat(2,1fr)}.ai-fields{grid-template-columns:1fr}.ai-fields .wide{grid-column:auto}.ai-home-actions{grid-template-columns:1fr 1fr}}
+    `;
     document.head.appendChild(style);
   }
 
@@ -272,7 +380,7 @@
   function ensureModals(){
     if(!$("aiFoodModal")){
       const modal=document.createElement("div");modal.className="modal";modal.id="aiFoodModal";
-      modal.innerHTML='<div class="modal-panel"><div class="section"><h2>AI 食物估算</h2><button class="btn ghost" id="aiFoodClose">关闭</button></div>'+
+      modal.innerHTML='<div class="modal-panel"><div class="ai-modal-head"><div><b>AI 食物估算</b><small>照片、重量和备注一起判断</small></div><button type="button" class="ai-modal-close" id="aiFoodClose" aria-label="关闭">×</button></div>'+
         '<div class="ai-upload" id="aiUpload"><img class="ai-upload-preview" id="aiFoodPreview" alt=""><label class="btn soft" for="aiFoodImage">📷 拍照 / 选择图片</label><input id="aiFoodImage" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><div class="meta" style="margin-top:7px">图片可选，也可以只写食物描述和重量</div></div>'+
         '<div class="ai-fields"><div><label for="aiFoodWeight">已知总重量 g（可选）</label><input id="aiFoodWeight" type="number" min="0" step="1" inputmode="decimal"></div><div class="wide"><label for="aiFoodNote">描述 / 备注</label><textarea id="aiFoodNote" placeholder="例如：黄焖鸡米饭，鸡皮没吃，汤汁没有拌饭"></textarea></div></div>'+
         '<div id="aiFoodResult"></div><div class="modal-actions"><button class="btn ghost" id="aiFoodBack">返回饮食记录</button><button class="btn" id="aiFoodAnalyze">AI 估算</button></div></div>';
@@ -283,9 +391,9 @@
     }
     if(!$("aiInsightModal")){
       const modal=document.createElement("div");modal.className="modal";modal.id="aiInsightModal";
-      modal.innerHTML='<div class="modal-panel"><div class="section"><h2 id="aiInsightTitle">AI 分析</h2><button class="btn ghost" id="aiInsightClose">关闭</button></div><div id="aiInsightContent"></div></div>';
-      document.body.appendChild(modal);$("aiInsightClose").onclick=()=>modal.classList.remove("open");
-      modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});
+      modal.innerHTML='<div class="modal-panel ai-report-panel"><div class="ai-report-head"><div><h2 id="aiInsightTitle">AI 分析</h2><small id="aiInsightSubtitle">DeepSeek 健身报告</small></div><button type="button" class="ai-report-close" id="aiInsightClose" aria-label="关闭">×</button></div><div class="ai-report-body"><div class="ai-report-meta" id="aiInsightMeta"></div><div id="aiInsightContent"></div></div><div class="ai-report-actions"><button type="button" class="btn soft" id="aiInsightRefresh">重新分析</button></div></div>';
+      document.body.appendChild(modal);$("aiInsightClose").onclick=closeInsightModal;$("aiInsightRefresh").onclick=()=>{if(currentInsight.mode)runInsight(currentInsight.mode,currentInsight.exerciseId,{force:true})};
+      modal.addEventListener("click",e=>{if(e.target===modal)closeInsightModal()});
     }
   }
   function openFoodAI(){
@@ -356,22 +464,87 @@
     toast("AI 结果已填入，确认后再保存");
   }
 
+  function openInsightModal(){
+    const modal=$("aiInsightModal");if(!modal)return;
+    if(!modal.classList.contains("open"))insightReturnScroll=window.scrollY||0;
+    modal.classList.add("open");
+    requestAnimationFrame(()=>window.scrollTo(0,0));
+  }
+  function closeInsightModal(){
+    const modal=$("aiInsightModal");if(!modal)return;
+    modal.classList.remove("open");
+    requestAnimationFrame(()=>window.scrollTo(0,insightReturnScroll||0));
+  }
   function showInsightLoading(title){
-    ensureModals();$("aiInsightTitle").textContent=title;$("aiInsightContent").innerHTML='<div class="ai-loading">DeepSeek 正在读取你的记录…</div>';$("aiInsightModal").classList.add("open");
+    ensureModals();
+    $("aiInsightTitle").textContent=title;
+    $("aiInsightSubtitle").textContent="DeepSeek 正在生成新报告";
+    $("aiInsightMeta").innerHTML='<span class="ai-report-pill">正在分析</span>';
+    $("aiInsightContent").innerHTML='<div class="ai-loading">正在整理记录并生成分析…</div>';
+    $("aiInsightRefresh").style.display="none";
+    openInsightModal();
   }
-  function renderInsight(data){
-    const obs=(data.observations||[]).map(x=>'<div class="ai-observation"><b>'+escapeHtml(x.title||"观察")+'<span class="ai-tag '+escapeHtml(x.level||"info")+'">'+escapeHtml(x.level==="positive"?"良好":x.level==="attention"?"关注":"信息")+'</span></b><p>'+escapeHtml(x.detail||"")+'</p></div>').join("");
-    const sug=(data.suggestions||[]).map(x=>'<div class="ai-observation"><b>'+escapeHtml(x.title||"建议")+'</b><p>'+escapeHtml(x.detail||"")+'</p></div>').join("");
-    $("aiInsightTitle").textContent=data.title||"AI 分析";
-    $("aiInsightContent").innerHTML='<div class="ai-analysis-summary">'+escapeHtml(data.summary||"")+'</div>'+obs+(sug?'<div class="section" style="margin-top:12px"><h2>建议</h2></div>'+sug:"")+(data.data_quality?'<div class="ai-result-note" style="margin-top:10px">数据完整度：'+escapeHtml(data.data_quality)+'</div>':"");
+  function renderInsight(data,meta={}){
+    const obs=(data.observations||[]).map(x=>
+      '<div class="ai-observation"><div class="ai-observation-head"><b>'+escapeHtml(x.title||"观察")+'</b><span class="ai-tag '+escapeHtml(x.level||"info")+'">'+escapeHtml(x.level==="positive"?"良好":x.level==="attention"?"关注":"信息")+'</span></div><p>'+escapeHtml(x.detail||"")+'</p></div>'
+    ).join("");
+    const sug=(data.suggestions||[]).map(x=>
+      '<div class="ai-observation"><div class="ai-observation-head"><b>'+escapeHtml(x.title||"建议")+'</b><span class="ai-tag">建议</span></div><p>'+escapeHtml(x.detail||"")+'</p></div>'
+    ).join("");
+    $("aiInsightTitle").textContent=data.title||("AI "+insightLabel(meta.mode));
+    $("aiInsightSubtitle").textContent=meta.mode==="exercise"?"基于最近训练记录":"基于你的本机记录";
+    const pills=[];
+    if(meta.generatedAt)pills.push('<span class="ai-report-pill '+(meta.cached?"cached":"")+'">'+(meta.cached?"本机缓存 · ":"刚刚生成 · ")+escapeHtml(formatGeneratedTime(meta.generatedAt))+'</span>');
+    if(meta.stale)pills.push('<span class="ai-report-pill stale">生成后记录有更新</span>');
+    if(!meta.cached)pills.push('<span class="ai-report-pill">DeepSeek Flash</span>');
+    $("aiInsightMeta").innerHTML=pills.join("");
+    $("aiInsightContent").innerHTML=
+      '<div class="ai-analysis-summary">'+escapeHtml(data.summary||"")+'</div>'+
+      (obs?'<div class="ai-report-section-title">重点观察</div><div class="ai-observation-list">'+obs+'</div>':"")+
+      (sug?'<div class="ai-report-section-title">接下来可以怎么做</div><div class="ai-observation-list">'+sug+'</div>':"")+
+      (data.data_quality?'<div class="ai-report-quality">数据完整度：'+escapeHtml(data.data_quality)+'</div>':"");
+    const refresh=$("aiInsightRefresh");
+    refresh.style.display="";
+    refresh.textContent=meta.stale?"按最新记录重新分析":"重新分析";
+    openInsightModal();
   }
-  async function runInsight(mode,exerciseId){
-    const title=mode==="today"?"AI 今日简报":mode==="weekly"?"AI 最近7天报告":"AI 动作分析";
+  async function runInsight(mode,exerciseId,options={}){
+    const force=!!options.force,title="AI "+insightLabel(mode);
+    let payload,fingerprint,entry,valid,stale;
+    try{
+      payload=insightPayload(mode,exerciseId);
+      fingerprint=payloadFingerprint(payload);
+      entry=cacheEntryFor(mode,exerciseId);
+      valid=validCacheEntry(mode,exerciseId,entry,fingerprint);
+      stale=valid&&entry.fingerprint!==fingerprint;
+    }catch(err){
+      ensureModals();$("aiInsightTitle").textContent=title;$("aiInsightMeta").innerHTML="";$("aiInsightContent").innerHTML='<div class="empty ai-report-error">'+escapeHtml(err.message||"没有足够的数据")+'</div>';$("aiInsightRefresh").style.display="none";openInsightModal();return;
+    }
+
+    currentInsight={mode,exerciseId:exerciseId||null,payload,fingerprint,entry};
+    if(!force&&valid){
+      renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale,exerciseId});
+      return;
+    }
+
     showInsightLoading(title);
     try{
-      const payload=mode==="today"?buildTodayPayload():mode==="weekly"?buildWeeklyPayload():buildExercisePayload(exerciseId);
-      const data=await callAI(mode,payload,null);renderInsight(data);
-    }catch(err){$("aiInsightContent").innerHTML='<div class="empty">'+escapeHtml(err.message||"AI 请求失败")+'</div>'}
+      const data=await callAI(mode,payload,null);
+      entry=saveInsightEntry(mode,exerciseId,data,fingerprint);
+      currentInsight.entry=entry;
+      renderInsight(data,{mode,cached:false,generatedAt:entry.generatedAt,stale:false,exerciseId});
+      refreshHomeAIStatus();
+    }catch(err){
+      if(entry?.data){
+        renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale:true,exerciseId});
+        toast("重新分析失败，已保留上一次报告");
+      }else{
+        $("aiInsightMeta").innerHTML="";
+        $("aiInsightContent").innerHTML='<div class="empty ai-report-error">'+escapeHtml(err.message||"AI 请求失败")+'</div>';
+        $("aiInsightRefresh").style.display="";
+        $("aiInsightRefresh").textContent="重试";
+      }
+    }
   }
 
   function injectFoodShortcut(){
@@ -380,12 +553,31 @@
     div.innerHTML='<button type="button" id="aiFoodStart"><span><b>✦ AI 估算这顿饭</b><br><small>拍照 / 重量 / 描述 → 自动填写 C P F</small></span><span>›</span></button>';
     panel.querySelector(".section")?.insertAdjacentElement("afterend",div);$("aiFoodStart").onclick=openFoodAI;
   }
+  function refreshHomeAIStatus(){
+    const todayBtn=$("aiToday"),weeklyBtn=$("aiWeekly");
+    if(!todayBtn||!weeklyBtn)return;
+    for(const [mode,btn] of [["today",todayBtn],["weekly",weeklyBtn]]){
+      const status=btn.querySelector("small");
+      const state=currentCacheState(mode,null);
+      btn.classList.toggle("has-cache",state.valid);
+      btn.classList.toggle("stale",state.stale);
+      if(state.valid){
+        status.textContent=state.stale?"已生成 · 数据有更新":"今日已生成 · "+formatGeneratedTime(state.entry.generatedAt);
+      }else{
+        status.textContent=mode==="today"?"饮食 + 训练 + 体重":"趋势 + 执行 + 建议";
+      }
+    }
+  }
   function injectHomeCard(){
     const stack=$("v3Home")?.querySelector(".v3-action-stack");if(!stack||$("aiHomeCard"))return;
     const card=document.createElement("div");card.className="ai-home-card";card.id="aiHomeCard";
-    card.innerHTML='<div class="ai-home-head"><b>✦ AI 分析</b><small>DeepSeek</small></div><div class="ai-home-actions"><button type="button" id="aiToday">今日简报<br><small>饮食 + 训练 + 体重</small></button><button type="button" id="aiWeekly">最近7天<br><small>趋势 + 执行 + 建议</small></button></div>';
-    stack.insertAdjacentElement("afterend",card);$("aiToday").onclick=()=>runInsight("today");$("aiWeekly").onclick=()=>runInsight("weekly");
+    card.innerHTML='<div class="ai-home-head"><div class="ai-home-head-copy"><b>✦ AI 分析</b><small>当天报告生成一次，之后直接查看缓存</small></div><span class="ai-home-provider">DeepSeek</span></div><div class="ai-home-actions"><button type="button" class="ai-home-action" id="aiToday"><strong>今日简报</strong><small>饮食 + 训练 + 体重</small></button><button type="button" class="ai-home-action" id="aiWeekly"><strong>最近 7 天</strong><small>趋势 + 执行 + 建议</small></button></div>';
+    stack.insertAdjacentElement("afterend",card);
+    $("aiToday").onclick=()=>runInsight("today");
+    $("aiWeekly").onclick=()=>runInsight("weekly");
+    refreshHomeAIStatus();
   }
+
   async function refreshAISettingsStatus(){
     const status=$("aiSettingsStatus"),remove=$("aiDeleteKey");
     if(!status)return;
@@ -400,7 +592,7 @@
     card.innerHTML='<div class="section"><h2>AI 服务</h2><span class="meta" id="aiSettingsStatus">DeepSeek Flash · 检查中…</span></div>'+
       '<div class="meta">Key 可以直接保存在这台手机，也可以写进 deepseek-config.js。App 会从浏览器直接调用 DeepSeek。</div>'+
       '<div class="ai-key-field"><label for="aiApiKey">DeepSeek API Key</label><input id="aiApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 API Key"></div>'+
-      '<div class="ai-key-actions"><button type="button" class="btn" id="aiSaveKey">保存并验证</button><button type="button" class="btn soft" id="aiTestConnection">测试连接</button><button type="button" class="btn danger" id="aiDeleteKey" style="display:none">移除本机 Key</button></div>';
+      '<div class="ai-key-actions"><button type="button" class="btn" id="aiSaveKey">保存并验证</button><button type="button" class="btn soft" id="aiTestConnection">测试连接</button><button type="button" class="btn ghost" id="aiClearCache">清除 AI 报告缓存</button><button type="button" class="btn danger" id="aiDeleteKey" style="display:none">移除本机 Key</button></div>';
     grid.appendChild(card);
 
     $("aiSaveKey").onclick=async()=>{
@@ -428,6 +620,12 @@
       }finally{btn.disabled=false;btn.textContent="测试连接"}
     };
 
+    $("aiClearCache").onclick=()=>{
+      localStorage.removeItem(INSIGHT_CACHE_STORAGE);
+      toast("AI 报告缓存已清除");
+      refreshHomeAIStatus();
+    };
+
     $("aiDeleteKey").onclick=()=>{
       if(!confirm("移除这台设备保存的 DeepSeek API Key？"))return;
       localStorage.removeItem(AI_KEY_STORAGE);
@@ -451,11 +649,11 @@
   }
   function setupObservers(){
     const strength=$("strengthList");if(strength)new MutationObserver(()=>requestAnimationFrame(injectExerciseButtons)).observe(strength,{childList:true,subtree:true});
-    window.addEventListener("fitness:changed",()=>setTimeout(()=>{injectHomeCard();injectExerciseButtons()},0));
+    window.addEventListener("fitness:changed",()=>setTimeout(()=>{injectHomeCard();injectExerciseButtons();refreshHomeAIStatus()},0));
   }
   function setup(){
     if(!window.fitnessApp?.getDB)return setTimeout(setup,80);
-    ensureStyles();ensureModals();injectFoodShortcut();injectHomeCard();injectSettingsCard();injectExerciseButtons();setupObservers();
+    ensureStyles();ensureModals();injectFoodShortcut();injectHomeCard();injectSettingsCard();injectExerciseButtons();setupObservers();refreshHomeAIStatus();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(setup,0),{once:true});else setTimeout(setup,0);
 })();
