@@ -1,5 +1,11 @@
 // 池边影の健身记录：本地模式 UI 与交互补丁。
 
+// GitHub 备份功能已移除，清理旧的本机配置和 Token。
+try{
+  localStorage.removeItem("chibianyingGithubBackupV1");
+  localStorage.removeItem("chibianyingGithubBackupLast");
+}catch{}
+
 // V3 在基础数据层初始化之前就开始加载，同时先遮住旧首页，避免旧模板数据闪一下再消失。
 (() => {
   const app = document.querySelector(".app");
