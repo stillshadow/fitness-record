@@ -187,7 +187,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-
         <div class="toolbar"><button class="btn" id="saveSettingsBtn">保存方案</button></div>
       </div>
 
-      <div class="card s6">
+      <div class="card s6" id="cloudSyncCard">
         <div class="section"><h2>云同步</h2><span class="meta" id="cloudUserText">未登录</span></div>
         <div id="cloudStatus" class="callout">未配置 Supabase 时也可以完整使用本地记录。</div>
         <div class="field-grid" style="margin-top:10px">
@@ -220,7 +220,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-
       </div>
 
       <div class="card s12">
-        <div class="section"><h2>数据备份</h2><span class="meta">云同步之外再留一份保险</span></div>
+        <div class="section"><h2>数据备份</h2><span class="meta">本机数据建议定期留一份保险</span></div>
         <div class="toolbar">
           <button class="btn ghost" id="exportJson">导出 JSON</button>
           <button class="btn ghost" id="exportCsv">导出 CSV</button>
@@ -900,8 +900,8 @@ function cfg(){
   return{
     url:local.url||global.supabaseUrl||"",
     key:local.key||global.supabaseKey||"",
-    email:local.email||global.email||"",
-    autoSync:typeof local.autoSync==="boolean"?local.autoSync:global.autoSync!==false
+    email:"",
+    autoSync:false
   };
 }
 function getMeta(){try{return JSON.parse(localStorage.getItem(META_KEY)||'{"lastCloudUpdatedAt":null,"lastSyncedLocalUpdatedAt":null}')}catch{return{lastCloudUpdatedAt:null,lastSyncedLocalUpdatedAt:null}}}
@@ -922,15 +922,23 @@ async function init(){
   fill();
   if(authSub){try{authSub.unsubscribe()}catch{}authSub=null}
   const c=cfg();
-  if(!c.url||!c.key){supabase=null;session=null;$c("cloudUserText").textContent="未配置";status("未配置 Supabase。先本地使用也完全没问题。","warn");return}
+  if(!c.url||!c.key){supabase=null;session=null;$c("cloudUserText").textContent="未配置";status("AI 后端未配置；本机记录仍可正常使用。","warn");return}
   try{
     supabase=createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-    const {data,error}=await supabase.auth.getSession();if(error)throw error;session=data.session;
+    const current=await supabase.auth.getSession();if(current.error)throw current.error;
+    session=current.data.session;
+    if(!session){
+      const anon=await supabase.auth.signInAnonymously();
+      if(anon.error)throw new Error("匿名登录失败："+anon.error.message);
+      session=anon.data.session;
+    }
     updateUser();
-    const r=supabase.auth.onAuthStateChange((_event,s)=>{session=s;updateUser();if(session&&cfg().autoSync)setTimeout(()=>smartSync(false),500)});
+    const r=supabase.auth.onAuthStateChange((_event,s)=>{session=s;updateUser()});
     authSub=r.data.subscription;
-    if(session&&c.autoSync)setTimeout(()=>smartSync(false),700);
-  }catch(e){status("Supabase 初始化失败："+e.message,"bad")}
+  }catch(e){
+    session=null;
+    status("AI 后端连接失败："+e.message+"。请在 Supabase Auth 中开启 Anonymous Sign-ins。","bad");
+  }
 }
 function setOtpUI(show){
   $c("otpFields").classList.toggle("hidden",!show);
@@ -940,12 +948,13 @@ function setOtpUI(show){
 }
 function updateUser(extra=""){
   if(session){
-    $c("cloudUserText").textContent=session.user.email||"已登录";
+    $c("cloudUserText").textContent=session.user?.email||"本机 AI 身份";
     setOtpUI(false);
-    status(extra||"云端已连接","good");
+    status(extra||"AI 后端已连接；训练、饮食和体重只保存在本机。","good");
+    window.dispatchEvent(new CustomEvent("fitness:cloud-ready"));
   }else{
-    $c("cloudUserText").textContent="未登录";
-    status("Supabase 已配置。使用邮箱验证码登录，适合 iPhone 主屏幕 Web App。","warn");
+    $c("cloudUserText").textContent="未连接";
+    status("本机记录可正常使用；AI 需要 Supabase Anonymous Sign-ins。","warn");
   }
 }
 async function login(){
@@ -1019,7 +1028,7 @@ window.fitnessCloud={
   user:()=>session?.user?.email||null,
   invoke:async(name,body)=>{
     if(!supabase)throw new Error("Supabase 尚未配置");
-    if(!session)throw new Error("请先在“目标与数据”里登录 Supabase");
+    if(!session)throw new Error("AI 匿名会话尚未建立。请在 Supabase 开启 Anonymous Sign-ins，然后重新打开 App");
     const {data,error}=await supabase.functions.invoke(name,{body});
     if(error){
       let message=error.message||"云函数调用失败";

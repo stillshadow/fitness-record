@@ -4,7 +4,7 @@ window.CHI_BIAN_YING_CLOUD = {
   supabaseUrl: "https://ckcxkjwmxjewhbuwtgyz.supabase.co",
   supabaseKey: "sb_publishable_Q5Pm_VCJPwWWt9Kt8rKktQ_wCLT-XbE",
   email: "",
-  autoSync: true
+  autoSync: false
 };
 
 // V3 在基础数据层初始化之前就开始加载，同时先遮住旧首页，避免旧模板数据闪一下再消失。
@@ -13,7 +13,7 @@ window.CHI_BIAN_YING_CLOUD = {
   if (app) app.style.visibility = "hidden";
   if (!document.querySelector('script[data-ui-v3]')) {
     const s = document.createElement("script");
-    s.src = "ui-v3.js?v=58";
+    s.src = "ui-v3.js?v=60";
     s.async = false;
     s.dataset.uiV3 = "1";
     document.head.appendChild(s);
