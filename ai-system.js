@@ -356,6 +356,7 @@
   function setupObservers(){
     const strength=$("strengthList");if(strength)new MutationObserver(()=>requestAnimationFrame(injectExerciseButtons)).observe(strength,{childList:true,subtree:true});
     window.addEventListener("fitness:changed",()=>setTimeout(()=>{injectHomeCard();injectExerciseButtons()},0));
+    window.addEventListener("fitness:cloud-ready",()=>setTimeout(refreshAISettingsStatus,0));
   }
   function setup(){
     if(!window.fitnessApp?.getDB)return setTimeout(setup,80);
