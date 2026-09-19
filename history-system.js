@@ -72,6 +72,13 @@
     if(nutrition)nutrition.textContent="营养";
     if(training)training.textContent="训练";
     if(food)food.textContent="饮食";
+    const trainingSection=$("todayTrainingList")?.closest(".card")?.querySelector(".section");
+    if(trainingSection&&!$("historyEditTraining")){
+      const edit=document.createElement("button");
+      edit.type="button";edit.className="btn soft";edit.id="historyEditTraining";edit.textContent="编辑训练";
+      edit.addEventListener("click",()=>window.openBatchTraining?.(activeDate()));
+      trainingSection.appendChild(edit);
+    }
 
     const summaryLabels=firstCard.querySelectorAll(".summary-item span");
     if(summaryLabels[0])summaryLabels[0].textContent="晨重";
@@ -167,6 +174,7 @@
       .history-record:hover{border-color:var(--accent)}
       .history-chevron{color:var(--muted);font-size:22px;padding-left:6px}
       #strengthList .item > div:last-child{text-align:right}
+      #todayTrainingList .item-actions{display:none!important}
       #backfillModal .modal-panel{max-width:100%;overflow:hidden}
       #backfillDate{width:100%!important;inline-size:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;max-inline-size:100%!important;display:block!important;box-sizing:border-box!important;overflow:hidden!important;-webkit-appearance:none!important;appearance:none!important}
       #backfillDate::-webkit-date-and-time-value{min-width:0!important;margin:0!important;text-align:left}
@@ -174,6 +182,8 @@
     `;
     document.head.appendChild(style);
   }
+
+  window.fitnessHistoryDate=activeDate;
 
   function setup(){
     if(!window.fitnessApp)return setTimeout(setup,60);

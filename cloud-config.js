@@ -341,7 +341,7 @@ window.CHI_BIAN_YING_CLOUD = {
   const load = () => {
     if (document.querySelector('script[data-food-system]')) return;
     const s = document.createElement('script');
-    s.src = 'food-system.js?v=13';
+    s.src = 'food-system.js?v=14';
     s.dataset.foodSystem = '1';
     document.head.appendChild(s);
   };
@@ -353,7 +353,7 @@ window.CHI_BIAN_YING_CLOUD = {
   const load = () => {
     if (document.querySelector('script[data-training-system]')) return;
     const s = document.createElement('script');
-    s.src = 'training-system.js?v=16';
+    s.src = 'training-system.js?v=17';
     s.dataset.trainingSystem = '1';
     document.head.appendChild(s);
   };

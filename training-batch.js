@@ -4,12 +4,16 @@
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`;
   const today = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const time = () => { const d=new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+  const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s||''));
+  const prettyDate = s => { const [y,m,d]=String(s).split('-').map(Number), n=new Date(y,m-1,d), now=new Date(); return s===today()?'今天':`${n.getFullYear()!==now.getFullYear()?n.getFullYear()+'年':''}${n.getMonth()+1}月${n.getDate()}日`; };
   const getDB = () => window.fitnessApp?.getDB?.() || {exercises:[],plans:[],days:{}};
   const clone = x => JSON.parse(JSON.stringify(x));
 
   let drafts = [];
   let previous = new Map();
   let workoutId = '';
+  let editDate = today();
+  let hadExistingTraining = false;
 
   try { localStorage.removeItem('chibianyingActiveWorkoutV2'); } catch {}
 
@@ -26,7 +30,7 @@
     if(g.startsWith('肩')) return 3;
     if(g.startsWith('二头')) return 4;
     if(g.startsWith('三头')) return 5;
-    if(/胡四头|腘绳肌|臀|大腿/.test(g)) return 6;
+    if(/股四头|腘绳肌|臀|大腿/.test(g)) return 6;
     if(g.startsWith('小腿')) return 7;
     if(/腹|核心/.test(g)) return 8;
     return 9;
@@ -40,9 +44,9 @@
     return Math.max(1,+fallback||3);
   }
 
-  function previousMap(db){
+  function previousMap(db,beforeDate=editDate){
     const out=new Map();
-    const dates=Object.keys(db.days||{}).filter(d=>d<today()).sort().reverse();
+    const dates=Object.keys(db.days||{}).filter(d=>d<beforeDate).sort().reverse();
     for(const date of dates){
       const rows=db.days?.[date]?.training||[];
       const grouped=new Map();
@@ -65,9 +69,10 @@
     return {exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',sets};
   }
 
-  function loadExisting(){
-    const db=getDB(), day=db.days?.[today()], rows=day?.training||[];
-    previous=previousMap(db);
+  function loadExisting(date=editDate){
+    const db=getDB(), day=db.days?.[date], rows=day?.training||[];
+    previous=previousMap(db,date);
+    hadExistingTraining=rows.length>0;
     workoutId=rows.find(x=>x.workoutId)?.workoutId || uid('workout');
     const groups=[];
     rows.forEach(r=>{
@@ -104,7 +109,7 @@
     `; document.head.appendChild(style);
 
     const modal=document.createElement('div'); modal.className='modal'; modal.id='batchTrainingModal';
-    modal.innerHTML=`<div class="modal-panel"><div class="batch-head"><div><h2>记录训练</h2><small>训练结束后一次录完整场</small></div><button type="button" class="btn ghost" id="batchClose">关闭</button></div><div class="batch-planbar"><select id="batchPlan"></select><button type="button" class="btn soft" id="batchLoadPlan">载入模板</button></div><div id="batchTrainingList" class="batch-list"></div><div class="batch-add-ex"><select id="batchExercise"></select><button type="button" class="btn soft" id="batchAddExercise">＋ 动作</button></div><div class="batch-actions"><button type="button" class="btn ghost" id="batchClear">清空</button><button type="button" class="btn" id="batchSave">保存今日训练</button></div></div>`;
+    modal.innerHTML=`<div class="modal-panel"><div class="batch-head"><div><h2>记录训练</h2><small id="batchDateText">训练结束后一次录完整场</small></div><button type="button" class="btn ghost" id="batchClose">关闭</button></div><div class="batch-planbar"><select id="batchPlan"></select><button type="button" class="btn soft" id="batchLoadPlan">载入模板</button></div><div id="batchTrainingList" class="batch-list"></div><div class="batch-add-ex"><select id="batchExercise"></select><button type="button" class="btn soft" id="batchAddExercise">＋ 动作</button></div><div class="batch-actions"><button type="button" class="btn ghost" id="batchClear">清空训练</button><button type="button" class="btn" id="batchSave">保存训练</button></div></div>`;
     document.body.appendChild(modal);
     $('batchClose').onclick=()=>modal.classList.remove('open');
     modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
@@ -128,8 +133,11 @@
 
   function render(){
     ensureUI(); fillSelectors();
+    const label=$('batchDateText'),saveBtn=$('batchSave');
+    if(label) label.textContent=`${prettyDate(editDate)} · 训练结束后一次录完整场`;
+    if(saveBtn) saveBtn.textContent=editDate===today()?'保存今日训练':'保存这天训练';
     const box=$('batchTrainingList');
-    if(!drafts.length){box.innerHTML='<div class="batch-empty">选择一个训练模板，或直接添加今天练过的动作。</div>';return}
+    if(!drafts.length){box.innerHTML='<div class="batch-empty">选择一个训练模板，或直接添加这天练过的动作。</div>';return}
     box.innerHTML=drafts.map((d,di)=>{
       const p=previous.get(d.exerciseId), last=p?`上次 ${p.date.slice(5)} · ${p.items.map(x=>`${x.weight>0?x.weight+'kg':'BW'}×${x.reps}`).join(' / ')}`:'暂无历史';
       return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>${esc(d.exerciseName)}</b><small>${esc(d.group||'其他')} · ${esc(last)}</small></div><button type="button" class="batch-remove" data-remove-ex="${di}">移除</button></div><div class="batch-set-head"><span></span><span>重量 kg</span><span>次数</span><span>RIR</span><span></span></div>${d.sets.map((s,si)=>`<div class="batch-set" data-set-index="${si}"><span class="batch-set-index">${si+1}</span><input data-field="weight" type="number" step="0.5" inputmode="decimal" value="${esc(s.weight)}" placeholder="${esc(s.hintWeight||'kg')}"><input data-field="reps" type="number" step="1" min="0" inputmode="numeric" value="${esc(s.reps)}" placeholder="${esc(s.hintReps||'次')}"><input data-field="rir" type="number" step="1" min="0" max="10" inputmode="numeric" value="${esc(s.rir)}" placeholder="-"><button type="button" class="batch-set-del" data-remove-set="${si}">×</button></div>`).join('')}<button type="button" class="batch-add-set" data-add-set="${di}">＋ 添加一组</button></section>`;
@@ -172,21 +180,31 @@
       const groupId=uid('setgroup');
       entered.forEach((s,i)=>rows.push({id:uid('tr'),setGroupId:groupId,setIndex:i+1,exerciseId:d.exerciseId,exerciseName:d.exerciseName,weight:+s.weight||0,reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===''?'':+s.rir,time:now,workoutId}));
     });
-    if(!rows.length) return toast('至少记录一组训练');
+    if(!rows.length && !hadExistingTraining) return toast('至少记录一组训练');
+    if(!rows.length && hadExistingTraining && !confirm(`清空${prettyDate(editDate)}的全部训练记录？`)) return;
     db.days=db.days||{};
-    const date=today();
+    const date=editDate;
     if(!db.days[date]) db.days[date]={date,weight:null,cardio:0,note:'',planExerciseIds:[],planName:'',training:[],foods:[]};
     db.days[date].training=rows;
     db.meta=db.meta||{}; db.meta.updatedAt=new Date().toISOString(); db.meta.userTouched=true;
-    if(window.fitnessApp?.replaceDBQuiet){window.fitnessApp.replaceDBQuiet(db);window.dispatchEvent(new CustomEvent('fitness:changed'));window.dispatchEvent(new CustomEvent('fitness:sync-needed'));}
+    if(window.fitnessApp?.replaceDBQuiet){window.fitnessApp.replaceDBQuiet(db);window.dispatchEvent(new CustomEvent('fitness:changed'));window.dispatchEvent(new CustomEvent('fitness:sync-needed'));window.fitnessApp.refresh?.();}
     else window.fitnessApp?.replaceDB?.(db);
+    hadExistingTraining=rows.length>0;
     $('batchTrainingModal')?.classList.remove('open');
-    toast(`已记录 ${new Set(rows.map(x=>x.exerciseId)).size} 个动作 · ${rows.length} 组`);
+    toast(rows.length?`已记录 ${new Set(rows.map(x=>x.exerciseId)).size} 个动作 · ${rows.length} 组`:`已清空${prettyDate(editDate)}训练`);
   }
 
-  function open(){
-    ensureUI(); loadExisting(); render(); $('batchTrainingModal').classList.add('open');
+  function open(date=today(),exerciseId=''){
+    ensureUI();
+    editDate=validDate(date)?date:today();
+    loadExisting(editDate);
+    if(exerciseId&&!drafts.some(x=>x.exerciseId===exerciseId)){
+      const ex=(getDB().exercises||[]).find(x=>x.id===exerciseId);
+      if(ex) drafts.push(draftForExercise(ex,Math.max(1,+ex.sets||3)));
+    }
+    render(); $('batchTrainingModal').classList.add('open');
   }
 
   window.openBatchTraining=open;
+  window.openTrainingModal=(exerciseId='')=>open(window.fitnessHistoryDate?.()||today(),exerciseId);
 })();

@@ -206,6 +206,34 @@
   }
   const updateAmountLabels=()=>{updateSingleAmountLabel();updateMealAmountLabel()};
 
+  function recentFoodIds(limit=6){
+    const data=db(),known=new Set((data.foods||[]).map(x=>x.id)),out=[];
+    const days=Object.values(data.days||{}).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+    for(const day of days){
+      const entries=[...(day.foods||[])].reverse();
+      for(const entry of entries){
+        let id=entry.sourceFoodId;
+        if(!id&&entry.name)id=(data.foods||[]).find(f=>f.name===entry.name)?.id;
+        if(id&&known.has(id)&&!out.includes(id))out.push(id);
+        if(out.length>=limit)return out;
+      }
+    }
+    return out;
+  }
+
+  function renderFoodPicker(preferRecent=false){
+    const select=$("foodSelect");if(!select)return;
+    const data=db(),foods=data.foods||[],recentIds=recentFoodIds(),recentSet=new Set(recentIds);
+    const recent=recentIds.map(id=>foods.find(f=>f.id===id)).filter(Boolean);
+    const rest=foods.filter(f=>!recentSet.has(f.id));
+    const current=preferRecent?"":select.value;
+    const opts=arr=>arr.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join("");
+    select.innerHTML=(recent.length?`<optgroup label="最近使用">${opts(recent)}</optgroup>`:"")+(rest.length?`<optgroup label="${recent.length?"全部食物":"食物"}">${opts(rest)}</optgroup>`:"");
+    if(current&&foods.some(f=>f.id===current))select.value=current;
+    else if(recent[0])select.value=recent[0].id;
+    updateSingleAmountLabel();
+  }
+
   function setupServingSaveGuard(){
     const save=$("saveFoodEntryBtn");
     if(save&&!save.dataset.servingGuard){
@@ -245,7 +273,7 @@
     }
     if(typeof window.openFoodModal==="function"&&!window.openFoodModal.__flexBasis){
       const old=window.openFoodModal;
-      const fn=(...args)=>{const r=old(...args);setTimeout(updateSingleAmountLabel,0);return r};
+      const fn=(...args)=>{const r=old(...args);setTimeout(()=>renderFoodPicker(true),0);return r};
       fn.__flexBasis=true;window.openFoodModal=fn;
     }
     if(typeof window.openMealModal==="function"&&!window.openMealModal.__flexBasis){
@@ -258,13 +286,13 @@
 
   function setup(){
     if(!window.fitnessApp)return setTimeout(setup,60);
-    setupLibraryModal();hookOpeners();renderLibrary();updateAmountLabels();setupServingSaveGuard();
+    setupLibraryModal();hookOpeners();renderLibrary();renderFoodPicker(false);updateAmountLabels();setupServingSaveGuard();
     $("foodGrams")?.addEventListener("input",()=>delete $("foodGrams").dataset.servingDefault);
     $("mealBuilderGrams")?.addEventListener("input",()=>delete $("mealBuilderGrams").dataset.servingDefault);
     $("foodSelect")?.addEventListener("change",updateSingleAmountLabel);
     $("mealBuilderFood")?.addEventListener("change",updateMealAmountLabel);
     document.querySelectorAll('[data-page="food"]').forEach(b=>b.addEventListener("click",()=>setTimeout(()=>{renderLibrary();updateAmountLabels()},0)));
-    window.addEventListener("fitness:changed",()=>setTimeout(()=>{renderLibrary();updateAmountLabels()},0));
+    window.addEventListener("fitness:changed",()=>setTimeout(()=>{renderLibrary();renderFoodPicker(false);updateAmountLabels()},0));
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(setup,0));

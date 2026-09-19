@@ -546,7 +546,7 @@
   const load = () => {
     if (document.querySelector('script[data-history-system]')) return;
     const s = document.createElement('script');
-    s.src = 'history-system.js?v=20';
+    s.src = 'history-system.js?v=21';
     s.dataset.historySystem = '1';
     document.head.appendChild(s);
   };
