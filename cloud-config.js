@@ -4,7 +4,7 @@ window.CHI_BIAN_YING_CLOUD = {
   supabaseUrl: "https://ckcxkjwmxjewhbuwtgyz.supabase.co",
   supabaseKey: "sb_publishable_Q5Pm_VCJPwWWt9Kt8rKktQ_wCLT-XbE",
   email: "",
-  autoSync: true
+  autoSync: false
 };
 
 // V3 在基础数据层初始化之前就开始加载，同时先遮住旧首页，避免旧模板数据闪一下再消失。
