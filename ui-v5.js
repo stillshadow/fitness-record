@@ -57,15 +57,10 @@
     html.ui-v5 body .v3-action{min-height:65px!important;padding:10px 13px!important}
     html.ui-v5 body #v3SettingsRoot:not([hidden]){display:block!important;width:100%!important;min-height:var(--v4-screen-h,100dvh)!important}
 
-    @media(max-height:720px){
+    @media(max-width:390px){
       html.ui-v5 body .v3-avatar-stage{height:252px!important;min-height:252px!important}
-      html.ui-v5 body .v3-action{min-height:59px!important;padding:8px 11px!important}
-      html.ui-v5 body .v3-start{min-height:53px!important;padding:10px 13px!important}
-    }
-    @media(max-height:610px){
-      html.ui-v5 body .v3-avatar-stage{height:230px!important;min-height:230px!important}
-      html.ui-v5 body .v3-action{min-height:53px!important}
-      html.ui-v5 body .v3-action-stack,html.ui-v5 body .v3-grid{gap:6px!important}
+      html.ui-v5 body .v3-action{min-height:59px!important;padding:9px 11px!important}
+      html.ui-v5 body .v3-start{min-height:54px!important;padding:11px 13px!important}
     }
     @media(prefers-reduced-motion:reduce){
       html.ui-v5 body::before,html.ui-v5 body::after{transition:none!important;animation:none!important}
