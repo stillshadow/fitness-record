@@ -157,6 +157,7 @@
       ".ai-analysis-summary{font-size:13px;line-height:1.7;margin-bottom:12px}.ai-observation{border-top:1px solid var(--line);padding:11px 1px}.ai-observation b{font-size:12px}.ai-observation p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.6}"+
       ".ai-tag{display:inline-block;font-size:8px;padding:2px 6px;border-radius:999px;margin-left:6px;background:#171e2a;color:#aab9ff}.ai-tag.attention{color:#f0ba5e}.ai-tag.positive{color:#71d7a4}"+
       ".ai-exercise-btn{margin-top:5px;border:0;background:transparent;color:#9badff;font-size:9px;padding:1px 0}"+
+      ".ai-key-field{display:grid;gap:6px;margin:10px 0}.ai-key-field input{width:100%}.ai-key-actions{display:flex;gap:7px;flex-wrap:wrap}.ai-key-actions .btn{flex:1 1 120px}"+
       "@media(max-width:430px){.ai-result-macros{grid-template-columns:repeat(2,1fr)}.ai-fields{grid-template-columns:1fr}.ai-fields .wide{grid-column:auto}}";
     document.head.appendChild(style);
   }
@@ -279,22 +280,66 @@
     card.innerHTML='<div class="ai-home-head"><b>✦ AI 分析</b><small>DeepSeek</small></div><div class="ai-home-actions"><button type="button" id="aiToday">今日简报<br><small>饮食 + 训练 + 体重</small></button><button type="button" id="aiWeekly">最近7天<br><small>趋势 + 执行 + 建议</small></button></div>';
     stack.insertAdjacentElement("afterend",card);$("aiToday").onclick=()=>runInsight("today");$("aiWeekly").onclick=()=>runInsight("weekly");
   }
+  async function refreshAISettingsStatus(){
+    const status=$("aiSettingsStatus"),remove=$("aiDeleteKey");
+    if(!status)return;
+    try{
+      const result=await callAI("config_status",{},null);
+      const source=result.source==="user_vault"?"App 内已保存":result.source==="env_secret"?"Supabase Secret":"未配置";
+      status.textContent=(result.provider||"DeepSeek")+" "+(result.model||"")+" · "+source;
+      if(remove)remove.style.display=result.source==="user_vault"?"inline-flex":"none";
+    }catch(err){
+      status.textContent="未连接 · "+(err.message||"请先登录 Supabase");
+      if(remove)remove.style.display="none";
+    }
+  }
+
   function injectSettingsCard(){
     const grid=$("page-settings")?.querySelector(".grid");if(!grid||$("aiSettingsCard"))return;
     const card=document.createElement("div");card.className="card s12";card.id="aiSettingsCard";
-    card.innerHTML='<div class="section"><h2>AI 服务</h2><span class="meta" id="aiSettingsStatus">DeepSeek Flash · 未测试</span></div>'+
-      '<div class="meta" style="margin-bottom:10px">AI Key 只保存在 Supabase Edge Function Secret，不会写进网页或 GitHub。</div>'+
-      '<button type="button" class="btn soft" id="aiTestConnection">测试 AI 连接</button>';
+    card.innerHTML='<div class="section"><h2>AI 服务</h2><span class="meta" id="aiSettingsStatus">DeepSeek Flash · 检查中…</span></div>'+
+      '<div class="meta">API Key 在这里填一次即可。保存时会先向 DeepSeek 验证，然后通过登录后的 Supabase Edge Function 写入 Vault 加密保存。网页本地和 GitHub 都不会保存明文。</div>'+
+      '<div class="ai-key-field"><label for="aiApiKey">DeepSeek API Key</label><input id="aiApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 API Key，已保存的 Key 不会回显"></div>'+
+      '<div class="ai-key-actions"><button type="button" class="btn" id="aiSaveKey">保存并验证</button><button type="button" class="btn soft" id="aiTestConnection">测试连接</button><button type="button" class="btn danger" id="aiDeleteKey" style="display:none">移除 Key</button></div>';
     grid.appendChild(card);
+
+    $("aiSaveKey").onclick=async()=>{
+      const input=$("aiApiKey"),btn=$("aiSaveKey"),key=input.value.trim();
+      if(!key)return toast("请先填写 DeepSeek API Key");
+      btn.disabled=true;btn.textContent="验证并保存中…";
+      try{
+        const result=await window.fitnessCloud.invoke("fitness-ai",{mode:"save_api_key",api_key:key});
+        if(!result?.ok)throw new Error(result?.error||"保存失败");
+        input.value="";
+        toast("DeepSeek Key 已安全保存");
+        await refreshAISettingsStatus();
+      }catch(err){toast(err.message||"保存失败")}
+      finally{btn.disabled=false;btn.textContent="保存并验证"}
+    };
+
     $("aiTestConnection").onclick=async()=>{
       const btn=$("aiTestConnection"),status=$("aiSettingsStatus");btn.disabled=true;btn.textContent="测试中…";
       try{
         const result=await callAI("healthcheck",{},null);
-        status.textContent=(result.provider||"DeepSeek")+" "+(result.model||"")+" · 已连接";toast("AI 后端连接正常");
+        status.textContent=(result.provider||"DeepSeek")+" "+(result.model||"")+" · 已连接";
+        toast("DeepSeek 连接正常");
       }catch(err){
         status.textContent="未连接 · "+(err.message||"请检查配置");toast(err.message||"AI 连接失败");
-      }finally{btn.disabled=false;btn.textContent="测试 AI 连接"}
+      }finally{btn.disabled=false;btn.textContent="测试连接"}
     };
+
+    $("aiDeleteKey").onclick=async()=>{
+      if(!confirm("移除 App 内保存的 DeepSeek API Key？"))return;
+      const btn=$("aiDeleteKey");btn.disabled=true;
+      try{
+        const result=await window.fitnessCloud.invoke("fitness-ai",{mode:"delete_api_key"});
+        if(!result?.ok)throw new Error(result?.error||"移除失败");
+        toast("DeepSeek Key 已移除");await refreshAISettingsStatus();
+      }catch(err){toast(err.message||"移除失败")}
+      finally{btn.disabled=false}
+    };
+
+    refreshAISettingsStatus();
   }
 
   function injectExerciseButtons(){
