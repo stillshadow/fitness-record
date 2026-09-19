@@ -353,6 +353,7 @@
       .ai-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.ai-fields .wide{grid-column:1/-1}.ai-fields textarea{min-height:82px;resize:vertical}
       .ai-result-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:12px 0}.ai-result-macro{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px;text-align:center}.ai-result-macro small{display:block;color:var(--muted);font-size:9px}.ai-result-macro b{font-size:15px}
       .ai-result-note{font-size:11px;color:var(--muted);line-height:1.65}.ai-loading{padding:42px 18px;text-align:center;color:var(--muted)}
+      .ai-food-save{width:100%;margin-top:11px;min-height:46px!important}.ai-food-save-hint{text-align:center;color:#707b8b;font-size:9px;margin-top:6px}
       .ai-report-body{padding:15px}
       .ai-report-meta{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.ai-report-pill{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.08);background:#121823;border-radius:999px;padding:4px 8px;color:#8490a1;font-size:9px}.ai-report-pill.cached{color:#78d4a4}.ai-report-pill.stale{color:#e2b768}
       .ai-analysis-summary{padding:14px 15px;border:1px solid rgba(160,180,255,.14);border-radius:15px;background:linear-gradient(145deg,rgba(28,35,48,.88),rgba(17,22,30,.82));font-size:13px;line-height:1.75;color:#e7ebf4;margin-bottom:15px}
@@ -377,17 +378,29 @@
     document.head.appendChild(style);
   }
 
-  let pendingFoodImage=null,pendingFoodResult=null,pendingSlot="午餐",pendingTime="";
+  let pendingFoodImage=null,pendingFoodResult=null,pendingSlot="午餐",pendingTime="",foodAIOrigin="home";
+  function inferMealSlotAI(){
+    const h=new Date().getHours();
+    if(h<10)return "早餐";if(h<14)return "午餐";if(h<17)return "加餐";if(h<21)return "晚餐";return "练后";
+  }
+  function localTimeAI(){
+    const d=new Date();
+    return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+  function syncFoodSaveLabel(){
+    const btn=$("aiUseFood");if(btn)btn.textContent="保存到"+($("aiFoodSlot")?.value||pendingSlot);
+  }
   function ensureModals(){
     if(!$("aiFoodModal")){
       const modal=document.createElement("div");modal.className="modal";modal.id="aiFoodModal";
       modal.innerHTML='<div class="modal-panel"><div class="ai-modal-head"><div><b>AI 食物估算</b><small>照片、重量和备注一起判断</small></div><button type="button" class="ai-modal-close" id="aiFoodClose" aria-label="关闭">×</button></div>'+
         '<div class="ai-upload" id="aiUpload"><img class="ai-upload-preview" id="aiFoodPreview" alt=""><label class="btn soft" for="aiFoodImage">📷 拍照 / 选择图片</label><input id="aiFoodImage" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><div class="meta" style="margin-top:7px">图片可选，也可以只写食物描述和重量</div></div>'+
-        '<div class="ai-fields"><div><label for="aiFoodWeight">已知总重量 g（可选）</label><input id="aiFoodWeight" type="number" min="0" step="1" inputmode="decimal"></div><div class="wide"><label for="aiFoodNote">描述 / 备注</label><textarea id="aiFoodNote" placeholder="例如：黄焖鸡米饭，鸡皮没吃，汤汁没有拌饭"></textarea></div></div>'+
-        '<div id="aiFoodResult"></div><div class="modal-actions"><button class="btn ghost" id="aiFoodBack">返回饮食记录</button><button class="btn" id="aiFoodAnalyze">AI 估算</button></div></div>';
+        '<div class="ai-fields"><div><label for="aiFoodWeight">已知总重量 g（可选）</label><input id="aiFoodWeight" type="number" min="0" step="1" inputmode="decimal"></div><div><label for="aiFoodSlot">餐次</label><select id="aiFoodSlot"><option>早餐</option><option>午餐</option><option>加餐</option><option>晚餐</option><option>练后</option></select></div><div class="wide"><label for="aiFoodNote">描述 / 备注</label><textarea id="aiFoodNote" placeholder="例如：黄焖鸡米饭，鸡皮没吃，汤汁没有拌饭"></textarea></div></div>'+
+        '<div id="aiFoodResult"></div><div class="modal-actions"><button class="btn ghost" id="aiFoodBack">手动记录</button><button class="btn" id="aiFoodAnalyze">AI 估算</button></div></div>';
       document.body.appendChild(modal);
-      $("aiFoodClose").onclick=closeFoodAI;$("aiFoodBack").onclick=closeFoodAI;$("aiFoodAnalyze").onclick=runFoodAI;
+      $("aiFoodClose").onclick=closeFoodAI;$("aiFoodBack").onclick=openManualFoodFromAI;$("aiFoodAnalyze").onclick=runFoodAI;
       $("aiFoodImage").addEventListener("change",onFoodImage);
+      $("aiFoodSlot").addEventListener("change",()=>{pendingSlot=$("aiFoodSlot").value;syncFoodSaveLabel()});
       modal.addEventListener("click",e=>{if(e.target===modal)closeFoodAI()});
     }
     if(!$("aiInsightModal")){
@@ -397,20 +410,28 @@
       modal.addEventListener("click",e=>{if(e.target===modal)closeInsightModal()});
     }
   }
-  function openFoodAI(){
+  function openFoodAI(origin="home"){
     ensureModals();
-    pendingSlot=$("mealSlot")?.value||"午餐";pendingTime=$("foodTime")?.value||"";
+    foodAIOrigin=origin;
+    const fromManual=origin==="manual"&&$("foodModal")?.classList.contains("open");
+    pendingSlot=fromManual?($("mealSlot")?.value||inferMealSlotAI()):inferMealSlotAI();
+    pendingTime=fromManual?($("foodTime")?.value||localTimeAI()):localTimeAI();
     $("foodModal")?.classList.remove("open");
     pendingFoodImage=null;pendingFoodResult=null;
     $("aiFoodImage").value="";$("aiFoodPreview").removeAttribute("src");$("aiUpload").classList.remove("has-image");
     $("aiFoodWeight").value="";$("aiFoodNote").value="";$("aiFoodResult").innerHTML="";
+    $("aiFoodSlot").value=pendingSlot;
     $("aiFoodAnalyze").textContent="AI 估算";$("aiFoodModal").classList.add("open");
   }
   function closeFoodAI(){
     $("aiFoodModal")?.classList.remove("open");
+  }
+  function openManualFoodFromAI(){
+    pendingSlot=$("aiFoodSlot")?.value||pendingSlot;
+    $("aiFoodModal")?.classList.remove("open");
     window.openFoodModal?.();
     if($("mealSlot"))$("mealSlot").value=pendingSlot;
-    if($("foodTime")&&pendingTime)$("foodTime").value=pendingTime;
+    if($("foodTime"))$("foodTime").value=pendingTime||localTimeAI();
   }
   async function fileToDataUrl(file){
     if(!file)return null;
@@ -440,10 +461,12 @@
       '<div><label>蛋白质 g</label><input id="aiResultP" type="number" step="0.1" value="'+(+r.protein_g||0)+'"></div>'+
       '<div><label>脂肪 g</label><input id="aiResultF" type="number" step="0.1" value="'+(+r.fat_g||0)+'"></div></div>'+
       '<div class="ai-result-note">'+escapeHtml(r.summary||"")+(r.assumptions?.length?'<br>假设：'+r.assumptions.map(escapeHtml).join("；"):"")+'<br>置信度：'+escapeHtml(r.confidence||"medium")+'</div>'+
-      '<button type="button" class="btn soft" id="aiUseFood" style="width:100%;margin-top:10px">填入饮食记录</button>';
-    $("aiUseFood").onclick=useFoodResult;$("aiFoodAnalyze").textContent="重新估算";
+      '<button type="button" class="btn ai-food-save" id="aiUseFood">保存到'+escapeHtml($("aiFoodSlot")?.value||pendingSlot)+'</button>'+
+      '<div class="ai-food-save-hint">上面的名称、重量和 C/P/F 都可以直接修改后再保存</div>';
+    $("aiUseFood").onclick=saveFoodResult;$("aiFoodAnalyze").textContent="重新估算";
   }
   async function runFoodAI(){
+    pendingSlot=$("aiFoodSlot")?.value||pendingSlot;
     const note=$("aiFoodNote").value.trim(),weight=+$("aiFoodWeight").value||null;
     if(!pendingFoodImage&&!note)return toast("请拍一张照片，或写一下这顿吃了什么");
     const btn=$("aiFoodAnalyze");btn.disabled=true;btn.textContent="分析中…";$("aiFoodResult").innerHTML='<div class="ai-loading">DeepSeek 正在估算这顿饭…</div>';
@@ -453,16 +476,19 @@
     }catch(err){$("aiFoodResult").innerHTML='<div class="empty">'+escapeHtml(err.message||"AI 请求失败")+'</div>';btn.textContent="重试"}
     finally{btn.disabled=false}
   }
-  function useFoodResult(){
+  function saveFoodResult(){
     const name=$("aiResultName")?.value.trim()||pendingFoodResult?.name||"AI估算餐";
     const weight=+$("aiResultWeight")?.value||0,C=+$("aiResultC")?.value||0,P=+$("aiResultP")?.value||0,F=+$("aiResultF")?.value||0;
+    pendingSlot=$("aiFoodSlot")?.value||pendingSlot;
+    if(!name)return toast("请填写食物名称");
+    if(!window.fitnessApp?.addFoodEntry)return toast("饮食保存功能尚未准备好");
+    window.fitnessApp.addFoodEntry({
+      name,unit:"g",grams:weight,slot:pendingSlot,time:pendingTime||localTimeAI(),
+      totalMacros:true,totalC:C,totalP:P,totalF:F,
+      source:"ai_estimate",aiConfidence:pendingFoodResult?.confidence||""
+    });
     $("aiFoodModal")?.classList.remove("open");
-    window.openFoodModal?.();
-    if($("foodMode")){$("foodMode").value="manual";$("foodMode").dispatchEvent(new Event("change"))}
-    if($("mealSlot"))$("mealSlot").value=pendingSlot;if($("foodTime")&&pendingTime)$("foodTime").value=pendingTime;
-    if($("manualFoodName"))$("manualFoodName").value=name;if($("manualFoodGrams"))$("manualFoodGrams").value=weight||"";
-    if($("manualFoodC"))$("manualFoodC").value=C;if($("manualFoodP"))$("manualFoodP").value=P;if($("manualFoodF"))$("manualFoodF").value=F;
-    toast("AI 结果已填入，确认后再保存");
+    toast("已保存到"+pendingSlot);
   }
 
   function openInsightModal(){
@@ -552,7 +578,7 @@
     const modal=$("foodModal"),panel=modal?.querySelector(".modal-panel");if(!panel||$("aiFoodShortcut"))return;
     const div=document.createElement("div");div.className="ai-food-shortcut";div.id="aiFoodShortcut";
     div.innerHTML='<button type="button" id="aiFoodStart"><span><b>✦ AI 估算这顿饭</b><br><small>拍照 / 重量 / 描述 → 自动填写 C P F</small></span><span>›</span></button>';
-    panel.querySelector(".section")?.insertAdjacentElement("afterend",div);$("aiFoodStart").onclick=openFoodAI;
+    panel.querySelector(".section")?.insertAdjacentElement("afterend",div);$("aiFoodStart").onclick=()=>openFoodAI("manual");
   }
   function refreshHomeAIStatus(){
     const todayBtn=$("aiToday"),weeklyBtn=$("aiWeekly");
@@ -648,13 +674,18 @@
       target.appendChild(btn);
     });
   }
+  function bindFastFoodEntry(){
+    const btn=$("v3Food");if(!btn)return;
+    btn.onclick=()=>openFoodAI("home");
+    const sub=btn.querySelector("small");if(sub)sub.textContent="拍照 / 描述，AI 估算后直接保存";
+  }
   function setupObservers(){
     const strength=$("strengthList");if(strength)new MutationObserver(()=>requestAnimationFrame(injectExerciseButtons)).observe(strength,{childList:true,subtree:true});
     window.addEventListener("fitness:changed",()=>setTimeout(()=>{injectHomeCard();injectExerciseButtons();refreshHomeAIStatus()},0));
   }
   function setup(){
     if(!window.fitnessApp?.getDB)return setTimeout(setup,80);
-    ensureStyles();ensureModals();injectFoodShortcut();injectHomeCard();injectSettingsCard();injectExerciseButtons();setupObservers();refreshHomeAIStatus();
+    ensureStyles();ensureModals();injectFoodShortcut();injectHomeCard();injectSettingsCard();injectExerciseButtons();bindFastFoodEntry();setupObservers();refreshHomeAIStatus();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(setup,0),{once:true});else setTimeout(setup,0);
 })();
