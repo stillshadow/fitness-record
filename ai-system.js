@@ -344,7 +344,7 @@
       #aiFoodModal .modal-panel{width:min(620px,100%)!important;max-height:92vh}
       #aiInsightModal .ai-report-panel{width:min(680px,100%)!important;max-height:92vh!important;padding:0!important;overflow:auto!important}
       .ai-modal-head,.ai-report-head{display:grid;grid-template-columns:minmax(0,1fr) 40px;align-items:center;gap:12px;margin:0;padding:15px 15px 12px;border-bottom:1px solid rgba(255,255,255,.075);background:#171d27;position:sticky;top:0;z-index:5}
-      .ai-modal-head b,.ai-report-head h2{margin:0;font-size:18px;line-height:1.25}.ai-modal-head small,.ai-report-head small{display:block;margin-top:3px;color:#7e8999;font-size:9px}
+      .ai-modal-head>div,.ai-report-head>div{min-width:0}.ai-modal-head b,.ai-report-head h2{margin:0;font-size:18px;line-height:1.25}.ai-modal-head small,.ai-report-head small{display:block;margin-top:3px;color:#7e8999;font-size:9px}
       .ai-modal-close,.ai-report-close{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;padding:0!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:50%!important;background:#111720!important;color:#dbe2ef!important;font-size:23px!important;font-weight:400!important;line-height:1!important;display:grid!important;place-items:center!important}
       #aiFoodModal .ai-upload{margin:14px 15px 0}
       #aiFoodModal .ai-fields,#aiFoodModal #aiFoodResult,#aiFoodModal .modal-actions{margin-left:15px;margin-right:15px}
@@ -353,7 +353,7 @@
       .ai-upload{border:1px dashed var(--line);border-radius:14px;padding:12px;text-align:center;background:var(--panel2)}
       .ai-upload>label.btn{width:100%;min-height:46px;box-sizing:border-box;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;line-height:1.2!important;font-size:13px!important;color:#09101d!important}
       .ai-upload input{display:none}.ai-upload-preview{display:none;max-height:210px;max-width:100%;margin:0 auto 10px;border-radius:12px;object-fit:contain}.ai-upload.has-image .ai-upload-preview{display:block}
-      .ai-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.ai-fields .wide{grid-column:1/-1}.ai-fields textarea{min-height:82px;resize:vertical}
+      .ai-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:10px}.ai-fields>div{min-width:0}.ai-fields .wide{grid-column:1/-1}.ai-fields input,.ai-fields select,.ai-fields textarea{box-sizing:border-box;width:100%}.ai-fields textarea{min-height:82px;resize:vertical}
       .ai-result-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:12px 0}.ai-result-macro{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px;text-align:center}.ai-result-macro small{display:block;color:var(--muted);font-size:9px}.ai-result-macro b{font-size:15px}
       .ai-result-note{font-size:11px;color:var(--muted);line-height:1.65}.ai-loading{padding:42px 18px;text-align:center;color:var(--muted)}
       .ai-food-save{width:100%;margin-top:11px;min-height:46px!important}.ai-food-save-hint{text-align:center;color:#707b8b;font-size:9px;margin-top:6px}
@@ -375,6 +375,8 @@
         #aiInsightModal .ai-report-body{padding:14px!important}
         #aiInsightModal .ai-report-actions{padding:0 14px 14px!important}
         #aiFoodModal .ai-modal-head{padding:calc(12px + env(safe-area-inset-top)) 14px 12px!important;background:#0b0f14!important}
+        #aiFoodModal .modal-actions{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
+        #aiFoodModal .modal-actions .btn{width:100%!important;margin:0!important}
       }
       @media(max-width:430px){.ai-result-macros{grid-template-columns:repeat(2,1fr)}.ai-fields{grid-template-columns:1fr}.ai-fields .wide{grid-column:auto}.ai-home-actions{grid-template-columns:1fr 1fr}}
     `;
