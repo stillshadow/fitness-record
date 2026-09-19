@@ -146,6 +146,9 @@ Deno.serve(async req => {
 
     const body = await req.json();
     const mode = String(body?.mode || "");
+    if (mode === "healthcheck") {
+      return json({ ok: true, mode, data: { provider: "DeepSeek", model: "deepseek-flash", configured: true } });
+    }
     if (!["food_estimate", "today", "weekly", "exercise"].includes(mode)) {
       return json({ ok: false, error: "不支持的 AI 分析模式" }, 400);
     }
