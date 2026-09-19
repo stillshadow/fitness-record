@@ -886,6 +886,16 @@ function replaceDBInternal(incoming,refresh=true){
 }
 window.fitnessApp={
   getDB:()=>clone(DB),
+  getActiveDate:()=>activeDate,
+  addFoodEntry:(entry,date=activeDate)=>{
+    const day=ensureDay(date);
+    const saved={...clone(entry),id:entry?.id||uid("fd")};
+    day.foods.push(saved);
+    persist();
+    renderToday();
+    renderFoodPage();
+    return clone(saved);
+  },
   replaceDB:(incoming)=>replaceDBInternal(incoming,true),
   // Workout set logging uses this path so saving a set does not rebuild every page.
   replaceDBQuiet:(incoming)=>replaceDBInternal(incoming,false),
