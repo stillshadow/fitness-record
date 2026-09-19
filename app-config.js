@@ -1,11 +1,4 @@
-// 池边影の健身记录：Supabase 配置
-// 前端只使用 Publishable Key；不要填写 Secret Key / service_role。
-window.CHI_BIAN_YING_CLOUD = {
-  supabaseUrl: "https://ckcxkjwmxjewhbuwtgyz.supabase.co",
-  supabaseKey: "sb_publishable_Q5Pm_VCJPwWWt9Kt8rKktQ_wCLT-XbE",
-  email: "",
-  autoSync: false
-};
+// 池边影の健身记录：本地模式 UI 与交互补丁。
 
 // V3 在基础数据层初始化之前就开始加载，同时先遮住旧首页，避免旧模板数据闪一下再消失。
 (() => {
@@ -56,19 +49,6 @@ window.CHI_BIAN_YING_CLOUD = {
     "看均值，不看单日"
   ]);
 
-  const hasStoredSession = () => {
-    try {
-      return Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k) && !!localStorage.getItem(k));
-    } catch { return false; }
-  };
-
-  const savedCloudEmail = () => {
-    try {
-      const x = JSON.parse(localStorage.getItem("chibianyingCloudOverride") || "{}");
-      return x.email || "";
-    } catch { return ""; }
-  };
-
   const getDB = () => {
     if (window.fitnessApp?.getDB) return window.fitnessApp.getDB();
     try { return JSON.parse(localStorage.getItem("chibianyingFitnessV1") || "{}"); }
@@ -105,26 +85,10 @@ window.CHI_BIAN_YING_CLOUD = {
   const normalizeHeaderStatus = () => {
     const badge = document.getElementById("syncBadge");
     const text = document.getElementById("syncText");
-    const cloudUser = document.getElementById("cloudUserText");
-    const cloudStatus = document.getElementById("cloudStatus");
-    if (!badge || !text || !cloudUser) return;
-
-    const user = cloudUser.textContent.trim();
-    const state = cloudStatus?.textContent.trim() || "";
-
-    if (user === "未登录" || user === "未配置") {
-      badge.classList.remove("warn", "bad");
-      badge.classList.add("local");
-      setTextIfChanged(text, "仅本地");
-      return;
-    }
-
-    badge.classList.remove("local");
-    if (state === "离线") {
-      badge.classList.remove("bad");
-      badge.classList.add("warn");
-      setTextIfChanged(text, "离线");
-    }
+    if (!badge || !text) return;
+    badge.classList.remove("warn", "bad");
+    badge.classList.add("local");
+    setTextIfChanged(text, "仅本地");
   };
 
   const normalizeMacroUI = () => {
@@ -278,9 +242,6 @@ window.CHI_BIAN_YING_CLOUD = {
       if (hideExactMeta.has(text)) el.style.display = "none";
     });
 
-    const otpMeta = document.querySelector("#otpFields .meta");
-    if (otpMeta) otpMeta.style.display = "none";
-
     const activeDateLabel = document.getElementById("activeDateLabel");
     if (activeDateLabel?.textContent.includes("自动读取本机日期")) activeDateLabel.textContent = "";
 
@@ -297,19 +258,6 @@ window.CHI_BIAN_YING_CLOUD = {
       if (t === "开始记录训练后，这里会自动出现力量数据。") el.textContent = "暂无力量记录。";
       if (t === "记录晨重后会出现趋势图。") el.textContent = "暂无体重数据。";
     });
-
-    const cloudStatus = document.getElementById("cloudStatus");
-    const cloudUser = document.getElementById("cloudUserText");
-    if (cloudStatus) {
-      const t = cloudStatus.textContent.trim();
-      if (t.startsWith("Supabase 已配置。使用邮箱验证码登录")) cloudStatus.textContent = "未登录";
-      else if (t.startsWith("未配置 Supabase。")) cloudStatus.textContent = "未配置";
-      else if (t.startsWith("验证码已发送到 ")) cloudStatus.textContent = "验证码已发送";
-      else if (/^(Supabase 初始化失败|同步失败|上传失败|下载失败)/.test(t) && hasStoredSession()) {
-        cloudStatus.textContent = "离线";
-        if (cloudUser) cloudUser.textContent = savedCloudEmail() || "会话已保存";
-      }
-    }
 
     normalizeHeaderStatus();
     normalizeMacroUI();

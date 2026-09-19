@@ -1,67 +1,41 @@
-# DeepSeek AI 系统部署
+# DeepSeek AI 系统
 
-当前 App 采用：
+当前 App 已经完全与 Supabase 解耦。
 
-- 健身数据：仅保存在当前设备本地
-- Supabase：不再同步健身数据
-- Supabase Auth：匿名登录，仅用于给 AI Edge Function 提供受保护身份
-- AI 后端：Supabase Edge Function `fitness-ai`
-- 模型：DeepSeek `deepseek-flash`
-- API Key：直接在 App 内填写
-- Key 存储：Supabase Vault
+## 数据存储
 
-## 首次部署
+- 训练、饮食、体重：只存在当前设备的 localStorage
+- 不做云同步
+- 不需要账号、邮箱、验证码
+- 需要备份时使用 App 内「导出 JSON」
+- 恢复时使用「导入 JSON」
 
-仓库包含：
+## AI 调用
 
-```
-supabase/
-  config.toml
-  migrations/
-    20260919_ai_vault.sql
-  functions/
-    fitness-ai/
-      index.ts
-```
-
-先确保 Supabase 项目已开启 Anonymous Sign-ins。
-
-然后执行：
-
-```bash
-npx supabase@latest login
-npx supabase@latest link --project-ref YOUR_PROJECT_REF
-npx supabase@latest db push
-npx supabase@latest functions deploy fitness-ai --use-api
-```
-
-`db push` 创建 Vault 安全存储。
-`functions deploy` 部署 AI 后端。
-
-## App 的身份逻辑
-
-App 启动时：
+AI 由浏览器直接请求 DeepSeek 官方 API：
 
 ```
-打开 PWA
+PWA
   ↓
-读取本机 localStorage 健身数据
+https://api.deepseek.com/responses
   ↓
-Supabase 自动 signInAnonymously()
-  ↓
-获得 authenticated JWT
-  ↓
-仅用于调用 fitness-ai
+deepseek-flash
 ```
 
-没有邮箱、验证码、账户登录或健身数据同步。
+当前 AI 功能：
 
-匿名身份保存在浏览器会话存储中。清除 Safari/PWA 网站数据、删除站点数据或更换设备后，匿名身份可能丢失，因此：
+- AI 食物估算
+- AI 今日简报
+- AI 最近 7 天报告
+- 单动作 AI 分析
 
-- 健身数据建议定期导出 JSON
-- DeepSeek Key 丢失时重新在 App 内填写即可
+DeepSeek Responses API 支持 `deepseek-flash`、图片输入和结构化 JSON 输出。
 
-## App 内配置 DeepSeek
+## 配置 API Key
+
+有两种方式。
+
+### 方式一：直接在 App 里填
 
 进入：
 
@@ -71,33 +45,88 @@ Supabase 自动 signInAnonymously()
 
 粘贴 DeepSeek API Key，点击「保存并验证」。
 
-流程：
+Key 保存到当前设备：
 
 ```
-App
-  ↓ HTTPS
-Supabase Edge Function
-  ↓ DeepSeek /models 验证
-Supabase Vault
-  ↓ 加密保存到当前匿名用户
+localStorage: chibianyingDeepSeekApiKey
 ```
 
-Key 不会写入：
+不会进入你的健身数据 JSON。
 
-- GitHub
-- cloud-config.js
-- 健身记录 JSON
-- localStorage
-- 普通业务表
+### 方式二：直接写进 GitHub
 
-## AI 功能
+编辑：
 
-- AI 食物估算：照片 / 重量 / 备注 → C / P / F / kcal
-- AI 今日简报
-- AI 最近 7 天报告
-- 单动作 AI 分析
+```
+deepseek-config.js
+```
 
-确定性数据仍由网页计算：
+填入：
+
+```js
+window.DEEPSEEK_CONFIG = {
+  apiKey: "你的 DeepSeek API Key"
+};
+```
+
+App 内保存的 Key 优先级高于 GitHub 配置。
+
+注意：如果仓库是公开的，把真实 Key 写进 GitHub 意味着任何看到仓库的人都可以使用这个 Key，并消耗你的 API 余额。仅在你明确接受这个风险时使用。
+
+## AI 食物估算
+
+「记录食物 → AI 估算这顿饭」
+
+输入：
+
+- 照片 / 相册图片
+- 已知总重量
+- 文字备注，例如「鸡皮没吃、汤汁没有拌饭」
+
+返回：
+
+- 食物名称
+- C / P / F
+- kcal
+- 估算重量
+- 置信度
+- 主要假设
+
+结果可以手动修改，再填入饮食记录。
+
+## AI 分析
+
+### 今日简报
+
+整理：
+
+- 今日饮食
+- C / P / F 目标与实际
+- 今日训练
+- 晨重
+- 最近体重上下文
+
+### 最近 7 天报告
+
+比较：
+
+- 最近 7 天 vs 前 7 天均重
+- 宏量营养平均值
+- 饮食记录完整度
+- 训练日数量
+
+### 单动作分析
+
+最近最多 10 次：
+
+- 重量
+- 次数
+- RIR
+- 估算 1RM
+
+## 计算边界
+
+以下数据由网页自己计算：
 
 - C / P / F 总量
 - 热量
@@ -106,3 +135,7 @@ Key 不会写入：
 - e1RM
 
 AI 只负责解释趋势和给出建议。
+
+## 浏览器直连说明
+
+DeepSeek API 当前对浏览器请求提供 CORS 支持，但如果未来官方调整跨域策略，直连可能受到影响。届时可以再加一个极薄的代理层，不需要恢复 Supabase 数据同步。

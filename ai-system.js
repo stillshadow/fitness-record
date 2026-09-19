@@ -135,11 +135,117 @@
     };
   }
 
+  const AI_KEY_STORAGE="chibianyingDeepSeekApiKey";
+  const foodSchema={
+    type:"object",additionalProperties:false,
+    properties:{
+      name:{type:"string"},estimated_weight_g:{type:"number",minimum:0},carbs_g:{type:"number",minimum:0},
+      protein_g:{type:"number",minimum:0},fat_g:{type:"number",minimum:0},calories_kcal:{type:"number",minimum:0},
+      confidence:{type:"string",enum:["low","medium","high"]},summary:{type:"string"},
+      assumptions:{type:"array",items:{type:"string"},maxItems:8},
+      components:{type:"array",maxItems:12,items:{type:"object",additionalProperties:false,properties:{
+        name:{type:"string"},estimated_weight_g:{type:"number",minimum:0},carbs_g:{type:"number",minimum:0},
+        protein_g:{type:"number",minimum:0},fat_g:{type:"number",minimum:0}
+      },required:["name","estimated_weight_g","carbs_g","protein_g","fat_g"]}}
+    },
+    required:["name","estimated_weight_g","carbs_g","protein_g","fat_g","calories_kcal","confidence","summary","assumptions","components"]
+  };
+  const insightSchema={
+    type:"object",additionalProperties:false,
+    properties:{
+      title:{type:"string"},summary:{type:"string"},
+      observations:{type:"array",maxItems:6,items:{type:"object",additionalProperties:false,properties:{
+        title:{type:"string"},detail:{type:"string"},level:{type:"string",enum:["info","positive","attention"]}
+      },required:["title","detail","level"]}},
+      suggestions:{type:"array",maxItems:5,items:{type:"object",additionalProperties:false,properties:{
+        title:{type:"string"},detail:{type:"string"}
+      },required:["title","detail"]}},
+      data_quality:{type:"string"}
+    },
+    required:["title","summary","observations","suggestions","data_quality"]
+  };
+
+  function configuredAIKey(){
+    return (localStorage.getItem(AI_KEY_STORAGE)||"").trim() || String(window.DEEPSEEK_CONFIG?.apiKey||"").trim();
+  }
+  function keySource(){
+    if((localStorage.getItem(AI_KEY_STORAGE)||"").trim())return "local";
+    if(String(window.DEEPSEEK_CONFIG?.apiKey||"").trim())return "github";
+    return "none";
+  }
+  function outputText(response){
+    for(const item of response?.output||[]){
+      if(item?.type!=="message")continue;
+      for(const part of item?.content||[]){
+        if(part?.type==="output_text"&&typeof part.text==="string")return part.text;
+      }
+    }
+    return "";
+  }
+  function instructionsFor(mode){
+    if(mode==="food_estimate")return [
+      "你是健身饮食记录中的食物营养估算助手。",
+      "根据用户提供的食物照片、已知总重量和文字备注，估算这一整顿食物的碳水、蛋白质、脂肪和热量。",
+      "如果用户明确说没吃鸡皮、没拌汤汁、剩下某部分等，必须据此调整可食部分。",
+      "如果给了总重量，优先将它视为用户实际称得的整份食物重量，但要结合备注判断不可食骨头、包装等是否可能包含在称重里。",
+      "不要虚构精确到克的确定性。信息不足时降低 confidence，并在 assumptions 说明主要不确定来源。",
+      "calories_kcal 应与三大营养素大致满足 C*4 + P*4 + F*9。",
+      "输出简洁中文。"
+    ].join("\n");
+    if(mode==="exercise")return [
+      "你是力量训练记录分析助手。",
+      "基于用户传入的某个动作最近训练记录，分析重量、次数、RIR、估算1RM和训练间隔的变化。",
+      "优先描述数据能支持的趋势，不把单次波动说成停滞或退步。",
+      "如果数据不足，明确说数据不足。",
+      "建议应保守、可执行，不要自行修改用户计划，不要声称医学诊断或恢复状态。",
+      "输出简洁中文。"
+    ].join("\n");
+    return [
+      "你是个人健身记录分析助手。",
+      "用户会提供由程序提前计算好的体重、饮食宏量营养和力量训练数据。",
+      "算术结果以输入数据为准，你负责解释趋势，不要重新臆算不存在的数据。",
+      "区分单日波动与多日趋势。数据不足时明确指出。",
+      "建议应保守、具体，不要因为一天超标就建议大幅调整饮食，也不要直接修改用户目标。",
+      "不要做医学诊断，不要推断疾病、激素、精神状态或受伤原因。",
+      "输出简洁中文，重点放在最值得关注的2到4件事。"
+    ].join("\n");
+  }
+  function userText(mode,payload){
+    if(mode==="food_estimate")return "请估算这顿食物。以下是用户提供的信息：\n"+JSON.stringify(payload||{});
+    if(mode==="today")return "请生成今天的健身简报。下面是程序整理好的 JSON 数据：\n"+JSON.stringify(payload||{});
+    if(mode==="weekly")return "请分析最近7天，并与之前7天比较。下面是程序整理好的 JSON 数据：\n"+JSON.stringify(payload||{});
+    return "请分析这个动作最近的训练表现。下面是程序整理好的 JSON 数据：\n"+JSON.stringify(payload||{});
+  }
+  async function validateAIKey(apiKey=configuredAIKey()){
+    if(!apiKey)throw new Error("还没有填写 DeepSeek API Key");
+    const resp=await fetch("https://api.deepseek.com/models",{headers:{Authorization:"Bearer "+apiKey}});
+    const raw=await resp.json().catch(()=>null);
+    if(!resp.ok)throw new Error(raw?.error?.message||raw?.message||("DeepSeek HTTP "+resp.status));
+    return raw;
+  }
   async function callAI(mode,payload,imageDataUrl){
-    if(!window.fitnessCloud?.invoke)throw new Error("AI 后端尚未连接");
-    const result=await window.fitnessCloud.invoke("fitness-ai",{mode,payload,imageDataUrl:imageDataUrl||null});
-    if(!result?.ok)throw new Error(result?.error||"AI 请求失败");
-    return result.data;
+    const apiKey=configuredAIKey();
+    if(!apiKey)throw new Error("请先到“目标与数据 → AI 服务”填写 DeepSeek API Key");
+    const content=[{type:"input_text",text:userText(mode,payload)}];
+    if(mode==="food_estimate"&&imageDataUrl)content.push({type:"input_image",image_url:imageDataUrl,detail:"low"});
+    const schema=mode==="food_estimate"?foodSchema:insightSchema;
+    const resp=await fetch("https://api.deepseek.com/responses",{
+      method:"POST",
+      headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"deepseek-flash",
+        instructions:instructionsFor(mode),
+        input:[{role:"user",content}],
+        reasoning:{effort:"none"},
+        max_output_tokens:mode==="food_estimate"?1200:1600,
+        text:{format:{type:"json_schema",name:mode==="food_estimate"?"food_estimate":"fitness_insight",schema}}
+      })
+    });
+    const raw=await resp.json().catch(()=>null);
+    if(!resp.ok)throw new Error(raw?.error?.message||raw?.message||("DeepSeek HTTP "+resp.status));
+    const text=outputText(raw);
+    if(!text)throw new Error("DeepSeek 没有返回可解析结果");
+    try{return JSON.parse(text)}catch{throw new Error("DeepSeek 返回了无效 JSON")}
   }
 
   function ensureStyles(){
@@ -283,24 +389,18 @@
   async function refreshAISettingsStatus(){
     const status=$("aiSettingsStatus"),remove=$("aiDeleteKey");
     if(!status)return;
-    try{
-      const result=await callAI("config_status",{},null);
-      const source=result.source==="user_vault"?"App 内已保存":result.source==="env_secret"?"Supabase Secret":"未配置";
-      status.textContent=(result.provider||"DeepSeek")+" "+(result.model||"")+" · "+source;
-      if(remove)remove.style.display=result.source==="user_vault"?"inline-flex":"none";
-    }catch(err){
-      status.textContent="未连接 · "+(err.message||"请先登录 Supabase");
-      if(remove)remove.style.display="none";
-    }
+    const source=keySource();
+    status.textContent="DeepSeek Flash · "+(source==="local"?"本机已保存":source==="github"?"GitHub 配置":"未配置");
+    if(remove)remove.style.display=source==="local"?"inline-flex":"none";
   }
 
   function injectSettingsCard(){
     const grid=$("page-settings")?.querySelector(".grid");if(!grid||$("aiSettingsCard"))return;
     const card=document.createElement("div");card.className="card s12";card.id="aiSettingsCard";
     card.innerHTML='<div class="section"><h2>AI 服务</h2><span class="meta" id="aiSettingsStatus">DeepSeek Flash · 检查中…</span></div>'+
-      '<div class="meta">API Key 在这里填一次即可。保存时会先向 DeepSeek 验证，然后通过登录后的 Supabase Edge Function 写入 Vault 加密保存。网页本地和 GitHub 都不会保存明文。</div>'+
-      '<div class="ai-key-field"><label for="aiApiKey">DeepSeek API Key</label><input id="aiApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 API Key，已保存的 Key 不会回显"></div>'+
-      '<div class="ai-key-actions"><button type="button" class="btn" id="aiSaveKey">保存并验证</button><button type="button" class="btn soft" id="aiTestConnection">测试连接</button><button type="button" class="btn danger" id="aiDeleteKey" style="display:none">移除 Key</button></div>';
+      '<div class="meta">Key 可以直接保存在这台手机，也可以写进 deepseek-config.js。App 会从浏览器直接调用 DeepSeek。</div>'+
+      '<div class="ai-key-field"><label for="aiApiKey">DeepSeek API Key</label><input id="aiApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 API Key"></div>'+
+      '<div class="ai-key-actions"><button type="button" class="btn" id="aiSaveKey">保存并验证</button><button type="button" class="btn soft" id="aiTestConnection">测试连接</button><button type="button" class="btn danger" id="aiDeleteKey" style="display:none">移除本机 Key</button></div>';
     grid.appendChild(card);
 
     $("aiSaveKey").onclick=async()=>{
@@ -308,11 +408,11 @@
       if(!key)return toast("请先填写 DeepSeek API Key");
       btn.disabled=true;btn.textContent="验证并保存中…";
       try{
-        const result=await window.fitnessCloud.invoke("fitness-ai",{mode:"save_api_key",api_key:key});
-        if(!result?.ok)throw new Error(result?.error||"保存失败");
+        await validateAIKey(key);
+        localStorage.setItem(AI_KEY_STORAGE,key);
         input.value="";
-        toast("DeepSeek Key 已安全保存");
-        await refreshAISettingsStatus();
+        toast("DeepSeek Key 已保存在本机");
+        refreshAISettingsStatus();
       }catch(err){toast(err.message||"保存失败")}
       finally{btn.disabled=false;btn.textContent="保存并验证"}
     };
@@ -320,23 +420,19 @@
     $("aiTestConnection").onclick=async()=>{
       const btn=$("aiTestConnection"),status=$("aiSettingsStatus");btn.disabled=true;btn.textContent="测试中…";
       try{
-        const result=await callAI("healthcheck",{},null);
-        status.textContent=(result.provider||"DeepSeek")+" "+(result.model||"")+" · 已连接";
+        await validateAIKey();
+        status.textContent="DeepSeek Flash · 已连接";
         toast("DeepSeek 连接正常");
       }catch(err){
-        status.textContent="未连接 · "+(err.message||"请检查配置");toast(err.message||"AI 连接失败");
+        status.textContent="未连接 · "+(err.message||"请检查 Key");toast(err.message||"AI 连接失败");
       }finally{btn.disabled=false;btn.textContent="测试连接"}
     };
 
-    $("aiDeleteKey").onclick=async()=>{
-      if(!confirm("移除 App 内保存的 DeepSeek API Key？"))return;
-      const btn=$("aiDeleteKey");btn.disabled=true;
-      try{
-        const result=await window.fitnessCloud.invoke("fitness-ai",{mode:"delete_api_key"});
-        if(!result?.ok)throw new Error(result?.error||"移除失败");
-        toast("DeepSeek Key 已移除");await refreshAISettingsStatus();
-      }catch(err){toast(err.message||"移除失败")}
-      finally{btn.disabled=false}
+    $("aiDeleteKey").onclick=()=>{
+      if(!confirm("移除这台设备保存的 DeepSeek API Key？"))return;
+      localStorage.removeItem(AI_KEY_STORAGE);
+      toast("本机 DeepSeek Key 已移除");
+      refreshAISettingsStatus();
     };
 
     refreshAISettingsStatus();
@@ -356,7 +452,6 @@
   function setupObservers(){
     const strength=$("strengthList");if(strength)new MutationObserver(()=>requestAnimationFrame(injectExerciseButtons)).observe(strength,{childList:true,subtree:true});
     window.addEventListener("fitness:changed",()=>setTimeout(()=>{injectHomeCard();injectExerciseButtons()},0));
-    window.addEventListener("fitness:cloud-ready",()=>setTimeout(refreshAISettingsStatus,0));
   }
   function setup(){
     if(!window.fitnessApp?.getDB)return setTimeout(setup,80);
