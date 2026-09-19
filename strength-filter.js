@@ -23,7 +23,6 @@
     load('ui-v2.js?v=54','ui-v2');
     load('training-batch.js?v=56','training-batch');
     load('ai-system.js?v=5','ai-system');
-    load('github-backup.js?v=1','github-backup');
     load('last-performance.js?v=54','last-performance');
     load('ui-final.js?v=63','ui-final');
     load('ui-keyboard.js?v=54','ui-keyboard');
