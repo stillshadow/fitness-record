@@ -270,6 +270,7 @@
 
   const INSIGHT_CACHE_STORAGE="chibianyingAiInsightCacheV2";
   let currentInsight={mode:null,exerciseId:null,payload:null,fingerprint:"",entry:null};
+  let insightReturnScroll=0;
 
   function payloadFingerprint(payload){
     const str=JSON.stringify(payload||{});
@@ -391,8 +392,8 @@
     if(!$("aiInsightModal")){
       const modal=document.createElement("div");modal.className="modal";modal.id="aiInsightModal";
       modal.innerHTML='<div class="modal-panel ai-report-panel"><div class="ai-report-head"><div><h2 id="aiInsightTitle">AI 分析</h2><small id="aiInsightSubtitle">DeepSeek 健身报告</small></div><button type="button" class="ai-report-close" id="aiInsightClose" aria-label="关闭">×</button></div><div class="ai-report-body"><div class="ai-report-meta" id="aiInsightMeta"></div><div id="aiInsightContent"></div></div><div class="ai-report-actions"><button type="button" class="btn soft" id="aiInsightRefresh">重新分析</button></div></div>';
-      document.body.appendChild(modal);$("aiInsightClose").onclick=()=>modal.classList.remove("open");$("aiInsightRefresh").onclick=()=>{if(currentInsight.mode)runInsight(currentInsight.mode,currentInsight.exerciseId,{force:true})};
-      modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});
+      document.body.appendChild(modal);$("aiInsightClose").onclick=closeInsightModal;$("aiInsightRefresh").onclick=()=>{if(currentInsight.mode)runInsight(currentInsight.mode,currentInsight.exerciseId,{force:true})};
+      modal.addEventListener("click",e=>{if(e.target===modal)closeInsightModal()});
     }
   }
   function openFoodAI(){
@@ -463,6 +464,17 @@
     toast("AI 结果已填入，确认后再保存");
   }
 
+  function openInsightModal(){
+    const modal=$("aiInsightModal");if(!modal)return;
+    if(!modal.classList.contains("open"))insightReturnScroll=window.scrollY||0;
+    modal.classList.add("open");
+    requestAnimationFrame(()=>window.scrollTo(0,0));
+  }
+  function closeInsightModal(){
+    const modal=$("aiInsightModal");if(!modal)return;
+    modal.classList.remove("open");
+    requestAnimationFrame(()=>window.scrollTo(0,insightReturnScroll||0));
+  }
   function showInsightLoading(title){
     ensureModals();
     $("aiInsightTitle").textContent=title;
@@ -470,7 +482,7 @@
     $("aiInsightMeta").innerHTML='<span class="ai-report-pill">正在分析</span>';
     $("aiInsightContent").innerHTML='<div class="ai-loading">正在整理记录并生成分析…</div>';
     $("aiInsightRefresh").style.display="none";
-    $("aiInsightModal").classList.add("open");
+    openInsightModal();
   }
   function renderInsight(data,meta={}){
     const obs=(data.observations||[]).map(x=>
@@ -494,7 +506,7 @@
     const refresh=$("aiInsightRefresh");
     refresh.style.display="";
     refresh.textContent=meta.stale?"按最新记录重新分析":"重新分析";
-    $("aiInsightModal").classList.add("open");
+    openInsightModal();
   }
   async function runInsight(mode,exerciseId,options={}){
     const force=!!options.force,title="AI "+insightLabel(mode);
@@ -506,7 +518,7 @@
       valid=validCacheEntry(mode,exerciseId,entry,fingerprint);
       stale=valid&&entry.fingerprint!==fingerprint;
     }catch(err){
-      ensureModals();$("aiInsightTitle").textContent=title;$("aiInsightMeta").innerHTML="";$("aiInsightContent").innerHTML='<div class="empty ai-report-error">'+escapeHtml(err.message||"没有足够的数据")+'</div>';$("aiInsightRefresh").style.display="none";$("aiInsightModal").classList.add("open");return;
+      ensureModals();$("aiInsightTitle").textContent=title;$("aiInsightMeta").innerHTML="";$("aiInsightContent").innerHTML='<div class="empty ai-report-error">'+escapeHtml(err.message||"没有足够的数据")+'</div>';$("aiInsightRefresh").style.display="none";openInsightModal();return;
     }
 
     currentInsight={mode,exerciseId:exerciseId||null,payload,fingerprint,entry};
