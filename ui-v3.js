@@ -31,7 +31,7 @@
     body.ui-v3.v3-legacy-open .card{background:linear-gradient(180deg,rgba(16,21,28,.97),rgba(12,16,22,.97))!important;border:1px solid var(--v3-line)!important;border-radius:18px!important;box-shadow:none!important}
     body.ui-v3.v3-legacy-open .grid{gap:10px!important}
     body.ui-v3 #page-today #homeStartTrainingBtn,body.ui-v3 #page-today #homeAddFoodBtn,body.ui-v3 #page-today #planHint,body.ui-v3 #page-today #clearLoadedPlanBtn{display:none!important}
-    body.ui-v3 #page-training .card:has(#strengthList),body.ui-v3 #page-training .card:has(#exerciseList){display:none!important}
+    body.ui-v3 #page-training .card:has(#strengthList){display:none!important}
     body.ui-v3 #page-training #planList [data-load-plan]{display:none!important}
     .v3-settings-title{font-size:25px;font-weight:790;margin:28px 2px 5px}.v3-settings-sub{color:var(--v3-muted);font-size:12px;margin:0 2px 20px}
     .v3-settings-list{display:grid;gap:9px}.v3-setting-row{width:100%;border:1px solid var(--v3-line);background:linear-gradient(180deg,#10151d,#0d1117);color:var(--v3-text);border-radius:17px;padding:15px 16px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:11px;text-align:left}.v3-setting-icon{width:38px;height:38px;border-radius:12px;background:#171e2a;display:grid;place-items:center;color:#aab9ff}.v3-setting-icon svg{width:18px;height:18px}.v3-setting-copy b{display:block;font-size:14px}.v3-setting-copy small{display:block;color:var(--v3-muted);font-size:10px;margin-top:2px}.v3-setting-chevron{font-size:21px;color:#586271}
@@ -98,7 +98,7 @@
       <div class="v3-top"><div class="v3-today">今天<b>${prettyToday()}</b></div><button class="v3-icon-btn" id="v3SettingsBtn" aria-label="设置">${icon('gear')}</button></div>
       <div class="v3-avatar-stage" id="v3AvatarStage"><div class="v3-avatar-orbit"></div><img class="v3-avatar" id="v3Avatar" src="${AVATAR}" alt="我的像素形象"></div>
       <div class="v3-action-stack">
-        <button class="v3-start" id="v3StartTraining"><span><strong id="v3StartText">开始训练</strong><small id="v3StartSub">从模板或自由训练开始</small></span><span class="v3-arrow">›</span></button>
+        <button class="v3-start" id="v3StartTraining"><span><strong id="v3StartText">记录训练</strong><small id="v3StartSub">训练结束后一次录完整</small></span><span class="v3-arrow">›</span></button>
         <div class="v3-grid">
           <button class="v3-action" id="v3Food">${icon('food')}<span><b>记录食物</b><small>添加今天吃的东西</small></span></button>
           <button class="v3-action" id="v3Weight">${icon('weight')}<span><b>记录晨重</b><small id="v3WeightSub">今天还没记录</small></span></button>
@@ -214,9 +214,10 @@
   function refreshHome(){
     const db=getDB(),day=db.days?.[today()],weight=day?.weight;
     const ws=$('v3WeightSub'); if(ws) ws.textContent=weight!=null?`今天 ${Number(weight).toFixed(2).replace(/0+$/,'').replace(/\.$/,'')} kg`:'今天还没记录';
-    let active=!!window.fitnessWorkoutContext;
-    if(!active){try{const s=JSON.parse(localStorage.getItem('chibianyingActiveWorkoutV2')||'null');active=!!(s?.date===today()&&s?.exerciseIds?.length)}catch{}}
-    const text=$('v3StartText'),sub=$('v3StartSub'); if(text) text.textContent=active?'继续训练':'开始训练'; if(sub) sub.textContent=active?'回到本次训练':'从模板或自由训练开始';
+    const rows=day?.training||[], exerciseCount=new Set(rows.map(x=>x.exerciseId||x.exerciseName)).size;
+    const text=$('v3StartText'),sub=$('v3StartSub');
+    if(text) text.textContent='记录训练';
+    if(sub) sub.textContent=rows.length?`今天已记录 ${exerciseCount} 个动作 · ${rows.length} 组`:'训练结束后一次录完整';
   }
 
   function wire(){
@@ -225,7 +226,7 @@
     $('v3Records').onclick=()=>showLegacy('today','我的记录','训练、饮食与晨重都按日期归档');
     $('v3Progress').onclick=()=>showLegacy('progress','我的进度','只保留真正能帮助判断趋势的数据');
     $('v3StartTraining').onclick=()=>{
-      let n=0; const go=()=>{ if(typeof window.openTrainingStart==='function') return window.openTrainingStart(); if(++n<12) return setTimeout(go,100); const t=$('toast'); if(t){t.textContent='训练模块还在加载';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);} }; go();
+      let n=0; const go=()=>{ if(typeof window.openBatchTraining==='function') return window.openBatchTraining(); if(++n<12) return setTimeout(go,100); const t=$('toast'); if(t){t.textContent='训练记录模块还在加载';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);} }; go();
     };
     document.querySelectorAll('[data-v3-open]').forEach(b=>b.onclick=()=>{
       const p=b.dataset.v3Open;
@@ -243,7 +244,6 @@
     ensurePageBar($('page-training'),'训练设置','训练模板与自定义动作','settings');
     ensurePageBar($('page-food'),'饮食设置','餐食模板与食物库','settings');
     ensurePageBar($('page-settings'),'目标与数据','每日目标、同步与备份','settings');
-    const exCard=$('exerciseList')?.closest('.card'); if(exCard) exCard.style.display='none';
     moveStrengthToProgress(); moveRecentRecords(); renderProgressV3();
   }
 
