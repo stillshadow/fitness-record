@@ -1,3 +1,5 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -136,19 +138,157 @@ function userText(mode, payload) {
   return "请分析这个动作最近的训练表现。下面是程序整理好的 JSON 数据：\n" + JSON.stringify(payload || {});
 }
 
+function supabaseKeys() {
+  const url = Deno.env.get("SUPABASE_URL") || "";
+  let publishable = "";
+  let secret = "";
+  try {
+    publishable = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") || "{}")["default"] || "";
+  } catch {}
+  try {
+    secret = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}")["default"] || "";
+  } catch {}
+  publishable = publishable || Deno.env.get("SUPABASE_ANON_KEY") || "";
+  secret = secret || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  return { url, publishable, secret };
+}
+
+async function authContext(req) {
+  const { url, publishable, secret } = supabaseKeys();
+  if (!url || !publishable || !secret) throw new Error("Supabase server keys are unavailable");
+
+  const authorization = req.headers.get("Authorization") || "";
+  const userClient = createClient(url, publishable, {
+    global: { headers: { Authorization: authorization } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+  const { data, error } = await userClient.auth.getUser();
+  if (error || !data?.user) throw new Error("Supabase 登录已失效，请重新登录");
+
+  const admin = createClient(url, secret, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+  return { user: data.user, admin };
+}
+
+async function vaultKey(admin, userId) {
+  const { data, error } = await admin.rpc("get_ai_provider_secret", {
+    p_user_id: userId,
+    p_provider: "deepseek"
+  });
+  if (error) {
+    const envKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
+    if (envKey) return { key: envKey, source: "env_secret" };
+    throw new Error("AI 密钥存储尚未初始化，请先部署最新 Supabase migration");
+  }
+  if (typeof data === "string" && data.trim()) return { key: data.trim(), source: "user_vault" };
+  const envKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
+  return envKey ? { key: envKey, source: "env_secret" } : { key: "", source: "none" };
+}
+
+async function validateDeepSeekKey(apiKey) {
+  const response = await fetch("https://api.deepseek.com/models", {
+    method: "GET",
+    headers: { "Authorization": "Bearer " + apiKey }
+  });
+  const raw = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = raw?.error?.message || raw?.message || ("DeepSeek HTTP " + response.status);
+    throw new Error("DeepSeek Key 验证失败：" + message);
+  }
+  const models = Array.isArray(raw?.data) ? raw.data.map(x => x?.id).filter(Boolean) : [];
+  return { models, flashAvailable: models.includes("deepseek-flash") };
+}
+
 Deno.serve(async req => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
 
   try {
-    const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
-    if (!apiKey) return json({ ok: false, error: "服务器尚未配置 DEEPSEEK_API_KEY" }, 503);
-
+    const { user, admin } = await authContext(req);
     const body = await req.json();
     const mode = String(body?.mode || "");
-    if (mode === "healthcheck") {
-      return json({ ok: true, mode, data: { provider: "DeepSeek", model: "deepseek-flash", configured: true } });
+
+    if (mode === "config_status") {
+      const stored = await vaultKey(admin, user.id);
+      return json({
+        ok: true,
+        mode,
+        data: {
+          provider: "DeepSeek",
+          model: "deepseek-flash",
+          configured: !!stored.key,
+          source: stored.source
+        }
+      });
     }
+
+    if (mode === "save_api_key") {
+      const apiKey = String(body?.api_key || "").trim();
+      if (apiKey.length < 8) return json({ ok: false, error: "请填写有效的 DeepSeek API Key" }, 400);
+
+      const check = await validateDeepSeekKey(apiKey);
+      const { error } = await admin.rpc("set_ai_provider_secret", {
+        p_user_id: user.id,
+        p_provider: "deepseek",
+        p_secret: apiKey
+      });
+      if (error) {
+        return json({ ok: false, error: "保存失败：请先部署最新 Supabase migration" }, 500);
+      }
+      return json({
+        ok: true,
+        mode,
+        data: {
+          provider: "DeepSeek",
+          model: "deepseek-flash",
+          configured: true,
+          source: "user_vault",
+          flash_available: check.flashAvailable
+        }
+      });
+    }
+
+    if (mode === "delete_api_key") {
+      const { error } = await admin.rpc("delete_ai_provider_secret", {
+        p_user_id: user.id,
+        p_provider: "deepseek"
+      });
+      if (error) return json({ ok: false, error: "删除失败：AI 密钥存储尚未初始化" }, 500);
+      const fallback = Deno.env.get("DEEPSEEK_API_KEY") || "";
+      return json({
+        ok: true,
+        mode,
+        data: {
+          provider: "DeepSeek",
+          model: "deepseek-flash",
+          configured: !!fallback,
+          source: fallback ? "env_secret" : "none"
+        }
+      });
+    }
+
+    const stored = await vaultKey(admin, user.id);
+    const apiKey = stored.key;
+    if (!apiKey) {
+      return json({ ok: false, error: "还没有配置 DeepSeek API Key，请先到“目标与数据 → AI 服务”填写" }, 503);
+    }
+
+    if (mode === "healthcheck") {
+      const check = await validateDeepSeekKey(apiKey);
+      return json({
+        ok: true,
+        mode,
+        data: {
+          provider: "DeepSeek",
+          model: "deepseek-flash",
+          configured: true,
+          source: stored.source,
+          flash_available: check.flashAvailable
+        }
+      });
+    }
+
     if (!["food_estimate", "today", "weekly", "exercise"].includes(mode)) {
       return json({ ok: false, error: "不支持的 AI 分析模式" }, 400);
     }
