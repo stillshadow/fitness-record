@@ -19,6 +19,8 @@
     .v3-avatar-stage:after{content:"";position:absolute;bottom:14%;width:180px;height:30px;border-radius:50%;background:rgba(0,0,0,.56);filter:blur(18px);animation:v3Shadow 4.4s ease-in-out infinite;z-index:-1}
     .v3-avatar-orbit{position:absolute;width:290px;height:290px;border:1px solid rgba(154,174,255,.055);border-radius:50%;animation:v3Orbit 18s linear infinite;z-index:-1}.v3-avatar-orbit:before,.v3-avatar-orbit:after{content:"";position:absolute;width:4px;height:4px;background:#9badff;border-radius:1px;box-shadow:0 0 14px rgba(155,173,255,.8)}.v3-avatar-orbit:before{top:22px;left:55px}.v3-avatar-orbit:after{right:24px;bottom:70px;opacity:.5}
     .v3-avatar{height:min(42vh,390px);max-height:390px;width:auto;max-width:78vw;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 18px 28px rgba(0,0,0,.28));animation:v3Float 4.4s ease-in-out infinite;transform:translate3d(var(--px,0),var(--py,0),0);transition:transform .22s ease-out;will-change:transform}
+    .v3-today-strip{margin:-5px 2px 10px;text-align:center;color:var(--v3-muted);font-size:11px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .v3-today-strip b{color:#dbe2f2;font-weight:720}.v3-today-strip .done{color:#aab9ff}
     .v3-action-stack{display:grid;gap:10px;margin-top:-6px;position:relative;z-index:2}
     .v3-start{width:100%;border:0;border-radius:18px;padding:17px 18px;background:linear-gradient(135deg,#b9c5ff,#8fa4ff);color:#080d17;display:flex;align-items:center;justify-content:space-between;text-align:left;box-shadow:0 12px 38px rgba(104,130,255,.16)}
     .v3-start strong{font-size:17px}.v3-start small{display:block;font-size:11px;opacity:.64;margin-top:2px}.v3-start .v3-arrow{font-size:24px;font-weight:400}
@@ -33,6 +35,9 @@
     body.ui-v3 #page-today #homeStartTrainingBtn,body.ui-v3 #page-today #homeAddFoodBtn,body.ui-v3 #page-today #planHint,body.ui-v3 #page-today #clearLoadedPlanBtn{display:none!important}
     body.ui-v3 #page-training .card:has(#strengthList){display:none!important}
     body.ui-v3 #page-training #planList [data-load-plan]{display:none!important}
+    body.ui-v3 #page-today .summary-item:has(#todayCardio),body.ui-v3 #page-progress .metric:has(#cardioWeek),body.ui-v3 #page-settings div:has(>label[for="setCardio"]){display:none!important}
+    body.ui-v3 #page-today .summary:has(#todayCardio){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    body.ui-v3 #todayTrainingList .item-actions{display:none!important}
     .v3-settings-title{font-size:25px;font-weight:790;margin:28px 2px 5px}.v3-settings-sub{color:var(--v3-muted);font-size:12px;margin:0 2px 20px}
     .v3-settings-list{display:grid;gap:9px}.v3-setting-row{width:100%;border:1px solid var(--v3-line);background:linear-gradient(180deg,#10151d,#0d1117);color:var(--v3-text);border-radius:17px;padding:15px 16px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:11px;text-align:left}.v3-setting-icon{width:38px;height:38px;border-radius:12px;background:#171e2a;display:grid;place-items:center;color:#aab9ff}.v3-setting-icon svg{width:18px;height:18px}.v3-setting-copy b{display:block;font-size:14px}.v3-setting-copy small{display:block;color:var(--v3-muted);font-size:10px;margin-top:2px}.v3-setting-chevron{font-size:21px;color:#586271}
     .v3-progress-card{grid-column:span 12;background:linear-gradient(180deg,rgba(16,21,29,.98),rgba(11,15,21,.98));border:1px solid var(--v3-line);border-radius:18px;padding:16px}.v3-progress-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:15px}.v3-progress-head h2{font-size:14px;margin:0}.v3-progress-head span{font-size:10px;color:var(--v3-muted)}
@@ -97,6 +102,7 @@
     home.innerHTML=`
       <div class="v3-top"><div class="v3-today">今天<b>${prettyToday()}</b></div><button class="v3-icon-btn" id="v3SettingsBtn" aria-label="设置">${icon('gear')}</button></div>
       <div class="v3-avatar-stage" id="v3AvatarStage"><div class="v3-avatar-orbit"></div><img class="v3-avatar" id="v3Avatar" src="${AVATAR}" alt="我的像素形象"></div>
+      <div class="v3-today-strip" id="v3TodayStrip"></div>
       <div class="v3-action-stack">
         <button class="v3-start" id="v3StartTraining"><span><strong id="v3StartText">记录训练</strong><small id="v3StartSub">训练结束后一次录完整</small></span><span class="v3-arrow">›</span></button>
         <div class="v3-grid">
@@ -181,7 +187,7 @@
     const weights=days.filter(d=>d.weight!=null).map(d=>({date:d.date,value:+d.weight}));
     const last7=weights.slice(-7).map(x=>x.value),prev7=weights.slice(-14,-7).map(x=>x.value),a7=avg(last7),p7=avg(prev7),delta=a7!=null&&p7!=null?a7-p7:null;
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-29);cutoff.setHours(0,0,0,0);
-    const recent30=days.filter(d=>new Date(d.date+'T00:00:00')>=cutoff),trainingDays=recent30.filter(d=>(d.training||[]).length||(+d.cardio||0)>0).length;
+    const recent30=days.filter(d=>new Date(d.date+'T00:00:00')>=cutoff),trainingDays=recent30.filter(d=>(d.training||[]).length>0).length;
     const diet=days.filter(d=>(d.foods||[]).length).slice(-7),macro=diet.map(foodTotals);
     const macroAvg={c:avg(macro.map(x=>x.c))||0,p:avg(macro.map(x=>x.p))||0,f:avg(macro.map(x=>x.f))||0};
     return {db,weights:weights.slice(-30),latest:weights.at(-1)?.value??null,a7,p7,delta,trainingDays,dietCount:diet.length,macroAvg};
@@ -218,6 +224,8 @@
     const text=$('v3StartText'),sub=$('v3StartSub');
     if(text) text.textContent='记录训练';
     if(sub) sub.textContent=rows.length?`今天已记录 ${exerciseCount} 个动作 · ${rows.length} 组`:'训练结束后一次录完整';
+    const m=foodTotals(day),target=db.settings||{},strip=$('v3TodayStrip');
+    if(strip) strip.innerHTML=`C <b>${Math.round(m.c)}/${+target.c||0}</b> · P <b>${Math.round(m.p)}/${+target.p||0}</b> · F <b>${Math.round(m.f)}/${+target.f||0}</b> · <span class="${rows.length?'done':''}">${rows.length?'训练已记录':'训练未记录'}</span>`;
   }
 
   function wire(){
