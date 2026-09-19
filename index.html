@@ -187,7 +187,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-
         <div class="toolbar"><button class="btn" id="saveSettingsBtn">保存方案</button></div>
       </div>
 
-      <div class="card s6">
+      <div class="card s6" id="cloudSyncCard">
         <div class="section"><h2>云同步</h2><span class="meta" id="cloudUserText">未登录</span></div>
         <div id="cloudStatus" class="callout">未配置 Supabase 时也可以完整使用本地记录。</div>
         <div class="field-grid" style="margin-top:10px">
@@ -948,7 +948,7 @@ function setOtpUI(show){
 }
 function updateUser(extra=""){
   if(session){
-    $c("cloudUserText").textContent=session.user?.is_anonymous?"本机 AI 身份":(session.user?.email||"AI 后端已连接");
+    $c("cloudUserText").textContent=session.user?.email||"本机 AI 身份";
     setOtpUI(false);
     status(extra||"AI 后端已连接；训练、饮食和体重只保存在本机。","good");
     window.dispatchEvent(new CustomEvent("fitness:cloud-ready"));
