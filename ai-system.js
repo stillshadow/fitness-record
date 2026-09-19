@@ -336,7 +336,7 @@
       .ai-home-provider{font-size:9px;color:#8590a3;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 7px}
       .ai-home-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
       .ai-home-action,.ai-food-shortcut button{border:1px solid rgba(155,173,255,.14);background:#151b26;color:#dce3f5;border-radius:14px;padding:11px 12px;text-align:left}
-      .ai-home-action{min-height:70px;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+      .ai-home-action{min-height:54px;display:flex;flex-direction:column;justify-content:center;gap:5px}
       .ai-home-action strong{font-size:12px}.ai-home-action small{display:block;color:#7f899a;font-size:9px;line-height:1.35}
       .ai-home-action.has-cache{border-color:rgba(126,215,171,.2);background:linear-gradient(180deg,rgba(19,31,31,.8),#151b26)}
       .ai-home-action.stale{border-color:rgba(240,186,94,.22)}.ai-home-action.stale small{color:#d5ad68}
@@ -589,21 +589,22 @@
     const todayBtn=$("aiToday"),weeklyBtn=$("aiWeekly");
     if(!todayBtn||!weeklyBtn)return;
     for(const [mode,btn] of [["today",todayBtn],["weekly",weeklyBtn]]){
-      const status=btn.querySelector("small");
       const state=currentCacheState(mode,null);
       btn.classList.toggle("has-cache",state.valid);
       btn.classList.toggle("stale",state.stale);
+      let status=btn.querySelector("small");
       if(state.valid){
+        if(!status){status=document.createElement("small");btn.appendChild(status)}
         status.textContent=state.stale?"已生成 · 数据有更新":"今日已生成 · "+formatGeneratedTime(state.entry.generatedAt);
-      }else{
-        status.textContent=mode==="today"?"饮食 + 训练 + 体重":"趋势 + 执行 + 建议";
+      }else if(status){
+        status.remove();
       }
     }
   }
   function injectHomeCard(){
     const stack=$("v3Home")?.querySelector(".v3-action-stack");if(!stack||$("aiHomeCard"))return;
     const card=document.createElement("div");card.className="ai-home-card";card.id="aiHomeCard";
-    card.innerHTML='<div class="ai-home-head"><div class="ai-home-head-copy"><b>✦ AI 分析</b><small>当天报告生成一次，之后直接查看缓存</small></div><span class="ai-home-provider">DeepSeek</span></div><div class="ai-home-actions"><button type="button" class="ai-home-action" id="aiToday"><strong>今日简报</strong><small>饮食 + 训练 + 体重</small></button><button type="button" class="ai-home-action" id="aiWeekly"><strong>最近 7 天</strong><small>趋势 + 执行 + 建议</small></button></div>';
+    card.innerHTML='<div class="ai-home-head"><div class="ai-home-head-copy"><b>✦ AI 分析</b><small>当天报告生成一次，之后直接查看缓存</small></div><span class="ai-home-provider">DeepSeek</span></div><div class="ai-home-actions"><button type="button" class="ai-home-action" id="aiToday"><strong>今日简报</strong></button><button type="button" class="ai-home-action" id="aiWeekly"><strong>最近 7 天</strong></button></div>';
     stack.insertAdjacentElement("afterend",card);
     $("aiToday").onclick=()=>runInsight("today");
     $("aiWeekly").onclick=()=>runInsight("weekly");

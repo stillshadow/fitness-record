@@ -23,10 +23,10 @@
     .v3-today-strip{margin:2px 2px 12px;text-align:center;color:var(--v3-muted);font-size:11px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .v3-today-strip b{color:#dbe2f2;font-weight:720}.v3-today-strip .done{color:#aab9ff}
     .v3-action-stack{display:grid;gap:10px;margin-top:0;position:relative;z-index:2}
-    .v3-start{width:100%;border:0;border-radius:18px;padding:17px 18px;background:linear-gradient(135deg,#b9c5ff,#8fa4ff);color:#080d17;display:flex;align-items:center;justify-content:space-between;text-align:left;box-shadow:0 12px 38px rgba(104,130,255,.16)}
+    .v3-start{width:100%;border:0;border-radius:18px;padding:14px 18px;background:linear-gradient(135deg,#b9c5ff,#8fa4ff);color:#080d17;display:flex;align-items:center;justify-content:space-between;text-align:left;box-shadow:0 12px 38px rgba(104,130,255,.16)}
     .v3-start strong{font-size:17px}.v3-start small{display:block;font-size:11px;opacity:.64;margin-top:2px}.v3-start .v3-arrow{font-size:24px;font-weight:400}
     .v3-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-    .v3-action{min-height:82px;border:1px solid var(--v3-line);border-radius:16px;background:linear-gradient(180deg,rgba(19,24,32,.92),rgba(13,17,23,.94));color:var(--v3-text);padding:13px 14px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;transition:transform .12s ease,border-color .16s ease,background .16s ease}
+    .v3-action{min-height:60px;border:1px solid var(--v3-line);border-radius:16px;background:linear-gradient(180deg,rgba(19,24,32,.92),rgba(13,17,23,.94));color:var(--v3-text);padding:12px 14px;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:8px;transition:transform .12s ease,border-color .16s ease,background .16s ease}
     .v3-action:active,.v3-start:active{transform:scale(.985)}.v3-action:hover{border-color:rgba(155,173,255,.22);background:#121823}
     .v3-action svg{width:18px;height:18px;color:#9daceb}.v3-action b{font-size:13px}.v3-action small{font-size:10px;color:var(--v3-muted);margin-top:1px}
     .v3-pagebar{display:flex;align-items:center;gap:11px;padding:calc(16px + env(safe-area-inset-top)) 0 16px;position:sticky;top:0;z-index:12;background:linear-gradient(180deg,#07090d 72%,rgba(7,9,13,0));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -50,7 +50,7 @@
     #v3Splash{position:fixed;inset:0;z-index:1000;background:#07090d;display:grid;place-items:center;opacity:1;transition:opacity .38s ease;pointer-events:auto}#v3Splash.hide{opacity:0;pointer-events:none}.v3-splash-inner{text-align:center;transform:translateY(-4vh)}.v3-splash-kicker{font-size:10px;letter-spacing:.34em;color:#687489;margin-bottom:12px;text-transform:uppercase}.v3-splash-name{font-size:25px;font-weight:800;letter-spacing:.04em;color:#f2f5fb;animation:v3SplashName .7s ease-out both}.v3-splash-line{height:2px;width:34px;border-radius:99px;background:#9badff;margin:16px auto 0;animation:v3SplashLine .8s .12s ease both}
     @keyframes v3Float{0%,100%{translate:0 0}50%{translate:0 -7px}}@keyframes v3Glow{0%,100%{transform:scale(.96);opacity:.72}50%{transform:scale(1.05);opacity:1}}@keyframes v3Shadow{0%,100%{transform:scaleX(.92);opacity:.62}50%{transform:scaleX(.78);opacity:.42}}@keyframes v3Orbit{to{transform:rotate(360deg)}}@keyframes v3PageIn{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes v3SplashName{from{opacity:0;transform:translateY(7px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}@keyframes v3SplashLine{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
     @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-avatar-stage{height:280px;min-height:0}.v3-avatar{height:250px;max-height:250px}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
-    @media(max-width:430px){#v3Home{padding-top:calc(38px + env(safe-area-inset-top));overflow-anchor:none}.v3-avatar-stage{height:260px;min-height:0;padding:12px 0 6px}.v3-avatar{height:230px;max-height:230px;max-width:70vw}.v3-grid{gap:8px}.v3-action{min-height:78px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}}
+    @media(max-width:430px){#v3Home{padding-top:calc(38px + env(safe-area-inset-top));overflow-anchor:none}.v3-avatar-stage{height:260px;min-height:0;padding:12px 0 6px}.v3-avatar{height:230px;max-height:230px;max-width:70vw}.v3-grid{gap:8px}.v3-action{min-height:58px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}}
     /* Calm UI: keep the interface static and predictable. */
     body.ui-v3 *,body.ui-v3 *::before,body.ui-v3 *::after,#v3Splash *{
       animation:none!important;
@@ -106,12 +106,12 @@
       <div class="v3-avatar-stage" id="v3AvatarStage"><div class="v3-avatar-orbit"></div><img class="v3-avatar" id="v3Avatar" src="${AVATAR}" alt="我的像素形象"></div>
       <div class="v3-today-strip" id="v3TodayStrip"></div>
       <div class="v3-action-stack">
-        <button class="v3-start" id="v3StartTraining"><span><strong id="v3StartText">记录训练</strong><small id="v3StartSub">训练结束后一次录完整</small></span><span class="v3-arrow">›</span></button>
+        <button class="v3-start" id="v3StartTraining"><span><strong id="v3StartText">记录训练</strong></span><span class="v3-arrow">›</span></button>
         <div class="v3-grid">
-          <button class="v3-action" id="v3Food">${icon('food')}<span><b>记录食物</b><small>添加今天吃的东西</small></span></button>
-          <button class="v3-action" id="v3Weight">${icon('weight')}<span><b>记录晨重</b><small id="v3WeightSub">今天还没记录</small></span></button>
-          <button class="v3-action" id="v3Records">${icon('records')}<span><b>我的记录</b><small>按日期查看训练与饮食</small></span></button>
-          <button class="v3-action" id="v3Progress">${icon('progress')}<span><b>我的进度</b><small>体重、力量与执行趋势</small></span></button>
+          <button class="v3-action" id="v3Food">${icon('food')}<span><b>记录食物</b></span></button>
+          <button class="v3-action" id="v3Weight">${icon('weight')}<span><b>记录晨重</b></span></button>
+          <button class="v3-action" id="v3Records">${icon('records')}<span><b>我的记录</b></span></button>
+          <button class="v3-action" id="v3Progress">${icon('progress')}<span><b>我的进度</b></span></button>
         </div>
       </div>`;
     app.insertBefore(home,app.firstChild);
