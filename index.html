@@ -465,6 +465,10 @@ function ensureDay(date=activeDate){
   return d;
 }
 function calcMacro(food,grams){
+  if(food?.totalMacros){
+    const C=+food.totalC||0,P=+food.totalP||0,F=+food.totalF||0;
+    return {C,P,F,K:C*4+P*4+F*9};
+  }
   const m=(+grams||0)/100,C=(+food.c||0)*m,P=(+food.p||0)*m,F=(+food.f||0)*m;
   return {C,P,F,K:C*4+P*4+F*9};
 }
