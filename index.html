@@ -1013,6 +1013,28 @@ async function smartSync(){
 function schedule(){
   if(!session||!cfg().autoSync)return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>smartSync(false),1300);
 }
+
+window.fitnessCloud={
+  isReady:()=>!!(supabase&&session),
+  user:()=>session?.user?.email||null,
+  invoke:async(name,body)=>{
+    if(!supabase)throw new Error("Supabase 尚未配置");
+    if(!session)throw new Error("请先在“目标与数据”里登录 Supabase");
+    const {data,error}=await supabase.functions.invoke(name,{body});
+    if(error){
+      let message=error.message||"云函数调用失败";
+      try{
+        if(error.context?.clone){
+          const detail=await error.context.clone().json();
+          if(detail?.error)message=detail.error;
+        }
+      }catch{}
+      throw new Error(message);
+    }
+    return data;
+  }
+};
+
 window.addEventListener("fitness:changed",schedule);
 window.addEventListener("fitness:sync-needed",schedule);
 $c("cloudSaveConfig").addEventListener("click",saveConfig);
