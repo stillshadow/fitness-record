@@ -425,6 +425,11 @@
   }
   function closeFoodAI(){
     $("aiFoodModal")?.classList.remove("open");
+    if(foodAIOrigin==="manual"){
+      window.openFoodModal?.();
+      if($("mealSlot"))$("mealSlot").value=pendingSlot;
+      if($("foodTime"))$("foodTime").value=pendingTime||localTimeAI();
+    }
   }
   function openManualFoodFromAI(){
     pendingSlot=$("aiFoodSlot")?.value||pendingSlot;
