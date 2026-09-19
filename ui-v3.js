@@ -38,7 +38,7 @@
     body.ui-v3 #page-training #planList [data-load-plan]{display:none!important}
     body.ui-v3 #page-today .summary-item:has(#todayCardio),body.ui-v3 #page-progress .metric:has(#cardioWeek),body.ui-v3 #page-settings div:has(>label[for="setCardio"]){display:none!important}
     body.ui-v3 #page-today .summary:has(#todayCardio){grid-template-columns:repeat(2,minmax(0,1fr))!important}
-    body.ui-v3 #page-settings .card:has(#cloudUserText){display:none!important}
+    body.ui-v3 #cloudSyncCard{display:none!important}
     body.ui-v3 #todayTrainingList .item-actions{display:none!important}
     .v3-settings-title{font-size:25px;font-weight:790;margin:28px 2px 5px}.v3-settings-sub{color:var(--v3-muted);font-size:12px;margin:0 2px 20px}
     .v3-settings-list{display:grid;gap:9px}.v3-setting-row{width:100%;border:1px solid var(--v3-line);background:linear-gradient(180deg,#10151d,#0d1117);color:var(--v3-text);border-radius:17px;padding:15px 16px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:11px;text-align:left}.v3-setting-icon{width:38px;height:38px;border-radius:12px;background:#171e2a;display:grid;place-items:center;color:#aab9ff}.v3-setting-icon svg{width:18px;height:18px}.v3-setting-copy b{display:block;font-size:14px}.v3-setting-copy small{display:block;color:var(--v3-muted);font-size:10px;margin-top:2px}.v3-setting-chevron{font-size:21px;color:#586271}
