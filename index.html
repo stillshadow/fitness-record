@@ -465,6 +465,10 @@ function ensureDay(date=activeDate){
   return d;
 }
 function calcMacro(food,grams){
+  if(food?.totalMacros){
+    const C=+food.totalC||0,P=+food.totalP||0,F=+food.totalF||0;
+    return {C,P,F,K:C*4+P*4+F*9};
+  }
   const m=(+grams||0)/100,C=(+food.c||0)*m,P=(+food.p||0)*m,F=(+food.f||0)*m;
   return {C,P,F,K:C*4+P*4+F*9};
 }
@@ -886,6 +890,16 @@ function replaceDBInternal(incoming,refresh=true){
 }
 window.fitnessApp={
   getDB:()=>clone(DB),
+  getActiveDate:()=>activeDate,
+  addFoodEntry:(entry,date=activeDate)=>{
+    const day=ensureDay(date);
+    const saved={...clone(entry),id:entry?.id||uid("fd")};
+    day.foods.push(saved);
+    persist();
+    renderToday();
+    renderFoodPage();
+    return clone(saved);
+  },
   replaceDB:(incoming)=>replaceDBInternal(incoming,true),
   // Workout set logging uses this path so saving a set does not rebuild every page.
   replaceDBQuiet:(incoming)=>replaceDBInternal(incoming,false),
