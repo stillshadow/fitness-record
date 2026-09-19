@@ -13,7 +13,7 @@ window.CHI_BIAN_YING_CLOUD = {
   if (app) app.style.visibility = "hidden";
   if (!document.querySelector('script[data-ui-v3]')) {
     const s = document.createElement("script");
-    s.src = "ui-v3.js?v=58";
+    s.src = "ui-v3.js?v=60";
     s.async = false;
     s.dataset.uiV3 = "1";
     document.head.appendChild(s);
