@@ -279,6 +279,24 @@
     card.innerHTML='<div class="ai-home-head"><b>✦ AI 分析</b><small>DeepSeek</small></div><div class="ai-home-actions"><button type="button" id="aiToday">今日简报<br><small>饮食 + 训练 + 体重</small></button><button type="button" id="aiWeekly">最近7天<br><small>趋势 + 执行 + 建议</small></button></div>';
     stack.insertAdjacentElement("afterend",card);$("aiToday").onclick=()=>runInsight("today");$("aiWeekly").onclick=()=>runInsight("weekly");
   }
+  function injectSettingsCard(){
+    const grid=$("page-settings")?.querySelector(".grid");if(!grid||$("aiSettingsCard"))return;
+    const card=document.createElement("div");card.className="card s12";card.id="aiSettingsCard";
+    card.innerHTML='<div class="section"><h2>AI 服务</h2><span class="meta" id="aiSettingsStatus">DeepSeek Flash · 未测试</span></div>'+
+      '<div class="meta" style="margin-bottom:10px">AI Key 只保存在 Supabase Edge Function Secret，不会写进网页或 GitHub。</div>'+
+      '<button type="button" class="btn soft" id="aiTestConnection">测试 AI 连接</button>';
+    grid.appendChild(card);
+    $("aiTestConnection").onclick=async()=>{
+      const btn=$("aiTestConnection"),status=$("aiSettingsStatus");btn.disabled=true;btn.textContent="测试中…";
+      try{
+        const result=await callAI("healthcheck",{},null);
+        status.textContent=(result.provider||"DeepSeek")+" "+(result.model||"")+" · 已连接";toast("AI 后端连接正常");
+      }catch(err){
+        status.textContent="未连接 · "+(err.message||"请检查配置");toast(err.message||"AI 连接失败");
+      }finally{btn.disabled=false;btn.textContent="测试 AI 连接"}
+    };
+  }
+
   function injectExerciseButtons(){
     const box=$("strengthList");if(!box)return;
     const db=getDB();
@@ -296,7 +314,7 @@
   }
   function setup(){
     if(!window.fitnessApp?.getDB)return setTimeout(setup,80);
-    ensureStyles();ensureModals();injectFoodShortcut();injectHomeCard();injectExerciseButtons();setupObservers();
+    ensureStyles();ensureModals();injectFoodShortcut();injectHomeCard();injectSettingsCard();injectExerciseButtons();setupObservers();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(setup,0),{once:true});else setTimeout(setup,0);
 })();
