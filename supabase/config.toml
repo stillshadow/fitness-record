@@ -1,2 +1,5 @@
 [functions.fitness-ai]
 verify_jwt = true
+
+[auth]
+enable_anonymous_sign_ins = true
