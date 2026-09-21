@@ -112,7 +112,7 @@
         previous_macros:macroAvg(previous),
         recent_weight_average:weightAvg(recent),
         previous_weight_average:weightAvg(previous),
-        recent_training_days:recent.filter(x=>x.training.length).length,
+        recent_training_days:recent.filter(x=>x.training.length||x.cardio_minutes>0).length,
         previous_training_days:previous.filter(x=>x.training.length).length
       }
     };
