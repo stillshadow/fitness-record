@@ -189,7 +189,7 @@
     const weights=days.filter(d=>d.weight!=null).map(d=>({date:d.date,value:+d.weight}));
     const last7=weights.slice(-7).map(x=>x.value),prev7=weights.slice(-14,-7).map(x=>x.value),a7=avg(last7),p7=avg(prev7),delta=a7!=null&&p7!=null?a7-p7:null;
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-29);cutoff.setHours(0,0,0,0);
-    const recent30=days.filter(d=>new Date(d.date+'T00:00:00')>=cutoff),trainingDays=recent30.filter(d=>(d.training||[]).length>0).length;
+    const recent30=days.filter(d=>new Date(d.date+'T00:00:00')>=cutoff),trainingDays=recent30.filter(d=>(d.training||[]).length>0||(+d.cardio||0)>0).length;
     const diet=days.filter(d=>(d.foods||[]).length).slice(-7),macro=diet.map(foodTotals);
     const macroAvg={c:avg(macro.map(x=>x.c))||0,p:avg(macro.map(x=>x.p))||0,f:avg(macro.map(x=>x.f))||0};
     return {db,weights:weights.slice(-30),latest:weights.at(-1)?.value??null,a7,p7,delta,trainingDays,dietCount:diet.length,macroAvg};
@@ -222,12 +222,12 @@
   function refreshHome(){
     const db=getDB(),day=db.days?.[today()],weight=day?.weight;
     const ws=$('v3WeightSub'); if(ws) ws.textContent=weight!=null?`今天 ${Number(weight).toFixed(2).replace(/0+$/,'').replace(/\.$/,'')} kg`:'今天还没记录';
-    const rows=day?.training||[], exerciseCount=new Set(rows.map(x=>x.exerciseId||x.exerciseName)).size;
+    const rows=day?.training||[], exerciseCount=new Set(rows.map(x=>x.exerciseId||x.exerciseName)).size,hasTraining=rows.length>0||(+day?.cardio||0)>0;
     const text=$('v3StartText'),sub=$('v3StartSub');
     if(text) text.textContent='记录训练';
-    if(sub) sub.textContent=rows.length?`今天已记录 ${exerciseCount} 个动作 · ${rows.length} 组`:'训练结束后一次录完整';
+    if(sub) sub.textContent=hasTraining?`今天已记录 ${exerciseCount} 个动作${(+day?.cardio||0)>0?' · 有氧 '+(+day.cardio)+'min':''}`:'训练结束后一次录完整';
     const m=foodTotals(day),target=db.settings||{},strip=$('v3TodayStrip');
-    if(strip) strip.innerHTML=`C <b>${Math.round(m.c)}/${+target.c||0}</b> · P <b>${Math.round(m.p)}/${+target.p||0}</b> · F <b>${Math.round(m.f)}/${+target.f||0}</b> · <span class="${rows.length?'done':''}">${rows.length?'训练已记录':'训练未记录'}</span>`;
+    if(strip) strip.innerHTML=`C <b>${Math.round(m.c)}/${+target.c||0}</b> · P <b>${Math.round(m.p)}/${+target.p||0}</b> · F <b>${Math.round(m.f)}/${+target.f||0}</b> · <span class="${hasTraining?'done':''}">${hasTraining?'训练已记录':'训练未记录'}</span>`;
   }
 
   function wire(){

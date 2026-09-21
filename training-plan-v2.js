@@ -4,6 +4,7 @@
   const clone = x => JSON.parse(JSON.stringify(x));
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const PLAN_VERSION = 2;
+  const CARDIO_ID="__cardio__";
   let editingPlanId="",editingPlanRows=[];
 
   const DEFAULT_PLANS=[
@@ -29,7 +30,7 @@
 
   function ensureStyles(){
     if($("personalPlanStyle"))return;const style=document.createElement("style");style.id="personalPlanStyle";
-    style.textContent=`#page-training #planList [data-load-plan]{display:none!important}.template-plan-row{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}.template-plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.template-plan-fields{margin-top:9px}.template-plan-actions{display:flex;gap:5px;align-items:center}.template-plan-actions .btn{padding:6px 8px}`;document.head.appendChild(style);
+    style.textContent=`#page-training #planList [data-load-plan]{display:none!important}.template-plan-row{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}.template-plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.template-plan-fields{margin-top:9px}.template-plan-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.template-plan-actions .btn{padding:6px 9px;min-height:34px}.template-plan-order{font-size:10px;color:var(--muted);margin-bottom:2px}`;document.head.appendChild(style);
   }
 
   function decoratePlanCards(){
@@ -37,13 +38,13 @@
     box.querySelectorAll(".item").forEach(card=>{
       const edit=card.querySelector("[data-edit-plan]"),id=edit?.dataset.editPlan,plan=(db.plans||[]).find(x=>x.id===id);if(!plan)return;
       const load=card.querySelector("[data-load-plan]");if(load){load.style.display="none";load.disabled=true}
-      const sub=card.querySelector(".item-sub"),summary=`${(plan.exerciseIds||[]).length} 个动作`;if(sub&&sub.textContent!==summary)sub.textContent=summary;
+      const sub=card.querySelector(".item-sub"),summary=`${(plan.exerciseIds||[]).length} 项`;if(sub&&sub.textContent!==summary)sub.textContent=summary;
     });
   }
 
   function ensurePlanItemsModal(){
     if($("planItemsModal"))return;const modal=document.createElement("div");modal.className="modal";modal.id="planItemsModal";
-    modal.innerHTML=`<div class="modal-panel wide"><div class="section"><h2 id="planItemsTitle">编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div><label for="planItemsName">模板名称</label><input id="planItemsName"><div class="meta" style="margin:8px 0 10px">这里只定义常用起始方案。实际训练时可以自由调整。</div><div id="planItemsList" class="list"></div><div class="row" style="margin-top:12px;align-items:end"><div class="c8"><label for="planItemsAddSelect">添加动作</label><select id="planItemsAddSelect"></select></div><div class="c4"><button class="btn soft" id="planItemsAddBtn" style="width:100%">＋ 添加</button></div></div><div class="modal-actions"><button class="btn" id="savePlanItemsBtn">保存模板</button></div></div>`;
+    modal.innerHTML=`<div class="modal-panel wide"><div class="section"><h2 id="planItemsTitle">编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div><label for="planItemsName">模板名称</label><input id="planItemsName"><div class="meta" style="margin:8px 0 10px">这里只定义常用起始方案。实际训练时可以自由调整。</div><div id="planItemsList" class="list"></div><div class="row" style="margin-top:12px;align-items:end"><div class="c8"><label for="planItemsAddSelect">添加训练项目</label><select id="planItemsAddSelect"></select></div><div class="c4"><button class="btn soft" id="planItemsAddBtn" style="width:100%">＋ 添加</button></div></div><div class="modal-actions"><button class="btn" id="savePlanItemsBtn">保存模板</button></div></div>`;
     document.body.appendChild(modal);$("closePlanItemsModal").addEventListener("click",()=>modal.classList.remove("open"));modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});$("planItemsAddBtn").addEventListener("click",addPlanItem);$("savePlanItemsBtn").addEventListener("click",savePlanItems);$("planItemsList").addEventListener("click",handleRowAction);
   }
 
@@ -56,7 +57,11 @@
 
   function renderPlanItemsEditor(){
     const db=getDB(),box=$("planItemsList");if(!box)return;
-    box.innerHTML=editingPlanRows.length?editingPlanRows.map((row,i)=>{const ex=(db.exercises||[]).find(x=>x.id===row.id)||{name:"未知动作",group:"其他"};return `<div class="template-plan-row" data-plan-row="${i}"><div class="template-plan-head"><div><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")}</div></div><div class="template-plan-actions"><button type="button" class="btn ghost" data-move-plan="${i}" data-dir="-1" ${i===0?"disabled":""}>↑</button><button type="button" class="btn ghost" data-move-plan="${i}" data-dir="1" ${i===editingPlanRows.length-1?"disabled":""}>↓</button><button type="button" class="btn danger" data-remove-plan-item="${i}">删</button></div></div><div class="template-plan-fields"><label>计划</label><input data-plan-rx="${i}" value="${esc(row.rx)}" placeholder="例如 3 × 8–12"></div></div>`}).join(""):'<div class="empty">模板里还没有动作。</div>';
+    box.innerHTML=editingPlanRows.length?editingPlanRows.map((row,i)=>{
+      const ex=row.id===CARDIO_ID?{name:"有氧",group:"训练流程"}:((db.exercises||[]).find(x=>x.id===row.id)||{name:"未知动作",group:"其他"});
+      const placeholder=row.id===CARDIO_ID?"例如 25 min":"例如 3 × 8–12";
+      return `<div class="template-plan-row" data-plan-row="${i}"><div class="template-plan-head"><div><div class="template-plan-order">第 ${i+1} 项</div><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")}</div></div><div class="template-plan-actions"><button type="button" class="btn ghost" data-move-plan="${i}" data-dir="-1" ${i===0?"disabled":""}>↑ 上移</button><button type="button" class="btn ghost" data-move-plan="${i}" data-dir="1" ${i===editingPlanRows.length-1?"disabled":""}>↓ 下移</button><button type="button" class="btn danger" data-remove-plan-item="${i}">删除</button></div></div><div class="template-plan-fields"><label>${row.id===CARDIO_ID?"时长":"计划"}</label><input data-plan-rx="${i}" value="${esc(row.rx)}" placeholder="${placeholder}"></div></div>`;
+    }).join(""):'<div class="empty">模板里还没有动作。</div>';
     box.querySelectorAll("[data-plan-rx]").forEach(input=>input.addEventListener("input",()=>{const row=editingPlanRows[+input.dataset.planRx];if(row)row.rx=input.value}));refreshPlanAddSelect();
   }
 
@@ -66,8 +71,14 @@
   }
 
   function refreshPlanAddSelect(){
-    const select=$("planItemsAddSelect");if(!select)return;const db=getDB(),used=new Set(editingPlanRows.map(x=>x.id)),available=(db.exercises||[]).filter(x=>!used.has(x.id)).sort((a,b)=>String(a.group).localeCompare(String(b.group),"zh-CN")||String(a.name).localeCompare(String(b.name),"zh-CN"));
-    select.innerHTML=available.length?available.map(x=>`<option value="${esc(x.id)}">${esc(x.group||"其他")}｜${esc(x.name)}</option>`).join(""):'<option value="">没有可添加动作</option>';$("planItemsAddBtn").disabled=!available.length;
+    const select=$("planItemsAddSelect");if(!select)return;
+    const db=getDB(),used=new Set(editingPlanRows.map(x=>x.id));
+    const available=(db.exercises||[]).filter(x=>!used.has(x.id)).sort((a,b)=>String(a.group).localeCompare(String(b.group),"zh-CN")||String(a.name).localeCompare(String(b.name),"zh-CN"));
+    const opts=[];
+    if(!used.has(CARDIO_ID))opts.push(`<option value="${CARDIO_ID}">有氧｜训练流程</option>`);
+    opts.push(...available.map(x=>`<option value="${esc(x.id)}">${esc(x.group||"其他")}｜${esc(x.name)}</option>`));
+    select.innerHTML=opts.length?opts.join(""):'<option value="">没有可添加项目</option>';
+    $("planItemsAddBtn").disabled=!opts.length;
   }
   function addPlanItem(){const id=$("planItemsAddSelect")?.value;if(!id)return;editingPlanRows.push({id,rx:""});renderPlanItemsEditor()}
 

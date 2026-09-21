@@ -54,7 +54,9 @@
         const q=foodMacros(x);
         return {name:x.name||"食物",amount:+x.grams||0,unit:x.unit||"g",carbs:+q.C.toFixed(1),protein:+q.P.toFixed(1),fat:+q.F.toFixed(1)};
       }),
-      training:groupedTraining(day)
+      training:groupedTraining(day),
+      cardio_minutes:+day?.cardio||0,
+      training_sequence:Array.isArray(day?.trainingSequence)?day.trainingSequence:[]
     };
   }
   function recentWeightContext(db,endDate=today()){
@@ -110,7 +112,7 @@
         previous_macros:macroAvg(previous),
         recent_weight_average:weightAvg(recent),
         previous_weight_average:weightAvg(previous),
-        recent_training_days:recent.filter(x=>x.training.length).length,
+        recent_training_days:recent.filter(x=>x.training.length||x.cardio_minutes>0).length,
         previous_training_days:previous.filter(x=>x.training.length).length
       }
     };
