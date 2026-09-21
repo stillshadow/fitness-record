@@ -80,7 +80,7 @@
     select.innerHTML=opts.length?opts.join(""):'<option value="">没有可添加项目</option>';
     $("planItemsAddBtn").disabled=!opts.length;
   }
-  function addPlanItem(){const id=$("planItemsAddSelect")?.value;if(!id)return;editingPlanRows.push({id,rx:id===CARDIO_ID?"25 min":""});renderPlanItemsEditor()}
+  function addPlanItem(){const id=$("planItemsAddSelect")?.value;if(!id)return;editingPlanRows.push({id,rx:""});renderPlanItemsEditor()}
 
   function savePlanItems(){
     const name=$("planItemsName")?.value.trim()||"";if(!name)return toast("填写模板名称");if(!editingPlanRows.length)return toast("模板至少保留一个动作");
