@@ -18,11 +18,11 @@
   const load=(src,attr)=>{if(document.querySelector(`script[data-${attr}]`))return;const s=document.createElement('script');s.async=false;s.src=src;s.setAttribute(`data-${attr}`,'1');document.head.appendChild(s)};
   const boot=()=>{
     load('ui-v5.js?v=63','ui-v5');
-    load('ui-v3.js?v=64','ui-v3');
-    load('training-plan-v2.js?v=54','training-plan-v2');
+    load('ui-v3.js?v=65','ui-v3');
+    load('training-plan-v2.js?v=55','training-plan-v2');
     load('ui-v2.js?v=54','ui-v2');
-    load('training-batch.js?v=56','training-batch');
-    load('ai-system.js?v=9','ai-system');
+    load('training-batch.js?v=57','training-batch');
+    load('ai-system.js?v=10','ai-system');
     load('last-performance.js?v=54','last-performance');
     load('ui-final.js?v=64','ui-final');
     load('ui-keyboard.js?v=54','ui-keyboard');
