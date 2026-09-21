@@ -5,6 +5,7 @@
   const fmt = (n,d=1) => Number(n || 0).toFixed(d).replace(/\.0$/, "");
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const SYSTEM_VERSION = 20;
+  const CARDIO_ID="__cardio__";
 
   const LIBRARY = [
     {id:"bench",name:"杠铃卧推",group:"胸"},
@@ -230,6 +231,10 @@
     if(!plans.length){box.innerHTML='<div class="empty">还没有训练模板。</div>';return}
     plans.forEach(p=>{
       const lines=(p.exerciseIds||[]).map(id=>{
+        if(id===CARDIO_ID){
+          const rx=p.prescriptions?.[id]||"";
+          return rx?`有氧 · ${esc(rx)}`:"有氧";
+        }
         const ex=db.exercises.find(e=>e.id===id);if(!ex)return "";
         const rx=p.prescriptions?.[id];
         return rx?`${esc(ex.name)} · ${esc(rx)}`:esc(ex.name);
@@ -428,16 +433,48 @@
 
   function renderTodayTraining(day){
     const box=$("todayTrainingList");if(!box)return;
-    const db=getDB(), groups=[];
-    for(const t of day.training||[]){
-      let g=groups.find(x=>(x.exerciseId||x.name)===(t.exerciseId||t.exerciseName));
-      if(!g){const ex=exerciseForEntry(t,db);g={exerciseId:t.exerciseId,name:ex.name,items:[]};groups.push(g)}
+    const db=getDB(),groups=[];
+    for(const [ri,t] of (day.training||[]).entries()){
+      const key=t.exerciseId||t.exerciseName||("legacy_"+ri);
+      let g=groups.find(x=>x.key===key);
+      if(!g){
+        const ex=exerciseForEntry(t,db);
+        g={key,exerciseId:t.exerciseId,name:ex.name,items:[],orderIndex:Number.isFinite(+t.orderIndex)?+t.orderIndex:groups.length};
+        groups.push(g);
+      }
       g.items.push(t);
+      if(Number.isFinite(+t.orderIndex))g.orderIndex=Math.min(g.orderIndex,+t.orderIndex);
     }
+    groups.forEach(g=>g.items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)));
+
+    const byId=new Map(groups.map(g=>[g.exerciseId||g.key,g]));
+    const ordered=[],used=new Set();
+    const sequence=Array.isArray(day.trainingSequence)?day.trainingSequence:[];
+    sequence.forEach(step=>{
+      if(step?.type==="cardio"){
+        if((+day.cardio||0)>0&&!used.has(CARDIO_ID)){ordered.push({type:"cardio"});used.add(CARDIO_ID)}
+        return;
+      }
+      const id=step?.exerciseId||step?.id;
+      const g=byId.get(id);
+      if(g&&!used.has(id)){ordered.push({type:"exercise",group:g});used.add(id)}
+    });
+    groups.sort((a,b)=>a.orderIndex-b.orderIndex).forEach(g=>{
+      const id=g.exerciseId||g.key;
+      if(!used.has(id)){ordered.push({type:"exercise",group:g});used.add(id)}
+    });
+    if((+day.cardio||0)>0&&!used.has(CARDIO_ID))ordered.push({type:"cardio"});
+
     box.innerHTML="";
     const recordedIds=new Set(groups.map(x=>x.exerciseId));
-    groups.forEach(g=>{
-      const ex=db.exercises.find(e=>e.id===g.exerciseId)||{};
+    ordered.forEach(step=>{
+      if(step.type==="cardio"){
+        const d=document.createElement("div");d.className="item";
+        d.innerHTML=`<div class="item-main"><div class="item-title">有氧</div><div class="item-sub">${fmt(day.cardio,0)} min</div></div>`;
+        box.appendChild(d);
+        return;
+      }
+      const g=step.group,ex=db.exercises.find(e=>e.id===g.exerciseId)||{};
       const factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name);
       const lines=g.items.map(x=>{
         let load;
@@ -451,7 +488,12 @@
     });
 
     const plan=planForDay(day,db);
-    (day.planExerciseIds||[]).filter(id=>!recordedIds.has(id)).forEach(id=>{
+    (day.planExerciseIds||[]).filter(id=>id===CARDIO_ID?!day.cardio:!recordedIds.has(id)).forEach(id=>{
+      if(id===CARDIO_ID){
+        const d=document.createElement("div");d.className="item";
+        d.innerHTML=`<div class="item-main"><div class="item-title">有氧</div><div class="item-sub">${esc(plan?.prescriptions?.[CARDIO_ID]||"待记录")}</div></div><button class="btn soft" data-record-cardio>记录</button>`;
+        box.appendChild(d);return;
+      }
       const ex=db.exercises.find(e=>e.id===id);if(!ex)return;
       const rx=plan?.prescriptions?.[id]||ex.group||"";
       const d=document.createElement("div");d.className="item";
@@ -459,8 +501,9 @@
       box.appendChild(d);
     });
 
-    if(!groups.length&&!(day.planExerciseIds||[]).length)box.innerHTML='<div class="empty">暂无训练记录。</div>';
+    if(!ordered.length&&!(day.planExerciseIds||[]).length)box.innerHTML='<div class="empty">暂无训练记录。</div>';
     box.querySelectorAll("[data-record-ex]").forEach(b=>b.addEventListener("click",()=>openTrainingModalPatched(b.dataset.recordEx)));
+    box.querySelectorAll("[data-record-cardio]").forEach(b=>b.addEventListener("click",()=>window.openBatchTraining?.(activeDate())));
     box.querySelectorAll("[data-del-training]").forEach(b=>b.addEventListener("click",()=>window.deleteTraining?.(b.dataset.delTraining)));
     syncPlanHint(day);
   }
