@@ -54,7 +54,9 @@
         const q=foodMacros(x);
         return {name:x.name||"食物",amount:+x.grams||0,unit:x.unit||"g",carbs:+q.C.toFixed(1),protein:+q.P.toFixed(1),fat:+q.F.toFixed(1)};
       }),
-      training:groupedTraining(day)
+      training:groupedTraining(day),
+      cardio_minutes:+day?.cardio||0,
+      training_sequence:Array.isArray(day?.trainingSequence)?day.trainingSequence:[]
     };
   }
   function recentWeightContext(db,endDate=today()){
