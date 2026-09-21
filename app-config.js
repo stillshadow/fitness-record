@@ -12,7 +12,7 @@ try{
   if (app) app.style.visibility = "hidden";
   if (!document.querySelector('script[data-ui-v3]')) {
     const s = document.createElement("script");
-    s.src = "ui-v3.js?v=64";
+    s.src = "ui-v3.js?v=65";
     s.async = false;
     s.dataset.uiV3 = "1";
     document.head.appendChild(s);
@@ -307,7 +307,7 @@ try{
   const load = () => {
     if (document.querySelector('script[data-training-system]')) return;
     const s = document.createElement('script');
-    s.src = 'training-system.js?v=17';
+    s.src = 'training-system.js?v=18';
     s.dataset.trainingSystem = '1';
     document.head.appendChild(s);
   };
