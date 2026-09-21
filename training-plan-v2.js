@@ -38,13 +38,13 @@
     box.querySelectorAll(".item").forEach(card=>{
       const edit=card.querySelector("[data-edit-plan]"),id=edit?.dataset.editPlan,plan=(db.plans||[]).find(x=>x.id===id);if(!plan)return;
       const load=card.querySelector("[data-load-plan]");if(load){load.style.display="none";load.disabled=true}
-      const sub=card.querySelector(".item-sub"),summary=`${(plan.exerciseIds||[]).length} 个动作`;if(sub&&sub.textContent!==summary)sub.textContent=summary;
+      const sub=card.querySelector(".item-sub"),summary=`${(plan.exerciseIds||[]).length} 项`;if(sub&&sub.textContent!==summary)sub.textContent=summary;
     });
   }
 
   function ensurePlanItemsModal(){
     if($("planItemsModal"))return;const modal=document.createElement("div");modal.className="modal";modal.id="planItemsModal";
-    modal.innerHTML=`<div class="modal-panel wide"><div class="section"><h2 id="planItemsTitle">编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div><label for="planItemsName">模板名称</label><input id="planItemsName"><div class="meta" style="margin:8px 0 10px">这里只定义常用起始方案。实际训练时可以自由调整。</div><div id="planItemsList" class="list"></div><div class="row" style="margin-top:12px;align-items:end"><div class="c8"><label for="planItemsAddSelect">添加动作</label><select id="planItemsAddSelect"></select></div><div class="c4"><button class="btn soft" id="planItemsAddBtn" style="width:100%">＋ 添加</button></div></div><div class="modal-actions"><button class="btn" id="savePlanItemsBtn">保存模板</button></div></div>`;
+    modal.innerHTML=`<div class="modal-panel wide"><div class="section"><h2 id="planItemsTitle">编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div><label for="planItemsName">模板名称</label><input id="planItemsName"><div class="meta" style="margin:8px 0 10px">这里只定义常用起始方案。实际训练时可以自由调整。</div><div id="planItemsList" class="list"></div><div class="row" style="margin-top:12px;align-items:end"><div class="c8"><label for="planItemsAddSelect">添加训练项目</label><select id="planItemsAddSelect"></select></div><div class="c4"><button class="btn soft" id="planItemsAddBtn" style="width:100%">＋ 添加</button></div></div><div class="modal-actions"><button class="btn" id="savePlanItemsBtn">保存模板</button></div></div>`;
     document.body.appendChild(modal);$("closePlanItemsModal").addEventListener("click",()=>modal.classList.remove("open"));modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});$("planItemsAddBtn").addEventListener("click",addPlanItem);$("savePlanItemsBtn").addEventListener("click",savePlanItems);$("planItemsList").addEventListener("click",handleRowAction);
   }
 
