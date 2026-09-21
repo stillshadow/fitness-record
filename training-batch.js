@@ -125,7 +125,11 @@
   function loadPlan(planId){
     const db=getDB(), plan=(db.plans||[]).find(p=>p.id===planId); if(!plan) return;
     drafts=(plan.exerciseIds||[]).map(id=>{
-      if(id===CARDIO_ID)return cardioDraft("");
+      if(id===CARDIO_ID){
+        const rx=String(plan.prescriptions?.[CARDIO_ID]||"");
+        const m=rx.match(/(\d+(?:\.\d+)?)/);
+        return cardioDraft(m?m[1]:"");
+      }
       const ex=(db.exercises||[]).find(e=>e.id===id); if(!ex) return null;
       const count=prescribedSetCount(plan.prescriptions?.[id], ex.sets||3);
       return draftForExercise(ex,count);
