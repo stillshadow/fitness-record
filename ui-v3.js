@@ -185,6 +185,8 @@
     },{c:0,p:0,f:0});
   }
   const avg = a => a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
+  let progressWeightRange=30;
+  let progressSelectedWeightDate="";
   function progressData(){
     const db=getDB(),days=Object.values(db.days||{}).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d.date))).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
     const weights=days.filter(d=>d.weight!=null).map(d=>({date:d.date,value:+d.weight}));
@@ -193,7 +195,7 @@
     const recent30=days.filter(d=>new Date(d.date+'T00:00:00')>=cutoff),trainingDays=recent30.filter(d=>(d.training||[]).length>0||(+d.cardio||0)>0).length;
     const diet=days.filter(d=>(d.foods||[]).length).slice(-7),macro=diet.map(foodTotals);
     const macroAvg={c:avg(macro.map(x=>x.c))||0,p:avg(macro.map(x=>x.p))||0,f:avg(macro.map(x=>x.f))||0};
-    return {db,weights:weights.slice(-30),latest:weights.at(-1)?.value??null,a7,p7,delta,trainingDays,dietCount:diet.length,macroAvg};
+    return {db,weights,latest:weights.at(-1)?.value??null,a7,p7,delta,trainingDays,dietCount:diet.length,macroAvg};
   }
 
   function weightSvg(rows){
