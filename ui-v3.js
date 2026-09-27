@@ -198,15 +198,69 @@
     return {db,weights,latest:weights.at(-1)?.value??null,a7,p7,delta,trainingDays,dietCount:diet.length,macroAvg};
   }
 
-  function weightSvg(rows){
-    if(rows.length<2) return '<div class="empty">继续记录晨重后会出现30天趋势。</div>';
-    const W=640,H=190,pad={l:34,r:14,t:14,b:24},vals=rows.map(x=>x.value),mn=Math.min(...vals)-.25,mx=Math.max(...vals)+.25,span=Math.max(.5,mx-mn);
-    const x=i=>pad.l+(W-pad.l-pad.r)*(i/Math.max(1,rows.length-1)),y=v=>pad.t+(H-pad.t-pad.b)*(1-(v-mn)/span);
+  function weightChart(rows){
+    if(rows.length<2)return {html:'<div class="empty">继续记录晨重后会出现体重趋势。</div>',mn:null,mx:null,width:0};
+    const H=190,pad={l:10,r:16,t:12,b:27};
+    const gap=rows.length>180?28:rows.length>90?34:44;
+    const W=Math.max(420,pad.l+pad.r+Math.max(1,rows.length-1)*gap);
+    const vals=rows.map(x=>x.value),mn=Math.min(...vals)-.25,mx=Math.max(...vals)+.25,span=Math.max(.5,mx-mn);
+    const x=i=>pad.l+(W-pad.l-pad.r)*(i/Math.max(1,rows.length-1));
+    const y=v=>pad.t+(H-pad.t-pad.b)*(1-(v-mn)/span);
     const raw=rows.map((r,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(r.value).toFixed(1)}`).join(' ');
-    const trend=rows.map((r,i)=>({i,v:avg(rows.slice(Math.max(0,i-6),i+1).map(x=>x.value))})).filter(x=>x.i>=2).map((r,j)=>`${j?'L':'M'}${x(r.i).toFixed(1)},${y(r.v).toFixed(1)}`).join(' ');
-    const grids=[0,.5,1].map(t=>{const yy=pad.t+(H-pad.t-pad.b)*t,val=(mx-span*t).toFixed(1);return `<line class="v3-chart-grid" x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}"/><text class="v3-chart-label" x="2" y="${yy+3}">${val}</text>`}).join('');
-    const first=rows[0].date.slice(5).replace('-','/'),last=rows.at(-1).date.slice(5).replace('-','/');
-    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grids}<path class="v3-chart-raw" d="${raw}"/><path class="v3-chart-trend" d="${trend}"/><circle class="v3-chart-dot" cx="${x(rows.length-1)}" cy="${y(rows.at(-1).value)}" r="3.3"/><text class="v3-chart-label" x="${pad.l}" y="${H-4}">${first}</text><text class="v3-chart-label" text-anchor="end" x="${W-pad.r}" y="${H-4}">${last}</text></svg>`;
+    const trend=rows.map((r,i)=>({i,v:avg(rows.slice(Math.max(0,i-6),i+1).map(x=>x.value))}))
+      .filter(x=>x.i>=2)
+      .map((r,j)=>`${j?'L':'M'}${x(r.i).toFixed(1)},${y(r.v).toFixed(1)}`).join(' ');
+    const grids=[0,.5,1].map(t=>{
+      const yy=pad.t+(H-pad.t-pad.b)*t;
+      return `<line class="v3-chart-grid" x1="0" x2="${W}" y1="${yy}" y2="${yy}"/>`;
+    }).join('');
+    const labelEvery=rows.length>120?6:rows.length>60?4:2;
+    const labels=rows.map((r,i)=>{
+      if(i!==0&&i!==rows.length-1&&i%labelEvery!==0)return "";
+      return `<text class="v3-chart-label" text-anchor="middle" x="${x(i)}" y="${H-5}">${r.date.slice(5).replace('-','/')}</text>`;
+    }).join('');
+    const dots=rows.map((r,i)=>{
+      const latest=i===rows.length-1,selected=r.date===progressSelectedWeightDate;
+      const cls=`v3-chart-dot${latest?' latest':''}${selected?' selected':''}`;
+      return `<circle class="${cls}" data-weight-dot="${i}" cx="${x(i)}" cy="${y(r.value)}" r="${selected?4.6:latest?3.6:2.5}"/><circle class="v3-chart-hit" data-weight-point="${i}" tabindex="0" role="button" aria-label="${r.date} ${r.value} kg" cx="${x(i)}" cy="${y(r.value)}" r="13"/>`;
+    }).join('');
+    return {mn,mx,width:W,html:`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-label="体重趋势曲线">${grids}<path class="v3-chart-raw" d="${raw}"/>${trend?`<path class="v3-chart-trend" d="${trend}"/>`:""}${dots}${labels}</svg>`};
+  }
+
+  function weightRowsForRange(rows){
+    if(progressWeightRange==="all")return rows;
+    return rows.slice(-Math.max(2,+progressWeightRange||30));
+  }
+
+  function weightDetailText(row){
+    if(!row)return '<span>点曲线上的记录查看详情</span>';
+    const parts=String(row.date).split('-');
+    const value=Number(row.value).toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+    return `<span>${+parts[1]}月${+parts[2]}日</span><b>${value} kg</b>`;
+  }
+
+  function bindWeightChart(rows){
+    const scroll=$('v3WeightScroll'),detail=$('v3WeightDetail');
+    if(!scroll)return;
+    const selectPoint=i=>{
+      const row=rows[i];if(!row)return;
+      progressSelectedWeightDate=row.date;
+      scroll.querySelectorAll('[data-weight-dot]').forEach(dot=>{
+        const di=+dot.dataset.weightDot,selected=di===i;
+        dot.classList.toggle('selected',selected);
+        dot.setAttribute('r',selected?'4.6':di===rows.length-1?'3.6':'2.5');
+      });
+      if(detail)detail.innerHTML=weightDetailText(row);
+    };
+    scroll.querySelectorAll('[data-weight-point]').forEach(hit=>{
+      hit.addEventListener('click',()=>selectPoint(+hit.dataset.weightPoint));
+      hit.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectPoint(+hit.dataset.weightPoint)}});
+    });
+    $('v3ChartLatest')?.addEventListener('click',()=>{
+      scroll.scrollTo({left:scroll.scrollWidth,behavior:'smooth'});
+      selectPoint(rows.length-1);
+    });
+    requestAnimationFrame(()=>{scroll.scrollLeft=scroll.scrollWidth});
   }
 
   function renderProgressV3(){
