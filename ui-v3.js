@@ -44,13 +44,14 @@
     .v3-settings-list{display:grid;gap:9px}.v3-setting-row{width:100%;border:1px solid var(--v3-line);background:linear-gradient(180deg,#10151d,#0d1117);color:var(--v3-text);border-radius:17px;padding:15px 16px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:11px;text-align:left}.v3-setting-icon{width:38px;height:38px;border-radius:12px;background:#171e2a;display:grid;place-items:center;color:#aab9ff}.v3-setting-icon svg{width:18px;height:18px}.v3-setting-copy b{display:block;font-size:14px}.v3-setting-copy small{display:block;color:var(--v3-muted);font-size:10px;margin-top:2px}.v3-setting-chevron{font-size:21px;color:#586271}
     .v3-progress-card{grid-column:span 12;background:linear-gradient(180deg,rgba(16,21,29,.98),rgba(11,15,21,.98));border:1px solid var(--v3-line);border-radius:18px;padding:16px}.v3-progress-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:15px}.v3-progress-head h2{font-size:14px;margin:0}.v3-progress-head span{font-size:10px;color:var(--v3-muted)}
     .v3-progress-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--v3-line);border-bottom:1px solid var(--v3-line)}.v3-stat{padding:13px 10px;border-right:1px solid var(--v3-line)}.v3-stat:last-child{border-right:0}.v3-stat small{display:block;color:var(--v3-muted);font-size:10px}.v3-stat strong{display:block;font-size:18px;margin-top:2px}.v3-stat em{font-style:normal;color:var(--v3-muted);font-size:9px}
-    #v3WeightChart{height:190px;margin-top:13px}#v3WeightChart svg{display:block;width:100%;height:100%}.v3-chart-grid{stroke:rgba(255,255,255,.055);stroke-width:1}.v3-chart-raw{fill:none;stroke:#56627b;stroke-width:1.4;opacity:.75}.v3-chart-trend{fill:none;stroke:#aab9ff;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}.v3-chart-dot{fill:#aab9ff}.v3-chart-label{fill:#687486;font-size:9px}
+    .v3-chart-toolbar{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:12px 0 4px}.v3-chart-ranges{display:flex;gap:5px;min-width:0}.v3-chart-range,.v3-chart-latest{border:1px solid var(--v3-line);background:rgba(255,255,255,.025);color:var(--v3-muted);border-radius:999px;min-height:32px;padding:0 10px;font-size:10px}.v3-chart-range.active{background:#aab9ff;color:#09101b;border-color:#aab9ff;font-weight:800}.v3-chart-latest{flex:0 0 auto}
+    #v3WeightChart{margin-top:7px}.v3-weight-chart-shell{display:grid;grid-template-columns:34px minmax(0,1fr);height:198px;min-width:0}.v3-chart-yaxis{height:174px;padding:8px 5px 18px 0;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;color:#687486;font-size:9px;line-height:1;pointer-events:none}.v3-weight-scroll{min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}.v3-weight-scroll::-webkit-scrollbar{display:none}.v3-weight-scroll svg{display:block;height:190px;max-width:none}.v3-chart-grid{stroke:rgba(255,255,255,.055);stroke-width:1}.v3-chart-raw{fill:none;stroke:#56627b;stroke-width:1.4;opacity:.75}.v3-chart-trend{fill:none;stroke:#aab9ff;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}.v3-chart-dot{fill:#71809b}.v3-chart-dot.latest{fill:#aab9ff}.v3-chart-dot.selected{fill:#eef1ff;stroke:#aab9ff;stroke-width:2}.v3-chart-hit{fill:transparent;cursor:pointer}.v3-chart-label{fill:#687486;font-size:9px}.v3-chart-detail{min-height:24px;display:flex;align-items:center;justify-content:center;gap:6px;color:#8e99aa;font-size:10px;padding:1px 4px 4px}.v3-chart-detail b{color:#e1e6ef;font-size:12px}.v3-chart-swipe{font-size:9px;color:#626d7c;text-align:center;margin-top:-2px}
     .v3-macros{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.v3-macro{padding:11px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.045)}.v3-macro small{display:block;color:var(--v3-muted);font-size:10px}.v3-macro b{font-size:16px}.v3-macro span{font-size:9px;color:#626d7c;margin-left:3px}.v3-mini-bar{height:3px;background:#171c24;border-radius:999px;margin-top:8px;overflow:hidden}.v3-mini-bar i{display:block;height:100%;background:#9badff;border-radius:999px}
     .v3-old-progress{display:none!important}
     #v3Splash{position:fixed;inset:0;z-index:1000;background:#07090d;display:grid;place-items:center;opacity:1;transition:opacity .38s ease;pointer-events:auto}#v3Splash.hide{opacity:0;pointer-events:none}.v3-splash-inner{text-align:center;transform:translateY(-4vh)}.v3-splash-kicker{font-size:10px;letter-spacing:.34em;color:#687489;margin-bottom:12px;text-transform:uppercase}.v3-splash-name{font-size:25px;font-weight:800;letter-spacing:.04em;color:#f2f5fb;animation:v3SplashName .7s ease-out both}.v3-splash-line{height:2px;width:34px;border-radius:99px;background:#9badff;margin:16px auto 0;animation:v3SplashLine .8s .12s ease both}
     @keyframes v3Float{0%,100%{translate:0 0}50%{translate:0 -7px}}@keyframes v3Glow{0%,100%{transform:scale(.96);opacity:.72}50%{transform:scale(1.05);opacity:1}}@keyframes v3Shadow{0%,100%{transform:scaleX(.92);opacity:.62}50%{transform:scaleX(.78);opacity:.42}}@keyframes v3Orbit{to{transform:rotate(360deg)}}@keyframes v3PageIn{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes v3SplashName{from{opacity:0;transform:translateY(7px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}@keyframes v3SplashLine{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
     @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-avatar-stage{height:280px;min-height:0}.v3-avatar{height:250px;max-height:250px}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
-    @media(max-width:430px){#v3Home{padding-top:calc(38px + env(safe-area-inset-top));overflow-anchor:none}.v3-avatar-stage{height:260px;min-height:0;padding:12px 0 6px}.v3-avatar{height:230px;max-height:230px;max-width:70vw}.v3-grid{gap:8px}.v3-action{min-height:58px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}}
+    @media(max-width:430px){#v3Home{padding-top:calc(38px + env(safe-area-inset-top));overflow-anchor:none}.v3-avatar-stage{height:260px;min-height:0;padding:12px 0 6px}.v3-avatar{height:230px;max-height:230px;max-width:70vw}.v3-grid{gap:8px}.v3-action{min-height:58px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}.v3-chart-toolbar{align-items:flex-start}.v3-chart-ranges{gap:4px}.v3-chart-range,.v3-chart-latest{padding:0 9px;min-height:34px}.v3-weight-chart-shell{grid-template-columns:31px minmax(0,1fr)}}
     /* Calm UI: keep the interface static and predictable. */
     body.ui-v3 *,body.ui-v3 *::before,body.ui-v3 *::after,#v3Splash *{
       animation:none!important;
@@ -184,6 +185,8 @@
     },{c:0,p:0,f:0});
   }
   const avg = a => a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
+  let progressWeightRange=30;
+  let progressSelectedWeightDate="";
   function progressData(){
     const db=getDB(),days=Object.values(db.days||{}).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d.date))).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
     const weights=days.filter(d=>d.weight!=null).map(d=>({date:d.date,value:+d.weight}));
@@ -192,18 +195,72 @@
     const recent30=days.filter(d=>new Date(d.date+'T00:00:00')>=cutoff),trainingDays=recent30.filter(d=>(d.training||[]).length>0||(+d.cardio||0)>0).length;
     const diet=days.filter(d=>(d.foods||[]).length).slice(-7),macro=diet.map(foodTotals);
     const macroAvg={c:avg(macro.map(x=>x.c))||0,p:avg(macro.map(x=>x.p))||0,f:avg(macro.map(x=>x.f))||0};
-    return {db,weights:weights.slice(-30),latest:weights.at(-1)?.value??null,a7,p7,delta,trainingDays,dietCount:diet.length,macroAvg};
+    return {db,weights,latest:weights.at(-1)?.value??null,a7,p7,delta,trainingDays,dietCount:diet.length,macroAvg};
   }
 
-  function weightSvg(rows){
-    if(rows.length<2) return '<div class="empty">继续记录晨重后会出现30天趋势。</div>';
-    const W=640,H=190,pad={l:34,r:14,t:14,b:24},vals=rows.map(x=>x.value),mn=Math.min(...vals)-.25,mx=Math.max(...vals)+.25,span=Math.max(.5,mx-mn);
-    const x=i=>pad.l+(W-pad.l-pad.r)*(i/Math.max(1,rows.length-1)),y=v=>pad.t+(H-pad.t-pad.b)*(1-(v-mn)/span);
+  function weightChart(rows){
+    if(rows.length<2)return {html:'<div class="empty">继续记录晨重后会出现体重趋势。</div>',mn:null,mx:null,width:0};
+    const H=190,pad={l:10,r:16,t:12,b:27};
+    const gap=rows.length>180?28:rows.length>90?34:44;
+    const W=Math.max(420,pad.l+pad.r+Math.max(1,rows.length-1)*gap);
+    const vals=rows.map(x=>x.value),mn=Math.min(...vals)-.25,mx=Math.max(...vals)+.25,span=Math.max(.5,mx-mn);
+    const x=i=>pad.l+(W-pad.l-pad.r)*(i/Math.max(1,rows.length-1));
+    const y=v=>pad.t+(H-pad.t-pad.b)*(1-(v-mn)/span);
     const raw=rows.map((r,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(r.value).toFixed(1)}`).join(' ');
-    const trend=rows.map((r,i)=>({i,v:avg(rows.slice(Math.max(0,i-6),i+1).map(x=>x.value))})).filter(x=>x.i>=2).map((r,j)=>`${j?'L':'M'}${x(r.i).toFixed(1)},${y(r.v).toFixed(1)}`).join(' ');
-    const grids=[0,.5,1].map(t=>{const yy=pad.t+(H-pad.t-pad.b)*t,val=(mx-span*t).toFixed(1);return `<line class="v3-chart-grid" x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}"/><text class="v3-chart-label" x="2" y="${yy+3}">${val}</text>`}).join('');
-    const first=rows[0].date.slice(5).replace('-','/'),last=rows.at(-1).date.slice(5).replace('-','/');
-    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grids}<path class="v3-chart-raw" d="${raw}"/><path class="v3-chart-trend" d="${trend}"/><circle class="v3-chart-dot" cx="${x(rows.length-1)}" cy="${y(rows.at(-1).value)}" r="3.3"/><text class="v3-chart-label" x="${pad.l}" y="${H-4}">${first}</text><text class="v3-chart-label" text-anchor="end" x="${W-pad.r}" y="${H-4}">${last}</text></svg>`;
+    const trend=rows.map((r,i)=>({i,v:avg(rows.slice(Math.max(0,i-6),i+1).map(x=>x.value))}))
+      .filter(x=>x.i>=2)
+      .map((r,j)=>`${j?'L':'M'}${x(r.i).toFixed(1)},${y(r.v).toFixed(1)}`).join(' ');
+    const grids=[0,.5,1].map(t=>{
+      const yy=pad.t+(H-pad.t-pad.b)*t;
+      return `<line class="v3-chart-grid" x1="0" x2="${W}" y1="${yy}" y2="${yy}"/>`;
+    }).join('');
+    const labelEvery=rows.length>120?6:rows.length>60?4:2;
+    const labels=rows.map((r,i)=>{
+      if(i!==0&&i!==rows.length-1&&i%labelEvery!==0)return "";
+      return `<text class="v3-chart-label" text-anchor="middle" x="${x(i)}" y="${H-5}">${r.date.slice(5).replace('-','/')}</text>`;
+    }).join('');
+    const dots=rows.map((r,i)=>{
+      const latest=i===rows.length-1,selected=r.date===progressSelectedWeightDate;
+      const cls=`v3-chart-dot${latest?' latest':''}${selected?' selected':''}`;
+      return `<circle class="${cls}" data-weight-dot="${i}" cx="${x(i)}" cy="${y(r.value)}" r="${selected?4.6:latest?3.6:2.5}"/><circle class="v3-chart-hit" data-weight-point="${i}" tabindex="0" role="button" aria-label="${r.date} ${r.value} kg" cx="${x(i)}" cy="${y(r.value)}" r="13"/>`;
+    }).join('');
+    return {mn,mx,width:W,html:`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-label="体重趋势曲线">${grids}<path class="v3-chart-raw" d="${raw}"/>${trend?`<path class="v3-chart-trend" d="${trend}"/>`:""}${dots}${labels}</svg>`};
+  }
+
+  function weightRowsForRange(rows){
+    if(progressWeightRange==="all")return rows;
+    return rows.slice(-Math.max(2,+progressWeightRange||30));
+  }
+
+  function weightDetailText(row){
+    if(!row)return '<span>点曲线上的记录查看详情</span>';
+    const parts=String(row.date).split('-');
+    const value=Number(row.value).toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+    return `<span>${+parts[1]}月${+parts[2]}日</span><b>${value} kg</b>`;
+  }
+
+  function bindWeightChart(rows){
+    const scroll=$('v3WeightScroll'),detail=$('v3WeightDetail');
+    if(!scroll)return;
+    const selectPoint=i=>{
+      const row=rows[i];if(!row)return;
+      progressSelectedWeightDate=row.date;
+      scroll.querySelectorAll('[data-weight-dot]').forEach(dot=>{
+        const di=+dot.dataset.weightDot,selected=di===i;
+        dot.classList.toggle('selected',selected);
+        dot.setAttribute('r',selected?'4.6':di===rows.length-1?'3.6':'2.5');
+      });
+      if(detail)detail.innerHTML=weightDetailText(row);
+    };
+    scroll.querySelectorAll('[data-weight-point]').forEach(hit=>{
+      hit.addEventListener('click',()=>selectPoint(+hit.dataset.weightPoint));
+      hit.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectPoint(+hit.dataset.weightPoint)}});
+    });
+    $('v3ChartLatest')?.addEventListener('click',()=>{
+      scroll.scrollTo({left:scroll.scrollWidth,behavior:'smooth'});
+      selectPoint(rows.length-1);
+    });
+    requestAnimationFrame(()=>{scroll.scrollLeft=scroll.scrollWidth});
   }
 
   function renderProgressV3(){
@@ -212,9 +269,14 @@
     moveStrengthToProgress();
     let main=$('v3ProgressOverview'); if(!main){ main=document.createElement('div');main.id='v3ProgressOverview';main.className='v3-progress-card';grid.insertBefore(main,grid.firstChild); }
     let macros=$('v3MacroOverview'); if(!macros){ macros=document.createElement('div');macros.id='v3MacroOverview';macros.className='v3-progress-card'; main.insertAdjacentElement('afterend',macros); }
-    const d=progressData(),delta=d.delta;
+    const d=progressData(),delta=d.delta,weightRows=weightRowsForRange(d.weights);
+    if(weightRows.length&&!weightRows.some(x=>x.date===progressSelectedWeightDate))progressSelectedWeightDate=weightRows.at(-1).date;
+    const chart=weightChart(weightRows),selectedRow=weightRows.find(x=>x.date===progressSelectedWeightDate)||weightRows.at(-1);
     const deltaText=delta==null?'数据不足':`${delta<0?'↓':'↑'}${Math.abs(delta).toFixed(2)}kg`,latest=d.latest==null?'-':`${d.latest.toFixed(2)}kg`,avg7=d.a7==null?'-':`${d.a7.toFixed(2)}kg`;
-    main.innerHTML=`<div class="v3-progress-head"><h2>身体趋势</h2><span>最近30天</span></div><div class="v3-progress-summary"><div class="v3-stat"><small>最近晨重</small><strong>${latest}</strong><em>最新一次记录</em></div><div class="v3-stat"><small>7次均重</small><strong>${avg7}</strong><em>平滑日波动</em></div><div class="v3-stat"><small>均重变化</small><strong>${deltaText}</strong><em>较前7次</em></div></div><div id="v3WeightChart">${weightSvg(d.weights)}</div><div class="v3-stat" style="border:0;padding:5px 2px 0"><small>最近30天训练日</small><strong>${d.trainingDays} 天</strong></div>`;
+    const rangeLabel=progressWeightRange==="all"?'全部记录':`最近 ${progressWeightRange} 条`,yMid=chart.mn==null?"":((chart.mn+chart.mx)/2).toFixed(1);
+    main.innerHTML=`<div class="v3-progress-head"><h2>身体趋势</h2><span>${rangeLabel}</span></div><div class="v3-progress-summary"><div class="v3-stat"><small>最近晨重</small><strong>${latest}</strong><em>最新一次记录</em></div><div class="v3-stat"><small>7次均重</small><strong>${avg7}</strong><em>平滑日波动</em></div><div class="v3-stat"><small>均重变化</small><strong>${deltaText}</strong><em>较前7次</em></div></div><div class="v3-chart-toolbar"><div class="v3-chart-ranges"><button type="button" class="v3-chart-range ${progressWeightRange===14?'active':''}" data-weight-range="14">14条</button><button type="button" class="v3-chart-range ${progressWeightRange===30?'active':''}" data-weight-range="30">30条</button><button type="button" class="v3-chart-range ${progressWeightRange==="all"?'active':''}" data-weight-range="all">全部</button></div><button type="button" class="v3-chart-latest" id="v3ChartLatest">最新</button></div><div id="v3WeightChart">${chart.mn==null?chart.html:`<div class="v3-weight-chart-shell"><div class="v3-chart-yaxis"><span>${chart.mx.toFixed(1)}</span><span>${yMid}</span><span>${chart.mn.toFixed(1)}</span></div><div class="v3-weight-scroll" id="v3WeightScroll">${chart.html}</div></div><div class="v3-chart-detail" id="v3WeightDetail">${weightDetailText(selectedRow)}</div><div class="v3-chart-swipe">↔ 左右滑动查看记录</div>`}</div><div class="v3-stat" style="border:0;padding:5px 2px 0"><small>最近30天训练日</small><strong>${d.trainingDays} 天</strong></div>`;
+    main.querySelectorAll('[data-weight-range]').forEach(btn=>btn.addEventListener('click',()=>{progressWeightRange=btn.dataset.weightRange==="all"?"all":+btn.dataset.weightRange;progressSelectedWeightDate="";renderProgressV3()}));
+    bindWeightChart(weightRows);
     const target=d.db.settings||{},m=d.macroAvg,bar=(v,t)=>Math.min(100,Math.max(0,t?v/t*100:0));
     macros.innerHTML=`<div class="v3-progress-head"><h2>饮食执行</h2><span>最近${d.dietCount||0}个有饮食记录的日子</span></div><div class="v3-macros"><div class="v3-macro"><small>碳水</small><b>${m.c.toFixed(0)}g</b><span>/ ${+target.c||0}g</span><div class="v3-mini-bar"><i style="width:${bar(m.c,+target.c||0)}%"></i></div></div><div class="v3-macro"><small>蛋白质</small><b>${m.p.toFixed(0)}g</b><span>/ ${+target.p||0}g</span><div class="v3-mini-bar"><i style="width:${bar(m.p,+target.p||0)}%"></i></div></div><div class="v3-macro"><small>脂肪</small><b>${m.f.toFixed(0)}g</b><span>/ ${+target.f||0}g</span><div class="v3-mini-bar"><i style="width:${bar(m.f,+target.f||0)}%"></i></div></div></div>`;
   }
