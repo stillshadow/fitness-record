@@ -6,21 +6,29 @@ try{
   localStorage.removeItem("chibianyingGithubBackupLast");
 }catch{}
 
-// V3 在基础数据层初始化之前就开始加载，同时先遮住旧首页，避免旧模板数据闪一下再消失。
+// V3 和 AI 首屏一起提前加载，同时先遮住旧首页，避免“无 AI 首页”先闪出来。
 (() => {
   const app = document.querySelector(".app");
   if (app) app.style.visibility = "hidden";
-  if (!document.querySelector('script[data-ui-v3]')) {
+
+  const loadEarly = (src,attr) => {
+    if (document.querySelector(`script[data-${attr}]`)) return;
     const s = document.createElement("script");
-    s.src = "ui-v3.js?v=66";
+    s.src = src;
     s.async = false;
-    s.dataset.uiV3 = "1";
+    s.setAttribute(`data-${attr}`,"1");
     document.head.appendChild(s);
-  }
+  };
+
+  loadEarly("ui-v3.js?v=66","ui-v3");
+  loadEarly("ai-system.js?v=11","ai-system");
+
   let tries = 0;
   const reveal = setInterval(() => {
     tries++;
-    if (document.getElementById("v3Home") || tries > 80) {
+    const homeReady = !!document.getElementById("v3Home");
+    const aiReady = !!document.getElementById("aiHomeCard");
+    if ((homeReady && aiReady) || tries > 90) {
       clearInterval(reveal);
       if (app) app.style.visibility = "";
     }
