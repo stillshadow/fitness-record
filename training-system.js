@@ -330,7 +330,16 @@
       try{
         if(window.fitnessApp?.replaceDBQuiet) window.fitnessApp.replaceDBQuiet(db);
         else window.fitnessApp?.replaceDB?.(db);
+
         refreshTrainingSelector();
+        renderTrainingPage();
+        window.renderStrength?.();
+
+        const day=getDB().days?.[activeDate()];
+        if(day)renderTodayTraining(day);
+
+        window.dispatchEvent(new CustomEvent("fitness:changed"));
+        window.dispatchEvent(new CustomEvent("fitness:exercise-changed",{detail:{exerciseId:obj.id,name:obj.name}}));
         window.dispatchEvent(new CustomEvent("fitness:sync-needed"));
         toast("动作已保存");
       }finally{
