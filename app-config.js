@@ -21,7 +21,7 @@ try{
   };
 
   loadEarly("ui-v3.js?v=66","ui-v3");
-  loadEarly("ai-system.js?v=11","ai-system");
+  loadEarly("ai-system.js?v=12","ai-system");
 
   let tries = 0;
   const reveal = setInterval(() => {
@@ -303,7 +303,7 @@ try{
   const load = () => {
     if (document.querySelector('script[data-food-system]')) return;
     const s = document.createElement('script');
-    s.src = 'food-system.js?v=14';
+    s.src = 'food-system.js?v=15';
     s.dataset.foodSystem = '1';
     document.head.appendChild(s);
   };

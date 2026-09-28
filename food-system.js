@@ -32,12 +32,127 @@
     return basisOf(f)==="per100ml"?"每100ml":"每100g";
   };
 
+  let nutritionScanBusy=false;
+
+  function setupNutritionScannerStyles(){
+    if($("nutritionScannerStyle"))return;
+    const style=document.createElement("style");
+    style.id="nutritionScannerStyle";
+    style.textContent=`
+      .nutrition-scan{border:1px dashed var(--line);border-radius:14px;padding:11px;margin:0 0 12px;background:var(--panel2);text-align:center}
+      .nutrition-scan-preview{display:none;width:100%;max-height:190px;object-fit:contain;border-radius:11px;margin-bottom:9px}
+      .nutrition-scan.has-image .nutrition-scan-preview{display:block}
+      .nutrition-scan label.btn{width:100%;min-height:44px;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;box-sizing:border-box}
+      .nutrition-scan input[type=file]{display:none}
+      .nutrition-scan-status{margin-top:7px;font-size:10px;line-height:1.55;color:var(--muted)}
+      .nutrition-scan-status.good{color:var(--good)}
+      .nutrition-scan-status.warn{color:var(--warn)}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function resetNutritionScanner(){
+    const box=$("nutritionScan"),input=$("nutritionScanImage"),preview=$("nutritionScanPreview"),status=$("nutritionScanStatus");
+    if(input)input.value="";
+    if(preview){preview.removeAttribute("src");preview.alt=""}
+    box?.classList.remove("has-image");
+    if(status){status.className="nutrition-scan-status";status.textContent="拍照或选择包装上的营养成分表，AI 会自动填写下面字段";}
+  }
+
+  function nutritionBasisLabel(basis,label="份"){
+    if(basis==="per100g")return "每100g";
+    if(basis==="per100ml")return "每100ml";
+    if(basis==="serving")return "每1"+(label||"份");
+    return "营养基准未识别";
+  }
+
+  function applyNutritionLabelResult(r){
+    const missing=[];
+    const basis=["per100g","per100ml","serving"].includes(r?.basis)?r.basis:null;
+    if(basis){
+      $("libFoodBasis").value=basis;
+      if(basis==="serving"){
+        if(String(r.serving_label||"").trim())$("libServingLabel").value=String(r.serving_label).trim();
+        if(+r.serving_size>0)$("libServingSize").value=+r.serving_size;
+        if(["g","ml"].includes(r.serving_size_unit))$("libServingSizeUnit").value=r.serving_size_unit;
+      }
+      $("libFoodBasis").dispatchEvent(new Event("change"));
+    }else{
+      missing.push("营养基准");
+    }
+
+    const newFood=!($("editingFoodId")?.value||"");
+    if(String(r?.food_name||"").trim()&&(newFood||!$("libFoodName").value.trim()))$("libFoodName").value=String(r.food_name).trim();
+
+    [["libFoodC","carbs_g","碳水"],["libFoodP","protein_g","蛋白质"],["libFoodF","fat_g","脂肪"]].forEach(([id,key,label])=>{
+      const value=Number(r?.[key]);
+      if(Number.isFinite(value)&&value>=0)$(id).value=String(value);
+      else missing.push(label);
+      $(id).dispatchEvent(new Event("input",{bubbles:true}));
+    });
+
+    if(basis==="serving"){
+      $("libServingLabel").dispatchEvent(new Event("input",{bubbles:true}));
+    }
+
+    const warnings=[...(Array.isArray(r?.warnings)?r.warnings:[])];
+    if(missing.length)warnings.unshift("未可靠识别："+missing.join("、"));
+    const status=$("nutritionScanStatus");
+    const conf=r?.confidence==="high"?"高":r?.confidence==="medium"?"中":"低";
+    const basisText=nutritionBasisLabel(r?.basis,r?.serving_label);
+    const energy=Number(r?.calories_kcal),energyText=Number.isFinite(energy)&&energy>=0?` · 标签 ${Math.round(energy)} kcal`:"";
+    if(status){
+      status.className="nutrition-scan-status "+(warnings.length||r?.confidence==="low"?"warn":"good");
+      status.textContent=`已识别 · ${basisText}${energyText} · 置信度${conf}${warnings.length?" · "+warnings.join("；"):""}。请核对后保存。`;
+    }
+  }
+
+  async function waitForNutritionScanner(){
+    for(let i=0;i<30;i++){
+      if(window.fitnessAI?.scanNutritionLabel)return window.fitnessAI.scanNutritionLabel;
+      await new Promise(resolve=>setTimeout(resolve,100));
+    }
+    throw new Error("AI 模块还在加载，请稍后重试");
+  }
+
+  async function handleNutritionImage(file){
+    if(!file||nutritionScanBusy)return;
+    const status=$("nutritionScanStatus"),box=$("nutritionScan"),preview=$("nutritionScanPreview");
+    nutritionScanBusy=true;
+    if(status){status.className="nutrition-scan-status";status.textContent="正在读取营养成分表…"}
+    try{
+      const scan=await waitForNutritionScanner();
+      const {data,imageDataUrl}=await scan(file);
+      if(imageDataUrl&&preview){preview.src=imageDataUrl;preview.alt="营养成分表预览";box?.classList.add("has-image")}
+      applyNutritionLabelResult(data);
+    }catch(err){
+      if(status){status.className="nutrition-scan-status warn";status.textContent=err?.message||"营养成分表识别失败，请重试"}
+    }finally{
+      nutritionScanBusy=false;
+      if($("nutritionScanImage"))$("nutritionScanImage").value="";
+    }
+  }
+
+  function setupNutritionScanner(modal,grid){
+    if(!modal||!grid||$("nutritionScan"))return;
+    setupNutritionScannerStyles();
+    const box=document.createElement("div");
+    box.id="nutritionScan";
+    box.className="nutrition-scan";
+    box.innerHTML='<img id="nutritionScanPreview" class="nutrition-scan-preview" alt=""><label class="btn soft" for="nutritionScanImage">📷 拍照 / 选择营养成分表</label><input id="nutritionScanImage" type="file" accept="image/*"><div id="nutritionScanStatus" class="nutrition-scan-status">拍照或选择包装上的营养成分表，AI 会自动填写下面字段</div>';
+    grid.parentElement.insertBefore(box,grid);
+    $("nutritionScanImage").addEventListener("change",e=>handleNutritionImage(e.target.files?.[0]));
+  }
+
   function setupLibraryModal(){
     const modal=$("libFoodModal"), name=$("libFoodName"), unit=$("libFoodUnit");
-    if(!modal||!name||!unit||$("libFoodBasis"))return;
+    if(!modal||!name||!unit)return;
 
     const grid=name.closest(".field-grid");
     if(!grid)return;
+
+    setupNutritionScanner(modal,grid);
+    if($("libFoodBasis"))return;
 
     const basisWrap=document.createElement("div");
     basisWrap.innerHTML='<label for="libFoodBasis">营养基准</label><select id="libFoodBasis"><option value="per100g">每100g</option><option value="per100ml">每100ml</option><option value="serving">每份</option></select>';
@@ -90,6 +205,7 @@
 
   function openLibraryFood(id=""){
     setupLibraryModal();
+    resetNutritionScanner();
     const f=db().foods?.find(x=>x.id===id);
     $("editingFoodId").value=id;
     $("libFoodModalTitle").textContent=id?"编辑食物":"添加食物";
