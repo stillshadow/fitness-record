@@ -145,12 +145,13 @@
 
   function setupLibraryModal(){
     const modal=$("libFoodModal"), name=$("libFoodName"), unit=$("libFoodUnit");
-    if(!modal||!name||!unit||$("libFoodBasis"))return;
+    if(!modal||!name||!unit)return;
 
     const grid=name.closest(".field-grid");
     if(!grid)return;
 
     setupNutritionScanner(modal,grid);
+    if($("libFoodBasis"))return;
 
     const basisWrap=document.createElement("div");
     basisWrap.innerHTML='<label for="libFoodBasis">营养基准</label><select id="libFoodBasis"><option value="per100g">每100g</option><option value="per100ml">每100ml</option><option value="serving">每份</option></select>';
