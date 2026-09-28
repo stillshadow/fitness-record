@@ -152,6 +152,24 @@
     },
     required:["name","estimated_weight_g","carbs_g","protein_g","fat_g","calories_kcal","confidence","summary","assumptions","components"]
   };
+  const nutritionLabelSchema={
+    type:"object",additionalProperties:false,
+    properties:{
+      food_name:{type:"string"},
+      basis:{type:"string",enum:["per100g","per100ml","serving","unknown"]},
+      serving_label:{type:"string"},
+      serving_size:{type:"number",minimum:0},
+      serving_size_unit:{type:"string",enum:["g","ml","unknown"]},
+      carbs_g:{type:"number",minimum:-1},
+      protein_g:{type:"number",minimum:-1},
+      fat_g:{type:"number",minimum:-1},
+      calories_kcal:{type:"number",minimum:-1},
+      confidence:{type:"string",enum:["low","medium","high"]},
+      basis_evidence:{type:"string"},
+      warnings:{type:"array",items:{type:"string"},maxItems:6}
+    },
+    required:["food_name","basis","serving_label","serving_size","serving_size_unit","carbs_g","protein_g","fat_g","calories_kcal","confidence","basis_evidence","warnings"]
+  };
   const insightSchema={
     type:"object",additionalProperties:false,
     properties:{
@@ -185,6 +203,19 @@
     return "";
   }
   function instructionsFor(mode){
+    if(mode==="nutrition_label")return [
+      "你是包装食品营养成分表识别助手。这是信息转录任务，不是食物营养估算任务。",
+      "只读取图片中明确可见的营养成分表、Nutrition Facts 或包装文字，不要根据食品类型猜测缺失数值。",
+      "识别碳水化合物、蛋白质、脂肪、能量，以及这些数值对应的营养基准。",
+      "basis 只能是 per100g、per100ml、serving 或 unknown。",
+      "如果图片同时清楚给出每100g/100ml和每份数据，优先返回每100g/100ml的数据。",
+      "如果只有每份数据，返回 serving，并尽量读取每份单位、每份重量或容量。",
+      "如果某个 C/P/F 或热量数字无法可靠读取，对应数值返回 -1，并在 warnings 说明，不要猜。",
+      "food_name 只有在图片里能读到产品名称时才填写，否则返回空字符串。",
+      "serving_size 没有明确标注时返回 0，serving_size_unit 无法判断时返回 unknown。",
+      "basis_evidence 简短写出你识别基准的依据，例如 每100g、每份30g。",
+      "confidence 反映图片清晰度和表格可读性。输出简洁中文。"
+    ].join("\n");
     if(mode==="food_estimate")return [
       "你是健身饮食记录中的食物营养估算助手。",
       "根据用户提供的食物照片、已知总重量和文字备注，估算这一整顿食物的碳水、蛋白质、脂肪和热量。",
@@ -233,6 +264,7 @@
     ].join("\n");
   }
   function userText(mode,payload){
+    if(mode==="nutrition_label")return "请读取这张包装食品的营养成分表，并按图片中真实标注的营养基准返回数据。不要估算缺失项。";
     if(mode==="food_estimate")return "请估算这顿食物。以下是用户提供的信息：\n"+JSON.stringify(payload||{});
     if(mode==="today")return "请生成今天的健身简报。下面是程序整理好的 JSON 数据：\n"+JSON.stringify(payload||{});
     if(mode==="weekly")return "请分析最近7天，并与之前7天比较。下面是程序整理好的 JSON 数据：\n"+JSON.stringify(payload||{});
