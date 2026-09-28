@@ -281,8 +281,11 @@
     const apiKey=configuredAIKey();
     if(!apiKey)throw new Error("请先到“目标与数据 → AI 服务”填写 DeepSeek API Key");
     const content=[{type:"input_text",text:userText(mode,payload)}];
-    if(mode==="food_estimate"&&imageDataUrl)content.push({type:"input_image",image_url:imageDataUrl,detail:"low"});
-    const schema=mode==="food_estimate"?foodSchema:insightSchema;
+    if((mode==="food_estimate"||mode==="nutrition_label")&&imageDataUrl){
+      content.push({type:"input_image",image_url:imageDataUrl,detail:mode==="nutrition_label"?"high":"low"});
+    }
+    const schema=mode==="food_estimate"?foodSchema:mode==="nutrition_label"?nutritionLabelSchema:insightSchema;
+    const formatName=mode==="food_estimate"?"food_estimate":mode==="nutrition_label"?"nutrition_label":"fitness_insight";
     const resp=await fetch("https://api.deepseek.com/responses",{
       method:"POST",
       headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
@@ -291,8 +294,8 @@
         instructions:instructionsFor(mode),
         input:[{role:"user",content}],
         reasoning:{effort:"none"},
-        max_output_tokens:mode==="food_estimate"?1200:1600,
-        text:{format:{type:"json_schema",name:mode==="food_estimate"?"food_estimate":"fitness_insight",schema}}
+        max_output_tokens:mode==="nutrition_label"?900:mode==="food_estimate"?1200:1600,
+        text:{format:{type:"json_schema",name:formatName,schema}}
       })
     });
     const raw=await resp.json().catch(()=>null);
@@ -477,15 +480,22 @@
     if($("mealSlot"))$("mealSlot").value=pendingSlot;
     if($("foodTime"))$("foodTime").value=pendingTime||localTimeAI();
   }
-  async function fileToDataUrl(file){
+  async function fileToDataUrl(file,max=1280,quality=.78){
     if(!file)return null;
     if(file.size>15*1024*1024)throw new Error("图片太大，请选择 15MB 以内的照片");
     const raw=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
     const img=await new Promise((resolve,reject)=>{const x=new Image();x.onload=()=>resolve(x);x.onerror=reject;x.src=raw});
-    const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+    const scale=Math.min(1,max/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
     const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);
-    return canvas.toDataURL("image/jpeg",0.78);
+    return canvas.toDataURL("image/jpeg",quality);
   }
+  async function scanNutritionLabel(file){
+    if(!file)throw new Error("请选择营养成分表图片");
+    const imageDataUrl=await fileToDataUrl(file,1920,.88);
+    const data=await callAI("nutrition_label",{},imageDataUrl);
+    return {data,imageDataUrl};
+  }
+  window.fitnessAI={...(window.fitnessAI||{}),scanNutritionLabel};
   async function onFoodImage(e){
     try{
       pendingFoodImage=await fileToDataUrl(e.target.files?.[0]);
