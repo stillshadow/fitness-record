@@ -100,9 +100,10 @@
     const status=$("nutritionScanStatus");
     const conf=r?.confidence==="high"?"高":r?.confidence==="medium"?"中":"低";
     const basisText=nutritionBasisLabel(r?.basis,r?.serving_label);
+    const energy=Number(r?.calories_kcal),energyText=Number.isFinite(energy)&&energy>=0?` · 标签 ${Math.round(energy)} kcal`:"";
     if(status){
       status.className="nutrition-scan-status "+(warnings.length||r?.confidence==="low"?"warn":"good");
-      status.textContent=`已识别 · ${basisText} · 置信度${conf}${warnings.length?" · "+warnings.join("；"):""}。请核对后保存。`;
+      status.textContent=`已识别 · ${basisText}${energyText} · 置信度${conf}${warnings.length?" · "+warnings.join("；"):""}。请核对后保存。`;
     }
   }
 
@@ -138,7 +139,7 @@
     const box=document.createElement("div");
     box.id="nutritionScan";
     box.className="nutrition-scan";
-    box.innerHTML='<img id="nutritionScanPreview" class="nutrition-scan-preview" alt=""><label class="btn soft" for="nutritionScanImage">📷 拍照 / 选择营养成分表</label><input id="nutritionScanImage" type="file" accept="image/jpeg,image/png,image/webp"><div id="nutritionScanStatus" class="nutrition-scan-status">拍照或选择包装上的营养成分表，AI 会自动填写下面字段</div>';
+    box.innerHTML='<img id="nutritionScanPreview" class="nutrition-scan-preview" alt=""><label class="btn soft" for="nutritionScanImage">📷 拍照 / 选择营养成分表</label><input id="nutritionScanImage" type="file" accept="image/*"><div id="nutritionScanStatus" class="nutrition-scan-status">拍照或选择包装上的营养成分表，AI 会自动填写下面字段</div>';
     grid.parentElement.insertBefore(box,grid);
     $("nutritionScanImage").addEventListener("change",e=>handleNutritionImage(e.target.files?.[0]));
   }
