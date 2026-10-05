@@ -187,8 +187,16 @@
       if(d.kind==="cardio"){
         return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>有氧</b><small>作为训练流程的一部分，可自由调整前后顺序</small></div>${move}</div><div class="batch-cardio-fields"><div><label>有氧分钟</label><input data-cardio-minutes type="number" min="0" step="1" inputmode="numeric" value="${esc(d.minutes)}" placeholder="例如 25"></div></div></section>`;
       }
-      const p=previous.get(d.exerciseId), last=p?`上次 ${p.date.slice(5)} · ${p.items.map(x=>`${x.weight>0?x.weight+'kg':'BW'}×${x.reps}`).join(' / ')}`:'暂无历史';
-      return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>${esc(d.exerciseName)}</b><small>${esc(d.group||'其他')} · ${esc(last)}</small></div>${move}</div><div class="batch-set-head"><span></span><span>重量 kg</span><span>次数</span><span>RIR</span><span></span></div>${d.sets.map((s,si)=>`<div class="batch-set" data-set-index="${si}"><span class="batch-set-index">${si+1}</span><input data-field="weight" type="number" step="0.5" inputmode="decimal" value="${esc(s.weight)}" placeholder="${esc(s.hintWeight||'kg')}"><input data-field="reps" type="number" step="1" min="0" inputmode="numeric" value="${esc(s.reps)}" placeholder="${esc(s.hintReps||'次')}"><input data-field="rir" type="number" step="1" min="0" max="10" inputmode="numeric" value="${esc(s.rir)}" placeholder="-"><button type="button" class="batch-set-del" data-remove-set="${si}">×</button></div>`).join('')}<button type="button" class="batch-add-set" data-add-set="${di}">＋ 添加一组</button></section>`;
+      const p=previous.get(d.exerciseId);
+      const setLoadText=x=>d.loadType==="band"?(x.resistanceLabel||"弹力带"):d.loadType==="bodyweight"?"BW":d.loadType==="bodyweight_extra"?(x.weight>0?"BW + "+x.weight+"kg":"BW"):(x.weight>0?x.weight+"kg":"未填重量");
+      const last=p?`上次 ${p.date.slice(5)} · ${p.items.map(x=>`${setLoadText(x)}×${x.reps}`).join(' / ')}`:'暂无历史';
+      const loadLabel=d.loadType==="band"?"阻力 / 弹力带":d.loadType==="bodyweight"?"自重":d.loadType==="bodyweight_extra"?"额外负重 kg":"重量 kg";
+      const loadField=set=>{
+        if(d.loadType==="bodyweight")return '<span class="batch-load-static">BW</span>';
+        if(d.loadType==="band")return `<input data-field="resistanceLabel" type="text" value="${esc(set.resistanceLabel)}" placeholder="${esc(set.hintResistance||'黄色 / 红色')}">`;
+        return `<input data-field="weight" type="number" step="0.5" inputmode="decimal" value="${esc(set.weight)}" placeholder="${esc(set.hintWeight||(d.loadType==="bodyweight_extra"?'0':'kg'))}">`;
+      };
+      return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>${esc(d.exerciseName)}</b><small>${esc(d.group||'其他')} · ${esc(last)}</small></div>${move}</div><div class="batch-set-head"><span></span><span>${loadLabel}</span><span>次数</span><span>RIR</span><span></span></div>${d.sets.map((set,si)=>`<div class="batch-set" data-set-index="${si}"><span class="batch-set-index">${si+1}</span>${loadField(set)}<input data-field="reps" type="number" step="1" min="0" inputmode="numeric" value="${esc(set.reps)}" placeholder="${esc(set.hintReps||'次')}"><input data-field="rir" type="number" step="1" min="0" max="10" inputmode="numeric" value="${esc(set.rir)}" placeholder="-"><button type="button" class="batch-set-del" data-remove-set="${si}">×</button></div>`).join('')}<button type="button" class="batch-add-set" data-add-set="${di}">＋ 添加一组</button></section>`;
     }).join('');
   }
 
@@ -233,8 +241,9 @@
     for(const d of drafts){
       if(d.kind==="cardio")continue;
       d.sets.forEach((set,i)=>{
-        const any=String(set.weight).trim()||String(set.reps).trim()||String(set.rir).trim();
+        const any=String(set.weight).trim()||String(set.resistanceLabel||"").trim()||String(set.reps).trim()||String(set.rir).trim();
         if(any&&!(+set.reps>0))valid.push({error:`${d.exerciseName} 第 ${i+1} 组没有填写次数`});
+        if(+set.reps>0&&d.loadType==="band"&&!String(set.resistanceLabel||"").trim())valid.push({error:`${d.exerciseName} 第 ${i+1} 组请填写弹力带阻力 / 颜色`});
       });
     }
     const err=valid.find(x=>x.error);if(err)return toast(err.error);
@@ -253,8 +262,10 @@
       const groupId=uid('setgroup');
       entered.forEach((set,i)=>rows.push({
         id:uid('tr'),setGroupId:groupId,setIndex:i+1,orderIndex:di,
-        exerciseId:d.exerciseId,exerciseName:d.exerciseName,weight:+set.weight||0,reps:+set.reps||0,
-        sets:1,rir:String(set.rir).trim()===''?'':+set.rir,time:now,workoutId
+        exerciseId:d.exerciseId,exerciseName:d.exerciseName,loadType:d.loadType||"weight",
+        weight:(d.loadType==="weight"||d.loadType==="bodyweight_extra")?(+set.weight||0):0,
+        ...(d.loadType==="band"?{resistanceLabel:String(set.resistanceLabel||"").trim()}:{ }),
+        reps:+set.reps||0,sets:1,rir:String(set.rir).trim()===''?'':+set.rir,time:now,workoutId
       }));
     });
 
