@@ -226,6 +226,6 @@
 })();
 
 (() => {
-  const load=()=>{if(document.querySelector('script[data-strength-filter]'))return;const s=document.createElement('script');s.src='strength-filter.js?v=50';s.dataset.strengthFilter='1';document.head.appendChild(s)};
+  const load=()=>{if(document.querySelector('script[data-strength-filter]'))return;const s=document.createElement('script');s.src='strength-filter.js?v=51';s.dataset.strengthFilter='1';document.head.appendChild(s)};
   if(document.readyState==='complete')setTimeout(load,0);else window.addEventListener('load',load,{once:true});
 })();
