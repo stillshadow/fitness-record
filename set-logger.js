@@ -3,7 +3,7 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const fmt = n => Number(n || 0).toFixed(1).replace(/\.0$/,"");
-  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",setDrafts=[],savingSets=false;
+  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",editingLoadType="",setDrafts=[],savingSets=false;
 
   const todayString=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
   const activeDate=()=>{const t=$("activeDateLabel")?.textContent.trim()||"";return /^\d{4}-\d{2}-\d{2}$/.test(t)?t:todayString()};
@@ -78,7 +78,7 @@
 
   function renderEditor(){
     const editor=ensureEditor();if(!editor)return;
-    const ex=currentExercise(),type=loadTypeOf(ex),rx=planPrescription(ex?.id||"");
+    const ex=currentExercise(),type=editingLoadType||loadTypeOf(ex),rx=planPrescription(ex?.id||"");
     const loadLabel=type==="band"?"阻力 / 弹力带":type==="bodyweight"?"自重":type==="bodyweight_extra"?"额外负重":"重量 kg";
     const loadField=(set,i)=>{
       if(type==="bodyweight")return '<span class="set-load-static">BW</span>';
@@ -108,7 +108,7 @@
     if(!exerciseId)return;editingWorkoutId=workoutId||"";window.openTrainingModal?.(exerciseId);
     setTimeout(()=>{
       const select=$("trainingExercise");if(select&&select.value!==exerciseId){const opt=[...select.options].find(o=>o.value===exerciseId);if(opt)select.value=exerciseId}
-      editingExerciseId=exerciseId;currentExerciseId=exerciseId;setDrafts=draftsFromExisting(exerciseId,editingWorkoutId);setPickerDisabled(true);
+      editingExerciseId=exerciseId;currentExerciseId=exerciseId;const existingRows=rowsForEdit(exerciseId,editingWorkoutId);editingLoadType=existingRows.find(x=>["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType))?.loadType||"";setDrafts=draftsFromExisting(exerciseId,editingWorkoutId);setPickerDisabled(true);
       const title=$("trainingModal")?.querySelector(".section h2"),ex=currentExercise();if(title)title.textContent=workoutContext()?ex?.name||"编辑训练":"编辑力量训练";
       hideOriginalStrengthInputs();applyWorkoutEntryUI();const editor=ensureEditor();if(editor)editor.style.display="block";renderEditor();
     },60);
@@ -121,7 +121,7 @@
     const saveBtn=$("saveTrainingBtn");
     if(saveBtn)saveBtn.disabled=true;
     const ex=currentExercise();if(!ex){savingSets=false;if(saveBtn)saveBtn.disabled=false;return toast("请选择动作")}
-    const type=loadTypeOf(ex);
+    const type=editingLoadType||loadTypeOf(ex);
     for(let i=0;i<setDrafts.length;i++){const s=setDrafts[i],any=String(s.weight).trim()||String(s.resistanceLabel||"").trim()||String(s.reps).trim()||String(s.rir).trim();if(any&&!(+s.reps>0)){savingSets=false;if(saveBtn)saveBtn.disabled=false;return toast(`请填写第 ${i+1} 组次数`)}if(+s.reps>0&&type==="band"&&!String(s.resistanceLabel||"").trim()){savingSets=false;if(saveBtn)saveBtn.disabled=false;return toast(`请填写第 ${i+1} 组弹力带阻力 / 颜色`)}}
     const valid=setDrafts.filter(x=>+x.reps>0);if(!valid.length){savingSets=false;if(saveBtn)saveBtn.disabled=false;return toast("至少记录一组")}
     const ctx=workoutContext(),targetWorkoutId=editingWorkoutId||ctx?.workoutId||"",db=getDB(),date=ctx?.date||activeDate();
@@ -132,7 +132,7 @@
     valid.forEach((s,i)=>day.training.push({id:uid("tr"),setGroupId:groupId,setIndex:i+1,exerciseId:ex.id,exerciseName:ex.name,loadType:type,weight:(type==="weight"||type==="bodyweight_extra")?(+s.weight||0):0,...(type==="band"?{resistanceLabel:String(s.resistanceLabel||"").trim()}:{ }),reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===""?"":+s.rir,time,...(targetWorkoutId?{workoutId:targetWorkoutId}:{})}));
     db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
     const wasEdit=!!editingExerciseId;
-    editingExerciseId="";editingWorkoutId="";setPickerDisabled(false);
+    editingExerciseId="";editingWorkoutId="";editingLoadType="";setPickerDisabled(false);
 
     // Close the input surface before broadcasting the expensive global refresh.
     // On iOS this keeps keyboard dismissal and application rerender out of the same frame.
@@ -211,6 +211,7 @@
       }else{
         editingExerciseId="";
         editingWorkoutId="";
+        editingLoadType="";
         setPickerDisabled(false);
         if(modal.classList.contains("workout-entry"))modal.classList.remove("workout-entry");
         ["trainingExercise","trainingGroupFilter"].forEach(id=>{
