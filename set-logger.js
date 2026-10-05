@@ -177,7 +177,7 @@
     day.training=(day.training||[]).filter(x=>x.exerciseId!==exerciseId);db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;putDB(db);toast("训练记录已删除");
   }
 
-  function lineForSet(x,ex,index,total){const type=loadTypeOf(ex),load=type==="band"?(x.resistanceLabel||"弹力带未填"):type==="bodyweight"?"BW":type==="bodyweight_extra"?((+x.weight||0)>0?`BW + ${fmt(x.weight)}kg`:"BW"):((+x.weight||0)>0?`${fmt(x.weight)}kg`:"重量未填"),prefix=total>1?`第${index+1}组 · `:"",rir=x.rir!==""&&x.rir!=null?` · RIR ${x.rir}`:"";return `${prefix}${load} × ${x.reps||"-"}${rir}`}
+  function lineForSet(x,ex,index,total){const type=["weight","bodyweight","bodyweight_extra","band"].includes(x?.loadType)?x.loadType:loadTypeOf(ex),load=type==="band"?(x.resistanceLabel||"弹力带未填"):type==="bodyweight"?"BW":type==="bodyweight_extra"?((+x.weight||0)>0?`BW + ${fmt(x.weight)}kg`:"BW"):((+x.weight||0)>0?`${fmt(x.weight)}kg`:"重量未填"),prefix=total>1?`第${index+1}组 · `:"",rir=x.rir!==""&&x.rir!=null?` · RIR ${x.rir}`:"";return `${prefix}${load} × ${x.reps||"-"}${rir}`}
 
   function compactTodayTrainingCards(){
     const box=$("todayTrainingList");if(!box)return;const db=getDB(),day=db.days?.[activeDate()];if(!day)return;
