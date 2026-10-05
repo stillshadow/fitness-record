@@ -535,8 +535,9 @@
         box.appendChild(d);
         return;
       }
-      const g=step.group,ex=db.exercises.find(e=>e.id===g.exerciseId)||{},loadType=loadTypeOf(ex);
+      const g=step.group,ex=db.exercises.find(e=>e.id===g.exerciseId)||{};
       const lines=g.items.map(x=>{
+        const loadType=["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType)?x.loadType:loadTypeOf(ex);
         let load;
         if(loadType==="band")load=x.resistanceLabel||"弹力带未填";
         else if(loadType==="bodyweight")load="BW";
