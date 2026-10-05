@@ -71,7 +71,7 @@
     editor.addEventListener("input",e=>{const r=e.target.closest?.(".set-row");if(!r)return;const i=+r.dataset.index;if(!setDrafts[i])return;if(e.target.matches("[data-set-weight]"))setDrafts[i].weight=e.target.value;if(e.target.matches("[data-set-resistance]"))setDrafts[i].resistanceLabel=e.target.value;if(e.target.matches("[data-set-reps]"))setDrafts[i].reps=e.target.value;if(e.target.matches("[data-set-rir]"))setDrafts[i].rir=e.target.value;updateSaveText()});
     editor.addEventListener("click",e=>{
       const del=e.target.closest?.("[data-delete-set]");if(del){setDrafts.splice(+del.dataset.deleteSet,1);if(!setDrafts.length)setDrafts=[blankSet()];renderEditor();return}
-      if(e.target.closest?.("#addSetRowBtn")){const last=setDrafts[setDrafts.length-1];setDrafts.push(blankSet(last?.weight||""));renderEditor();setTimeout(()=>editor.querySelector('.set-row:last-of-type [data-set-reps]')?.focus(),0)}
+      if(e.target.closest?.("#addSetRowBtn")){const last=setDrafts[setDrafts.length-1];setDrafts.push(blankSet(last?.weight||"",last?.resistanceLabel||""));renderEditor();setTimeout(()=>editor.querySelector('.set-row:last-of-type [data-set-reps]')?.focus(),0)}
     });
     return editor;
   }
