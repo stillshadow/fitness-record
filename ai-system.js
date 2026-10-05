@@ -130,6 +130,7 @@
       const rows=(db.days[date]?.training||[]).filter(x=>x.exerciseId===exerciseId);
       if(!rows.length)continue;
       const sets=rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)).map(x=>({
+        load_type:["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType)?x.loadType:loadType,
         weight:+x.weight||0,
         resistance_label:x.resistanceLabel||"",
         reps:+x.reps||0,
