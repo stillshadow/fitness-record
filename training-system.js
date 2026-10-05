@@ -426,23 +426,47 @@
     const db=getDB(), map={};
     Object.values(db.days||{}).forEach(day=>(day.training||[]).forEach(x=>{
       if(!x.exerciseId||!x.reps)return;
-      const ex=exerciseForEntry(x,db), loadType=loadTypeOf(ex), factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name), external=+x.weight||0;
-      if(loadType==="band"||loadType==="bodyweight")return;
-      let load=external, bw=null, kind="weight";
+      const ex=exerciseForEntry(x,db),loadType=loadTypeOf(ex),factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name),external=+x.weight||0,reps=+x.reps||0;
+
+      if(loadType==="band"){
+        const current=map[x.exerciseId],score=String(day.date||"")+"T"+String(x.time||"");
+        if(!current||score>current.score||(score===current.score&&reps>current.reps)){
+          map[x.exerciseId]={exercise:ex,kind:"band",score,date:day.date,reps,resistanceLabel:x.resistanceLabel||"弹力带",bestSet:`${x.resistanceLabel||"弹力带"} × ${reps}`,value:x.resistanceLabel||"弹力带",label:"最近阻力"};
+        }
+        return;
+      }
+
+      if(loadType==="bodyweight"){
+        const current=map[x.exerciseId],rir=x.rir===""||x.rir==null?99:+x.rir;
+        if(!current||reps>current.reps||(reps===current.reps&&rir<current.rir)){
+          map[x.exerciseId]={exercise:ex,kind:"bodyweight_reps",date:day.date,reps,rir,bestSet:`BW × ${reps}`,value:`${reps}次`,label:"最佳次数"};
+        }
+        return;
+      }
+
+      if(loadType==="bodyweight_extra"&&factor<=0){
+        const current=map[x.exerciseId];
+        if(!current||external>current.external||(external===current.external&&reps>current.reps)){
+          map[x.exerciseId]={exercise:ex,kind:"bodyweight_extra_raw",date:day.date,external,reps,bestSet:external>0?`BW + ${fmt(external)}kg × ${reps}`:`BW × ${reps}`,value:external>0?`${fmt(external)}kg`:`${reps}次`,label:external>0?"最佳额外负重":"最佳次数"};
+        }
+        return;
+      }
+
+      let load=external,bw=null,kind="weight";
       if(loadType==="bodyweight_extra"&&factor>0){
         bw=bodyweightForDate(day.date,db);
         if(!bw){
-          const m=map[x.exerciseId]||{exercise:ex,e1rm:0,bestSet:"",date:"",missingBodyweight:true,lastDate:""};
+          const m=map[x.exerciseId]||{exercise:ex,e1rm:0,bestSet:"",date:"",missingBodyweight:true,lastDate:"",kind:"bodyweight"};
           m.missingBodyweight=true;if(!m.lastDate||day.date>m.lastDate)m.lastDate=day.date;map[x.exerciseId]=m;return;
         }
         load=bw*factor+external;kind="bodyweight";
       }
       if(load<=0)return;
-      const rm=load*(1+(+x.reps||0)/30);
+      const rm=load*(1+reps/30);
       const m=map[x.exerciseId]||{exercise:ex,e1rm:0,bestSet:"",date:"",missingBodyweight:false,lastDate:"",kind};
       if(rm>m.e1rm){
         m.e1rm=rm;m.date=day.date;m.kind=kind;m.bw=bw;m.external=external;
-        m.bestSet=kind==="bodyweight"?(external>0?`自重 ${fmt(bw)}kg + ${fmt(external)}kg × ${x.reps}`:`自重 ${fmt(bw)}kg × ${x.reps}`):`${fmt(external)}kg × ${x.reps}`;
+        m.bestSet=kind==="bodyweight"?(external>0?`自重 ${fmt(bw)}kg + ${fmt(external)}kg × ${reps}`:`自重 ${fmt(bw)}kg × ${reps}`):`${fmt(external)}kg × ${reps}`;
       }
       if(!m.lastDate||day.date>m.lastDate)m.lastDate=day.date;
       map[x.exerciseId]=m;
@@ -452,14 +476,14 @@
 
   function renderStrength(){
     const box=$("strengthList");if(!box)return;
-    const map=strengthMap(), items=Object.values(map).sort((a,b)=>(b.e1rm||0)-(a.e1rm||0));box.innerHTML="";
+    const map=strengthMap(),items=Object.values(map).sort((a,b)=>(b.e1rm||0)-(a.e1rm||0)||String(a.exercise?.name||"").localeCompare(String(b.exercise?.name||""),"zh-CN"));box.innerHTML="";
     if(!items.length){box.innerHTML='<div class="empty">暂无力量记录。</div>';return}
     items.forEach(x=>{
       const d=document.createElement("div");d.className="item";
-      const value=x.e1rm?`${fmt(x.e1rm)}kg`:"-";
-      const sub=x.bestSet?`最佳组 ${esc(x.bestSet)} · ${esc(x.date)}`:(x.missingBodyweight?"记录晨重后可估算自重动作RM":"暂无可计算组");
-      const label=x.kind==="bodyweight"?"估算总负重1RM":"估算1RM";
-      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(x.exercise.name)}</div><div class="item-sub">${sub}</div></div><div><div class="value">${value}</div><div class="item-sub">${label}</div></div>`;
+      const value=x.e1rm?`${fmt(x.e1rm)}kg`:(x.value||"-");
+      const sub=x.bestSet?`最佳/最近 ${esc(x.bestSet)} · ${esc(x.date)}`:(x.missingBodyweight?"记录晨重后可估算自重动作RM":"暂无可计算组");
+      const label=x.label||(x.kind==="bodyweight"?"估算总负重1RM":"估算1RM");
+      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(x.exercise.name)}</div><div class="item-sub">${sub}</div></div><div><div class="value">${value}</div><div class="item-sub">${esc(label)}</div></div>`;
       box.appendChild(d);
     });
   }
