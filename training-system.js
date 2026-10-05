@@ -6,6 +6,17 @@
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const SYSTEM_VERSION = 20;
   const CARDIO_ID="__cardio__";
+  const BAND_RESISTANCE_OPTIONS=["30-50lb","50-70lb"];
+  const BAND_LIBRARY = [
+    {id:"band_pushup",name:"弹力带俯卧撑",group:"胸/三头",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
+    {id:"band_lateral_raise",name:"弹力带侧平举",group:"肩",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
+    {id:"band_triceps_pushdown",name:"弹力带三头下压",group:"三头",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
+    {id:"band_biceps_curl",name:"弹力带二头弯举",group:"二头",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
+    {id:"band_face_pull",name:"弹力带面拉",group:"肩/后束",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
+    {id:"band_straight_arm_pulldown",name:"弹力带直臂下压",group:"背",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
+    {id:"band_overhead_triceps_extension",name:"弹力带过顶臂屈伸",group:"三头",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
+    {id:"band_y_raise",name:"弹力带Y举",group:"肩",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS}
+  ];
 
   const LIBRARY = [
     {id:"bench",name:"杠铃卧推",group:"胸"},
@@ -76,7 +87,8 @@
     {id:"legraise",name:"悬垂举腿",group:"腹/核心"},
     {id:"cable_crunch",name:"绳索卷腹",group:"腹/核心"},
     {id:"ab_wheel",name:"健腹轮",group:"腹/核心"},
-    {id:"plank",name:"平板支撑",group:"腹/核心"}
+    {id:"plank",name:"平板支撑",group:"腹/核心"},
+    ...BAND_LIBRARY
   ];
 
   const VIDEO_PLANS = [
@@ -136,6 +148,7 @@
       name:String(ex?.name || "未命名动作"),
       group:String(ex?.group || "其他"),
       loadType,
+      ...(Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?{resistanceOptions:[...ex.resistanceOptions]}:{}),
       ...(factor?{bodyweightFactor:factor}:{})
     };
   }
@@ -144,11 +157,13 @@
     const preset=libraryById.get(ex?.id);
     const factor=+ex?.bodyweightFactor || +preset?.bodyweightFactor || inferBodyweightFactor(ex?.name);
     const loadType=validLoadType(ex?.loadType)?ex.loadType:loadTypeOf({...preset,...ex,bodyweightFactor:factor});
+    const resistanceOptions=Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?ex.resistanceOptions:preset?.resistanceOptions;
     return {
       id:ex?.id || preset?.id || uid("ex"),
       name:String(ex?.name || preset?.name || "未命名动作"),
       group:String(ex?.group || preset?.group || "其他"),
       loadType,
+      ...(Array.isArray(resistanceOptions)&&resistanceOptions.length?{resistanceOptions:[...resistanceOptions]}:{}),
       ...(factor?{bodyweightFactor:factor}:{})
     };
   }
@@ -170,6 +185,11 @@
     }else{
       next.exercises = next.exercises.map(normalizeExistingExercise);
     }
+
+    // Band exercises are additive presets. Append only missing ids so existing
+    // names, groups and user edits are never overwritten.
+    const existingIds=new Set(next.exercises.map(x=>x.id));
+    BAND_LIBRARY.forEach(ex=>{if(!existingIds.has(ex.id))next.exercises.push(clone(ex))});
     return next;
   }
 
@@ -338,7 +358,8 @@
     const loadType=validLoadType($("exerciseLoadType")?.value)?$("exerciseLoadType").value:loadTypeOf(old||{name});
     const inferredFactor=+old?.bodyweightFactor || inferBodyweightFactor(name);
     const factor=(loadType==="bodyweight"||loadType==="bodyweight_extra")?inferredFactor:0;
-    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...(factor?{bodyweightFactor:factor}:{})};
+    const resistanceOptions=loadType==="band"?(Array.isArray(old?.resistanceOptions)&&old.resistanceOptions.length?old.resistanceOptions:BAND_RESISTANCE_OPTIONS):null;
+    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...(resistanceOptions?{resistanceOptions:[...resistanceOptions]}:{}),...(factor?{bodyweightFactor:factor}:{})};
     db.exercises=db.exercises||[];
     const i=db.exercises.findIndex(x=>x.id===id);
     if(i>=0)db.exercises[i]=obj;else db.exercises.push(obj);
@@ -606,6 +627,7 @@
   function hookTraining(){
     window.fitnessLoadTypeOf=loadTypeOf;
     window.fitnessLoadTypeLabel=loadTypeLabel;
+    window.fitnessBandResistanceOptions=[...BAND_RESISTANCE_OPTIONS];
     window.renderPlans=renderPlans;
     window.renderExercises=renderExercises;
     window.renderStrength=renderStrength;
@@ -654,7 +676,7 @@
   const load = () => {
     if (document.querySelector('script[data-history-system]')) return;
     const s = document.createElement('script');
-    s.src = 'history-system.js?v=22';
+    s.src = 'history-system.js?v=23';
     s.dataset.historySystem = '1';
     document.head.appendChild(s);
   };

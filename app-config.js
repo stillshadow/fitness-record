@@ -315,7 +315,7 @@ try{
   const load = () => {
     if (document.querySelector('script[data-training-system]')) return;
     const s = document.createElement('script');
-    s.src = 'training-system.js?v=20';
+    s.src = 'training-system.js?v=21';
     s.dataset.trainingSystem = '1';
     document.head.appendChild(s);
   };
