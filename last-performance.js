@@ -62,9 +62,9 @@
   }
 
   function setText(row,exercise){
-    const bodyweight=(+exercise?.bodyweightFactor||0)>0;
+    const type=["weight","bodyweight","bodyweight_extra","band"].includes(row?.loadType)?row.loadType:(window.fitnessLoadTypeOf?.(exercise)||(["weight","bodyweight","bodyweight_extra","band"].includes(exercise?.loadType)?exercise.loadType:((+exercise?.bodyweightFactor||0)>0?"bodyweight_extra":"weight")));
     const weight=+row.weight||0;
-    const load=bodyweight?(weight>0?`BW + ${fmt(weight)}kg`:'BW'):(weight>0?`${fmt(weight)}kg`:'未填重量');
+    const load=type==="band"?(row.resistanceLabel||"弹力带未填"):type==="bodyweight"?"BW":type==="bodyweight_extra"?(weight>0?`BW + ${fmt(weight)}kg`:"BW"):(weight>0?`${fmt(weight)}kg`:"未填重量");
     const rir=row.rir!==''&&row.rir!=null?` · RIR ${row.rir}`:'';
     return `${load} × ${+row.reps||'-'}${rir}`;
   }
