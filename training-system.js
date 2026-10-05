@@ -4,7 +4,7 @@
   const clone = x => JSON.parse(JSON.stringify(x));
   const fmt = (n,d=1) => Number(n || 0).toFixed(d).replace(/\.0$/, "");
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
-  const SYSTEM_VERSION = 21;
+  const SYSTEM_VERSION = 20;
   const CARDIO_ID="__cardio__";
 
   const LIBRARY = [
