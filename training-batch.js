@@ -95,7 +95,9 @@
       const id=r.exerciseId||r.exerciseName||("legacy_"+ri);
       let g=groups.find(x=>x.id===id);
       if(!g){
-        const ex=(db.exercises||[]).find(x=>x.id===r.exerciseId)||{id:r.exerciseId||id,name:r.exerciseName||'未知动作',group:''};
+        const baseEx=(db.exercises||[]).find(x=>x.id===r.exerciseId)||{id:r.exerciseId||id,name:r.exerciseName||'未知动作',group:''};
+        const savedType=["weight","bodyweight","bodyweight_extra","band"].includes(r.loadType)?r.loadType:null;
+        const ex=savedType?{...baseEx,loadType:savedType}:baseEx;
         g={id,ex,rows:[],orderIndex:Number.isFinite(+r.orderIndex)?+r.orderIndex:groups.length};
         groups.push(g);
       }
