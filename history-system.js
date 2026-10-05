@@ -405,7 +405,7 @@
   const load = () => {
     if (document.querySelector('script[data-set-logger]')) return;
     const s = document.createElement('script');
-    s.src = 'set-logger.js?v=50';
+    s.src = 'set-logger.js?v=51';
     s.dataset.setLogger = '1';
     document.head.appendChild(s);
   };
