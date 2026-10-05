@@ -4,7 +4,7 @@
   const clone = x => JSON.parse(JSON.stringify(x));
   const fmt = (n,d=1) => Number(n || 0).toFixed(d).replace(/\.0$/, "");
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
-  const SYSTEM_VERSION = 20;
+  const SYSTEM_VERSION = 21;
   const CARDIO_ID="__cardio__";
 
   const LIBRARY = [
@@ -124,23 +124,31 @@
     if(/俯卧撑/.test(n)) return .65;
     return 0;
   };
+  const validLoadType = x => ["weight","bodyweight","bodyweight_extra","band"].includes(x);
+  const loadTypeOf = ex => validLoadType(ex?.loadType) ? ex.loadType : ((+ex?.bodyweightFactor||inferBodyweightFactor(ex?.name))>0 ? "bodyweight_extra" : "weight");
+  const loadTypeLabel = type => ({weight:"固定重量",bodyweight:"纯自重",bodyweight_extra:"自重 + 额外负重",band:"弹力带"}[type]||"固定重量");
 
   function normalizeCustomExercise(ex){
+    const factor=+ex?.bodyweightFactor || inferBodyweightFactor(ex?.name);
+    const loadType=loadTypeOf({...ex,bodyweightFactor:factor});
     return {
       id:ex?.id || uid("ex"),
       name:String(ex?.name || "未命名动作"),
       group:String(ex?.group || "其他"),
-      ...(ex?.bodyweightFactor ? {bodyweightFactor:+ex.bodyweightFactor} : {})
+      loadType,
+      ...(factor?{bodyweightFactor:factor}:{})
     };
   }
 
   function normalizeExistingExercise(ex){
     const preset=libraryById.get(ex?.id);
     const factor=+ex?.bodyweightFactor || +preset?.bodyweightFactor || inferBodyweightFactor(ex?.name);
+    const loadType=validLoadType(ex?.loadType)?ex.loadType:loadTypeOf({...preset,...ex,bodyweightFactor:factor});
     return {
-      id:ex?.id || uid("ex"),
+      id:ex?.id || preset?.id || uid("ex"),
       name:String(ex?.name || preset?.name || "未命名动作"),
       group:String(ex?.group || preset?.group || "其他"),
+      loadType,
       ...(factor?{bodyweightFactor:factor}:{})
     };
   }
@@ -259,7 +267,7 @@
     if(!items.length){box.innerHTML='<div class="empty">暂无动作。</div>';return}
     items.forEach(ex=>{
       const d=document.createElement("div");d.className="item";
-      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")}</div></div><div class="item-actions"><button class="btn ghost" data-edit-ex="${esc(ex.id)}">编辑</button><button class="btn danger" data-del-ex="${esc(ex.id)}">删</button></div>`;
+      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")} · ${esc(loadTypeLabel(loadTypeOf(ex)))}</div></div><div class="item-actions"><button class="btn ghost" data-edit-ex="${esc(ex.id)}">编辑</button><button class="btn danger" data-del-ex="${esc(ex.id)}">删</button></div>`;
       box.appendChild(d);
     });
     box.querySelectorAll("[data-edit-ex]").forEach(b=>b.addEventListener("click",()=>openExerciseModal(b.dataset.editEx)));
@@ -287,6 +295,21 @@
     ["exerciseRepMin","exerciseRepMax","exerciseSets"].forEach(id=>{
       const input=$(id);if(input?.parentElement)input.parentElement.style.display="none";
     });
+    const modal=$("exerciseModal"),grid=$("exerciseName")?.closest(".field-grid");
+    if(modal&&grid&&!$("exerciseLoadType")){
+      const wrap=document.createElement("div");
+      wrap.id="exerciseLoadTypeWrap";
+      wrap.innerHTML='<label for="exerciseLoadType">负重类型</label><select id="exerciseLoadType"><option value="weight">固定重量</option><option value="bodyweight">纯自重</option><option value="bodyweight_extra">自重 + 额外负重</option><option value="band">弹力带</option></select>';
+      grid.insertBefore(wrap,grid.children[2]||null);
+      const hint=document.createElement("div");
+      hint.id="exerciseLoadTypeHint";hint.className="meta";hint.style.cssText="grid-column:1/-1;margin-top:-3px";
+      grid.appendChild(hint);
+      const sync=()=>{
+        const type=$("exerciseLoadType")?.value||"weight";
+        hint.textContent=type==="band"?"训练时记录弹力带颜色 / 档位 / 标称阻力，不参与 e1RM":type==="bodyweight"?"训练时只记录次数与 RIR":type==="bodyweight_extra"?"训练时记录额外负重；可识别的自重动作仍按总负重分析":"训练时正常记录 kg";
+      };
+      $("exerciseLoadType").addEventListener("change",sync);sync();
+    }
   }
 
   function openExerciseModal(id=""){
@@ -296,6 +319,7 @@
     $("exerciseModalTitle").textContent=id?"编辑动作":"添加动作";
     $("exerciseName").value=ex?.name||"";
     $("exerciseGroup").innerHTML=groupOptions(ex?.group||"胸");
+    if($("exerciseLoadType")){$("exerciseLoadType").value=loadTypeOf(ex||{});$("exerciseLoadType").dispatchEvent(new Event("change"))}
     $("exerciseModal").classList.add("open");
   }
 
@@ -311,8 +335,10 @@
     if(saveBtn)saveBtn.disabled=true;
 
     const db=getDB(), old=db.exercises?.find(x=>x.id===id);
-    const factor=old?.bodyweightFactor || inferBodyweightFactor(name);
-    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",...(factor?{bodyweightFactor:factor}:{})};
+    const loadType=validLoadType($("exerciseLoadType")?.value)?$("exerciseLoadType").value:loadTypeOf(old||{name});
+    const inferredFactor=+old?.bodyweightFactor || inferBodyweightFactor(name);
+    const factor=(loadType==="bodyweight"||loadType==="bodyweight_extra")?inferredFactor:0;
+    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...(factor?{bodyweightFactor:factor}:{})};
     db.exercises=db.exercises||[];
     const i=db.exercises.findIndex(x=>x.id===id);
     if(i>=0)db.exercises[i]=obj;else db.exercises.push(obj);
@@ -361,10 +387,11 @@
     const modal=$("trainingModal"),select=$("trainingExercise"),cardio=$("trainingCardio");
     if(!modal||!select||!cardio)return;
     const cardioMode=!select.value;
-    const db=getDB(), ex=db.exercises?.find(x=>x.id===select.value);
+    const db=getDB(), ex=db.exercises?.find(x=>x.id===select.value),loadType=loadTypeOf(ex||{});
     ["trainingWeight","trainingReps","trainingSets","trainingRir"].forEach(id=>{
       const input=$(id);if(input?.parentElement)input.parentElement.style.display=cardioMode?"none":"block";
     });
+    if(!cardioMode&&$("trainingWeight")?.parentElement)$("trainingWeight").parentElement.style.display=(loadType==="bodyweight"||loadType==="band")?"none":"block";
     const cardioWrap=cardio.parentElement;
     if(cardioWrap)cardioWrap.style.display=cardioMode?"block":"none";
     cardio.disabled=!cardioMode;
@@ -375,7 +402,7 @@
     if(cardioWrap&&cardioMode)cardioWrap.className="c6";
 
     const weightLabel=$("trainingWeight")?.previousElementSibling;
-    if(weightLabel?.tagName==="LABEL")weightLabel.textContent=(+ex?.bodyweightFactor||0)>0?"额外负重 kg（可选）":"重量 kg";
+    if(weightLabel?.tagName==="LABEL")weightLabel.textContent=loadType==="bodyweight_extra"?"额外负重 kg（可选）":"重量 kg";
     const selectLabel=select.previousElementSibling;
     if(selectLabel?.tagName==="LABEL")selectLabel.textContent=cardioMode?"记录类型":"动作";
     const cardioLabel=cardio.previousElementSibling;
@@ -384,7 +411,7 @@
     const title=modal.querySelector(".section h2");if(title)title.textContent=cardioMode?"记录有氧":"记录力量训练";
     const save=$("saveTrainingBtn");if(save)save.textContent=cardioMode?"保存有氧":"保存训练";
     const hint=modal.querySelector(".row + .meta");
-    if(hint)hint.textContent=cardioMode?"填写本次有氧分钟即可。":((+ex?.bodyweightFactor||0)>0?"自重已计入负重，只有额外负重时才填写重量。":"");
+    if(hint)hint.textContent=cardioMode?"填写本次有氧分钟即可。":loadType==="band"?"弹力带动作请在组记录里填写阻力/颜色/档位。":loadType==="bodyweight"?"纯自重动作只记录次数和 RIR。":loadType==="bodyweight_extra"?"只填写额外负重，自重部分自动处理。":"";
   }
 
   function openTrainingModalPatched(exerciseId=""){
@@ -399,9 +426,10 @@
     const db=getDB(), map={};
     Object.values(db.days||{}).forEach(day=>(day.training||[]).forEach(x=>{
       if(!x.exerciseId||!x.reps)return;
-      const ex=exerciseForEntry(x,db), factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name), external=+x.weight||0;
+      const ex=exerciseForEntry(x,db), loadType=loadTypeOf(ex), factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name), external=+x.weight||0;
+      if(loadType==="band"||loadType==="bodyweight")return;
       let load=external, bw=null, kind="weight";
-      if(factor>0){
+      if(loadType==="bodyweight_extra"&&factor>0){
         bw=bodyweightForDate(day.date,db);
         if(!bw){
           const m=map[x.exerciseId]||{exercise:ex,e1rm:0,bestSet:"",date:"",missingBodyweight:true,lastDate:""};
@@ -483,11 +511,12 @@
         box.appendChild(d);
         return;
       }
-      const g=step.group,ex=db.exercises.find(e=>e.id===g.exerciseId)||{};
-      const factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name);
+      const g=step.group,ex=db.exercises.find(e=>e.id===g.exerciseId)||{},loadType=loadTypeOf(ex);
       const lines=g.items.map(x=>{
         let load;
-        if(factor>0)load=(+x.weight||0)>0?`BW + ${fmt(x.weight)}kg`:"BW";
+        if(loadType==="band")load=x.resistanceLabel||"弹力带未填";
+        else if(loadType==="bodyweight")load="BW";
+        else if(loadType==="bodyweight_extra")load=(+x.weight||0)>0?`BW + ${fmt(x.weight)}kg`:"BW";
         else load=(+x.weight||0)>0?`${fmt(x.weight)}kg`:"重量未填";
         return `${load} × ${x.reps||"-"} × ${x.sets||1}组${x.rir!==""&&x.rir!=null?` · RIR ${x.rir}`:""}`;
       });
@@ -550,6 +579,8 @@
   }
 
   function hookTraining(){
+    window.fitnessLoadTypeOf=loadTypeOf;
+    window.fitnessLoadTypeLabel=loadTypeLabel;
     window.renderPlans=renderPlans;
     window.renderExercises=renderExercises;
     window.renderStrength=renderStrength;
