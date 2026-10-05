@@ -118,20 +118,28 @@
     };
   }
   function e1rm(weight,reps){return weight>0&&reps>0?weight*(1+reps/30):null}
+  function exerciseLoadType(ex){
+    return window.fitnessLoadTypeOf?.(ex)||(["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"));
+  }
   function buildExercisePayload(exerciseId){
     const db=getDB(),ex=(db.exercises||[]).find(x=>x.id===exerciseId);
     if(!ex)throw new Error("找不到这个动作");
-    const sessions=[];
+    const loadType=exerciseLoadType(ex),sessions=[];
     const dates=Object.keys(db.days||{}).sort();
     for(const date of dates){
       const rows=(db.days[date]?.training||[]).filter(x=>x.exerciseId===exerciseId);
       if(!rows.length)continue;
-      const sets=rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)).map(x=>({weight:+x.weight||0,reps:+x.reps||0,rir:x.rir===""||x.rir==null?null:+x.rir}));
-      const rms=sets.map(x=>e1rm(x.weight,x.reps)).filter(x=>x!=null);
+      const sets=rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)).map(x=>({
+        weight:+x.weight||0,
+        resistance_label:x.resistanceLabel||"",
+        reps:+x.reps||0,
+        rir:x.rir===""||x.rir==null?null:+x.rir
+      }));
+      const rms=loadType==="weight"?sets.map(x=>e1rm(x.weight,x.reps)).filter(x=>x!=null):[];
       sessions.push({date,sets,best_e1rm:rms.length?+Math.max(...rms).toFixed(1):null});
     }
     return {
-      exercise:{id:ex.id,name:ex.name,group:ex.group||"",rep_min:+ex.repMin||null,rep_max:+ex.repMax||null,target_sets:+ex.sets||null},
+      exercise:{id:ex.id,name:ex.name,group:ex.group||"",load_type:loadType,bodyweight_factor:+ex.bodyweightFactor||null,rep_min:+ex.repMin||null,rep_max:+ex.repMax||null,target_sets:+ex.sets||null},
       current_bodyweight:recentWeightContext(db,today()).latest?.weight??null,
       sessions:sessions.slice(-10)
     };
@@ -227,9 +235,10 @@
     ].join("\n");
     if(mode==="exercise")return [
       "你是力量训练记录分析助手。",
-      "基于用户传入的某个动作最近训练记录，分析工作重量、重复次数、RIR、最佳组、估算1RM和训练间隔的变化。",
+      "基于用户传入的某个动作最近训练记录，结合 load_type 分析负重/阻力、重复次数、RIR、最佳组和训练间隔变化。",
+      "load_type=weight 时可以参考估算1RM；load_type=band 时绝对不要计算或讨论e1RM，而要比较弹力带阻力/颜色/档位、次数和RIR；load_type=bodyweight 时比较次数和RIR；load_type=bodyweight_extra 时主要比较额外负重、次数和RIR，不要把额外负重单独当作总负重1RM。",
       "优先判断：是否持续进步、基本持平、出现连续退步，还是数据不足。单次状态波动不能定义为停滞。",
-      "如果重量不变但次数或RIR改善，也应识别为进步。如果重量提高但次数明显下降，要结合e1RM而不是只看重量。",
+      "固定重量动作中重量不变但次数或RIR改善，也应识别为进步。弹力带动作中同一阻力下次数增加/RIR改善，或在相近次数与RIR下换更强阻力，也应识别为进步。",
       "建议最多给2到3条，必须具体可执行，例如维持重量争取次数、达到某条件后小幅加重。不要替用户自动修改计划。",
       "不要声称医学诊断、过度训练、恢复不良或受伤原因，除非输入数据明确支持且只做描述。",
       "输出简洁中文，先给结论，再给依据。"
