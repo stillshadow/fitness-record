@@ -358,7 +358,8 @@
     const loadType=validLoadType($("exerciseLoadType")?.value)?$("exerciseLoadType").value:loadTypeOf(old||{name});
     const inferredFactor=+old?.bodyweightFactor || inferBodyweightFactor(name);
     const factor=(loadType==="bodyweight"||loadType==="bodyweight_extra")?inferredFactor:0;
-    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...(factor?{bodyweightFactor:factor}:{})};
+    const resistanceOptions=loadType==="band"?(Array.isArray(old?.resistanceOptions)&&old.resistanceOptions.length?old.resistanceOptions:BAND_RESISTANCE_OPTIONS):null;
+    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...(resistanceOptions?{resistanceOptions:[...resistanceOptions]}:{}),...(factor?{bodyweightFactor:factor}:{})};
     db.exercises=db.exercises||[];
     const i=db.exercises.findIndex(x=>x.id===id);
     if(i>=0)db.exercises[i]=obj;else db.exercises.push(obj);
