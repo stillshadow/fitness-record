@@ -9,6 +9,7 @@
   const getDB = () => window.fitnessApp?.getDB?.() || {exercises:[],plans:[],days:{}};
   const clone = x => JSON.parse(JSON.stringify(x));
   const CARDIO_ID = "__cardio__";
+  const loadTypeOf = ex => window.fitnessLoadTypeOf?.(ex) || (["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"));
 
   let drafts = [];
   let previous = new Map();
@@ -60,14 +61,14 @@
 
   function blankSet(exerciseId,index){
     const p=previous.get(exerciseId)?.items?.[index] || previous.get(exerciseId)?.items?.at?.(-1) || null;
-    return {weight:'',reps:'',rir:'',hintWeight:p?.weight>0?String(p.weight):'',hintReps:p?.reps>0?String(p.reps):''};
+    return {weight:'',resistanceLabel:'',reps:'',rir:'',hintWeight:p?.weight>0?String(p.weight):'',hintResistance:p?.resistanceLabel||'',hintReps:p?.reps>0?String(p.reps):''};
   }
 
   function draftForExercise(ex, count=3, existing=[]){
     const sets=existing.length
-      ? existing.map((r,i)=>({weight:r.weight>0?String(r.weight):'',reps:r.reps>0?String(r.reps):'',rir:r.rir===''||r.rir==null?'':String(r.rir),hintWeight:'',hintReps:''}))
+      ? existing.map(r=>({weight:r.weight>0?String(r.weight):'',resistanceLabel:r.resistanceLabel||'',reps:r.reps>0?String(r.reps):'',rir:r.rir===''||r.rir==null?'':String(r.rir),hintWeight:'',hintResistance:'',hintReps:''}))
       : Array.from({length:count},(_,i)=>blankSet(ex.id,i));
-    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',sets};
+    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',loadType:loadTypeOf(ex),sets};
   }
 
   function cardioDraft(minutes=''){
