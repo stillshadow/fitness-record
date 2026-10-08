@@ -6,6 +6,8 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt = n => Number(n || 0).toFixed(1).replace(/\.0$/,'');
   const getDB = () => window.fitnessApp?.getDB?.() || {days:{},exercises:[]};
+  const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
+  const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
 
   function currentExerciseContext(){
     const s = window.getActiveWorkoutSession?.();
@@ -15,11 +17,13 @@
     const db = getDB();
     const exercise = (db.exercises||[]).find(x=>x.id===exerciseId);
     if(!exercise) return null;
-    return {session:s,exercise,exerciseId,db};
+    const equipmentName=String($("setEquipmentInput")?.value||"").trim().replace(/\s+/g," ");
+    return {session:s,exercise,exerciseId,equipmentName,db};
   }
 
-  function previousPerformance(exerciseId,session,exercise,db=getDB()){
+  function previousPerformance(exerciseId,session,exercise,db=getDB(),equipmentName=""){
     if(!exerciseId||!session?.date) return null;
+    const wantedKey=equipmentKey(equipmentName);
     const groups = new Map();
     let ordinal = 0;
     Object.entries(db.days||{}).forEach(([date,day])=>{
@@ -27,10 +31,12 @@
       (day?.training||[]).forEach(row=>{
         ordinal++;
         const same = row.exerciseId===exerciseId || (!row.exerciseId && row.exerciseName===exercise?.name);
-        if(!same || row.workoutId===session.workoutId) return;
-        const key = row.workoutId ? `wk:${row.workoutId}` : row.setGroupId ? `sg:${row.setGroupId}` : `legacy:${date}`;
+        const rowEquipment=equipmentNameOf(row),rowKey=equipmentKey(rowEquipment);
+        if(!same || row.workoutId===session.workoutId || (wantedKey&&rowKey!==wantedKey)) return;
+        const baseKey = row.workoutId ? `wk:${row.workoutId}` : row.setGroupId ? `sg:${row.setGroupId}` : `legacy:${date}`;
+        const key=`${baseKey}::${rowKey}`;
         let g = groups.get(key);
-        if(!g){g={date,time:'00:00',rows:[],ordinal:0};groups.set(key,g)}
+        if(!g){g={date,time:'00:00',rows:[],ordinal:0,equipmentName:rowEquipment};groups.set(key,g)}
         g.date=date;
         if(String(row.time||'')>g.time) g.time=String(row.time||'');
         g.ordinal=Math.max(g.ordinal,ordinal);
@@ -105,10 +111,10 @@
     if(!panel)return;
     const ctx=currentExerciseContext();
     if(!ctx){panel.hidden=true;return}
-    const prev=previousPerformance(ctx.exerciseId,ctx.session,ctx.exercise,ctx.db);
+    const prev=previousPerformance(ctx.exerciseId,ctx.session,ctx.exercise,ctx.db,ctx.equipmentName);
     if(!prev){panel.hidden=true;panel.innerHTML='';return}
-    const sets=expandedSets(prev.rows);
-    panel.innerHTML=`<div class="last-performance-head"><span>上次成绩</span><b>${esc(displayDate(prev.date))}</b></div><div class="last-performance-sets">${sets.map((row,i)=>`<span class="last-performance-set"><i>${i+1}</i>${esc(setText(row,ctx.exercise))}</span>`).join('')}</div>`;
+    const sets=expandedSets(prev.rows),equipment=prev.equipmentName?` · ${prev.equipmentName}`:"";
+    panel.innerHTML=`<div class="last-performance-head"><span>上次成绩${esc(equipment)}</span><b>${esc(displayDate(prev.date))}</b></div><div class="last-performance-sets">${sets.map((row,i)=>`<span class="last-performance-set"><i>${i+1}</i>${esc(setText(row,ctx.exercise))}</span>`).join('')}</div>`;
     panel.hidden=false;
   }
 
@@ -120,11 +126,12 @@
     const shell=$('trainingSessionShell');
     if(shell)new MutationObserver(()=>requestAnimationFrame(render)).observe(shell,{attributes:true,attributeFilter:['class']});
     window.addEventListener('fitness:changed',()=>requestAnimationFrame(render));
+    window.addEventListener('fitness:equipment-draft-changed',()=>requestAnimationFrame(render));
     window.addEventListener('focus',()=>requestAnimationFrame(render));
-    window.getPreviousExercisePerformance=(exerciseId)=>{
+    window.getPreviousExercisePerformance=(exerciseId,equipmentName="")=>{
       const s=window.getActiveWorkoutSession?.();
       const db=getDB(),ex=(db.exercises||[]).find(x=>x.id===exerciseId);
-      return s&&ex?previousPerformance(exerciseId,s,ex,db):null;
+      return s&&ex?previousPerformance(exerciseId,s,ex,db,equipmentName):null;
     };
   }
 
