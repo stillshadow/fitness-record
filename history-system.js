@@ -258,7 +258,7 @@
       .exercise-source-bar,.exercise-scene-bar,.exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
       .exercise-source-bar::-webkit-scrollbar,.exercise-scene-bar::-webkit-scrollbar,.exercise-category-bar::-webkit-scrollbar{display:none}
       .exercise-source-chip,.exercise-scene-chip,.exercise-category-chip{flex:0 0 auto;border:1px solid rgba(255,255,255,.09);background:#111821;color:#8793a4;border-radius:999px;padding:6px 10px;font-size:11px;white-space:nowrap}
-      .exercise-source-chip.active,.exercise-scene-chip.active,.exercise-category-chip.active{background:#9badff;border-color:#9badff;color:#09101b;font-weight:800}
+      .exercise-source-chip.active,.exercise-scene-chip.active,.exercise-category-chip.active{background:#26314a;border-color:#536789;color:#dce4ff;font-weight:800}
       .exercise-library-heading{font-size:12px;font-weight:850;color:var(--accent2);padding:11px 2px 2px}
       .exercise-library-item{align-items:center}
       .exercise-library-main{display:flex;align-items:center;gap:10px;min-width:0}
