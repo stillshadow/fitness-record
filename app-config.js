@@ -21,7 +21,7 @@ try{
   };
 
   loadEarly("ui-v3.js?v=66","ui-v3");
-  loadEarly("ai-system.js?v=13","ai-system");
+  loadEarly("ai-system.js?v=14","ai-system");
 
   let tries = 0;
   const reveal = setInterval(() => {
@@ -315,7 +315,7 @@ try{
   const load = () => {
     if (document.querySelector('script[data-training-system]')) return;
     const s = document.createElement('script');
-    s.src = 'training-system.js?v=21';
+    s.src = 'training-system.js?v=22';
     s.dataset.trainingSystem = '1';
     document.head.appendChild(s);
   };
