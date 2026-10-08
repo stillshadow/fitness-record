@@ -241,10 +241,15 @@
     [...box.querySelectorAll(".item")].forEach(card=>{
       const actions=card.querySelector(".item-actions"),oldButtons=actions?.querySelectorAll?.("[data-del-training]");if(!actions||!oldButtons?.length||card.dataset.compactTrainingActions)return;
       const firstId=oldButtons[0].dataset.delTraining,first=(day.training||[]).find(x=>x.id===firstId),exerciseId=first?.exerciseId;if(!exerciseId)return;
-      const ex=(db.exercises||[]).find(x=>x.id===exerciseId)||{id:exerciseId,name:first.exerciseName||"动作"},rows=(day.training||[]).filter(x=>x.exerciseId===exerciseId),sub=card.querySelector(".item-sub");
-      if(sub){sub.classList.add("training-set-lines");sub.innerHTML=rows.map((x,i)=>esc(lineForSet(x,ex,i,rows.length))).join("<br>")}
+      const equipmentName=card.dataset.equipmentName||equipmentNameOf(first),eqKey=equipmentKey(equipmentName);
+      const ex=(db.exercises||[]).find(x=>x.id===exerciseId)||{id:exerciseId,name:first.exerciseName||"动作"},rows=(day.training||[]).filter(x=>x.exerciseId===exerciseId&&equipmentKey(equipmentNameOf(x))===eqKey),sub=card.querySelector(".item-sub");
+      if(sub){
+        sub.classList.add("training-set-lines");
+        const equipmentLine=equipmentName?`<div class="training-equipment-line">器械：${esc(equipmentName)}</div>`:"";
+        sub.innerHTML=equipmentLine+rows.map((x,i)=>esc(lineForSet(x,ex,i,rows.length))).join("<br>");
+      }
       actions.classList.add("training-card-actions");actions.innerHTML=`<button type="button" class="btn ghost" data-edit-exercise-sets="${esc(exerciseId)}">编辑</button><button type="button" class="btn danger" data-delete-exercise-sets="${esc(exerciseId)}">删</button>`;
-      actions.querySelector("[data-edit-exercise-sets]")?.addEventListener("click",()=>openEditTrainingSets(exerciseId));actions.querySelector("[data-delete-exercise-sets]")?.addEventListener("click",()=>deleteExerciseRecord(exerciseId));card.dataset.compactTrainingActions="1";
+      actions.querySelector("[data-edit-exercise-sets]")?.addEventListener("click",()=>openEditTrainingSets(exerciseId,"",equipmentName));actions.querySelector("[data-delete-exercise-sets]")?.addEventListener("click",()=>deleteExerciseRecord(exerciseId,equipmentName));card.dataset.compactTrainingActions="1";
     });
   }
 
@@ -269,6 +274,8 @@
         editingExerciseId="";
         editingWorkoutId="";
         editingLoadType="";
+        editingEquipmentFilterKey=null;
+        currentEquipmentName="";
         setPickerDisabled(false);
         if(modal.classList.contains("workout-entry"))modal.classList.remove("workout-entry");
         ["trainingExercise","trainingGroupFilter"].forEach(id=>{
