@@ -10,6 +10,21 @@
   const clone = x => JSON.parse(JSON.stringify(x));
   const CARDIO_ID = "__cardio__";
   const loadTypeOf = ex => window.fitnessLoadTypeOf?.(ex) || (["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"));
+  const equipmentNameOf = x => window.fitnessEquipmentNameOf?.(x) || String(x?.equipmentName||"").trim().replace(/\s+/g," ");
+  const equipmentKey = name => window.fitnessEquipmentKey?.(name) || String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
+  const exerciseEquipmentKey = (id,name="") => window.fitnessExerciseEquipmentKey?.(id,name) || `${id||""}::${equipmentKey(name)}`;
+  function equipmentOptionsForExercise(db,exerciseId){
+    const seen=new Set(),out=[];
+    const dates=Object.keys(db.days||{}).sort().reverse();
+    dates.forEach(date=>{
+      [...(db.days?.[date]?.training||[])].reverse().forEach(row=>{
+        if(row.exerciseId!==exerciseId)return;
+        const name=equipmentNameOf(row),key=equipmentKey(name);
+        if(name&&!seen.has(key)){seen.add(key);out.push(name)}
+      });
+    });
+    return out;
+  }
 
   let drafts = [];
   let previous = new Map();
@@ -50,26 +65,36 @@
     const out=new Map();
     const dates=Object.keys(db.days||{}).filter(d=>d<beforeDate).sort().reverse();
     for(const date of dates){
-      const rows=db.days?.[date]?.training||[];
-      const grouped=new Map();
-      rows.forEach(r=>{ if(!r.exerciseId) return; if(!grouped.has(r.exerciseId)) grouped.set(r.exerciseId,[]); grouped.get(r.exerciseId).push(r); });
-      for(const [id,items] of grouped){ if(!out.has(id)) out.set(id,{date,items:items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0))}); }
-      if(out.size >= (db.exercises||[]).length) break;
+      const rows=db.days?.[date]?.training||[],grouped=new Map();
+      rows.forEach(r=>{
+        if(!r.exerciseId)return;
+        const equipmentName=equipmentNameOf(r),key=exerciseEquipmentKey(r.exerciseId,equipmentName);
+        if(!grouped.has(key))grouped.set(key,{exerciseId:r.exerciseId,equipmentName,items:[]});
+        grouped.get(key).items.push(r);
+      });
+      for(const [key,g] of grouped){
+        const entry={date,equipmentName:g.equipmentName,items:g.items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0))};
+        if(!out.has(key))out.set(key,entry);
+        if(!out.has(g.exerciseId))out.set(g.exerciseId,entry);
+      }
     }
     return out;
   }
 
-  function blankSet(exerciseId,index){
-    const p=previous.get(exerciseId)?.items?.[index] || previous.get(exerciseId)?.items?.at?.(-1) || null;
+  function blankSet(exerciseId,index,equipmentName=""){
+    const p=previous.get(equipmentName?exerciseEquipmentKey(exerciseId,equipmentName):exerciseId)?.items?.[index] || previous.get(equipmentName?exerciseEquipmentKey(exerciseId,equipmentName):exerciseId)?.items?.at?.(-1) || null;
     return {weight:'',resistanceLabel:'',reps:'',rir:'',hintWeight:p?.weight>0?String(p.weight):'',hintResistance:p?.resistanceLabel||'',hintReps:p?.reps>0?String(p.reps):''};
   }
 
   function draftForExercise(ex, count=3, existing=[]){
+    const db=getDB(),equipmentOptions=equipmentOptionsForExercise(db,ex.id);
+    const existingEquipment=equipmentNameOf(existing[0]||{});
+    const equipmentName=existingEquipment||(equipmentOptions.length===1?equipmentOptions[0]:"");
     const sets=existing.length
       ? existing.map(r=>({weight:r.weight>0?String(r.weight):'',resistanceLabel:r.resistanceLabel||'',reps:r.reps>0?String(r.reps):'',rir:r.rir===''||r.rir==null?'':String(r.rir),hintWeight:'',hintResistance:'',hintReps:''}))
-      : Array.from({length:count},(_,i)=>blankSet(ex.id,i));
+      : Array.from({length:count},(_,i)=>blankSet(ex.id,i,equipmentName));
     const resistanceOptions=Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?[...ex.resistanceOptions]:(window.fitnessBandResistanceOptions||["30-50lb","50-70lb"]);
-    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',loadType:loadTypeOf(ex),resistanceOptions,sets};
+    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',loadType:loadTypeOf(ex),resistanceOptions,equipmentName,equipmentOptions,sets};
   }
 
   function cardioDraft(minutes=''){
@@ -93,13 +118,13 @@
 
     const groups=[];
     rows.forEach((r,ri)=>{
-      const id=r.exerciseId||r.exerciseName||("legacy_"+ri);
-      let g=groups.find(x=>x.id===id);
+      const id=r.exerciseId||r.exerciseName||("legacy_"+ri),equipmentName=equipmentNameOf(r),key=exerciseEquipmentKey(id,equipmentName);
+      let g=groups.find(x=>x.key===key);
       if(!g){
         const baseEx=(db.exercises||[]).find(x=>x.id===r.exerciseId)||{id:r.exerciseId||id,name:r.exerciseName||'未知动作',group:''};
         const savedType=["weight","bodyweight","bodyweight_extra","band"].includes(r.loadType)?r.loadType:null;
         const ex=savedType?{...baseEx,loadType:savedType}:baseEx;
-        g={id,ex,rows:[],orderIndex:Number.isFinite(+r.orderIndex)?+r.orderIndex:groups.length};
+        g={id,key,equipmentName,ex,rows:[],orderIndex:Number.isFinite(+r.orderIndex)?+r.orderIndex:groups.length};
         groups.push(g);
       }
       g.rows.push(...expandLegacyRows([r]));
@@ -107,7 +132,8 @@
     });
     groups.forEach(g=>g.rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)));
 
-    const byId=new Map(groups.map(g=>[g.id,g]));
+    const byKey=new Map(groups.map(g=>[g.key,g])),byId=new Map();
+    groups.forEach(g=>{if(!byId.has(g.id))byId.set(g.id,g)});
     const used=new Set(), out=[];
     const sequence=Array.isArray(day.trainingSequence)?day.trainingSequence:[];
     sequence.forEach(step=>{
@@ -115,12 +141,12 @@
         if((+day.cardio||0)>0 && !used.has(CARDIO_ID)){out.push(cardioDraft(day.cardio));used.add(CARDIO_ID)}
         return;
       }
-      const id=step?.exerciseId||step?.id;
-      const g=byId.get(id);
-      if(g&&!used.has(id)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(id)}
+      const id=step?.exerciseId||step?.id,equipmentName=String(step?.equipmentName||"").trim();
+      const g=(equipmentName?byKey.get(exerciseEquipmentKey(id,equipmentName)):null)||byId.get(id);
+      if(g&&!used.has(g.key)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(g.key)}
     });
     groups.sort((a,b)=>a.orderIndex-b.orderIndex).forEach(g=>{
-      if(!used.has(g.id)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(g.id)}
+      if(!used.has(g.key)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(g.key)}
     });
     if((+day.cardio||0)>0&&!used.has(CARDIO_ID))out.push(cardioDraft(day.cardio));
     drafts=out;
@@ -148,7 +174,7 @@
       .batch-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.batch-head h2{margin:0;font-size:18px}.batch-head small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
       .batch-planbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:11px}.batch-planbar select{min-height:42px}.batch-planbar .btn{min-width:86px}
       .batch-list{display:grid;gap:10px}.batch-ex{border:1px solid var(--line);background:var(--panel2);border-radius:16px;padding:11px}.batch-ex-head{display:flex;align-items:start;justify-content:space-between;gap:10px;margin-bottom:9px}.batch-ex-head b{font-size:14px}.batch-ex-head small{display:block;color:var(--muted);font-size:10px;margin-top:2px}.batch-ex-actions{display:flex;gap:4px;align-items:center}.batch-move,.batch-remove{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;min-width:32px;height:30px;padding:0 7px}.batch-remove{color:var(--bad)}
-      .batch-set-head,.batch-set{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,.8fr) minmax(0,.65fr) 28px;gap:6px;align-items:center}.batch-set-head{font-size:10px;color:var(--muted);padding:0 2px 5px}.batch-set{margin-bottom:6px}.batch-set-index{text-align:center;color:var(--muted);font-size:11px}.batch-set input{padding:8px 7px;text-align:center}.batch-load-static{height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;color:#aab4c3;background:rgba(255,255,255,.025);font-size:11px}.batch-band-presets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 34px}.batch-band-preset{border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);border-radius:999px;min-height:30px;padding:0 10px;font-size:10px}.batch-band-preset:active{transform:translateY(1px)}.batch-set-del{height:34px;border:0;background:transparent;color:var(--muted);font-size:18px}.batch-add-set{width:100%;margin-top:2px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:7px}
+      .batch-equipment{margin:0 0 9px}.batch-equipment label{display:block;margin-bottom:5px;font-size:10px;color:var(--muted)}.batch-equipment input{width:100%;box-sizing:border-box;min-height:40px}.batch-set-head,.batch-set{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,.8fr) minmax(0,.65fr) 28px;gap:6px;align-items:center}.batch-set-head{font-size:10px;color:var(--muted);padding:0 2px 5px}.batch-set{margin-bottom:6px}.batch-set-index{text-align:center;color:var(--muted);font-size:11px}.batch-set input{padding:8px 7px;text-align:center}.batch-load-static{height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;color:#aab4c3;background:rgba(255,255,255,.025);font-size:11px}.batch-band-presets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 34px}.batch-band-preset{border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);border-radius:999px;min-height:30px;padding:0 10px;font-size:10px}.batch-band-preset:active{transform:translateY(1px)}.batch-set-del{height:34px;border:0;background:transparent;color:var(--muted);font-size:18px}.batch-add-set{width:100%;margin-top:2px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:7px}
       .batch-add-ex{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:10px}.batch-cardio-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.batch-cardio-fields input{min-height:42px}.batch-empty{border:1px dashed var(--line);border-radius:14px;padding:22px 12px;text-align:center;color:var(--muted);font-size:12px}.batch-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px;position:sticky;bottom:-14px;background:linear-gradient(180deg,transparent,var(--panel) 28%);padding:18px 0 14px}
       @media(max-width:430px){#batchTrainingModal{padding:8px}.batch-set-head,.batch-set{grid-template-columns:24px minmax(0,1fr) minmax(56px,.72fr) minmax(48px,.58fr) 24px;gap:4px}.batch-ex{padding:9px}.batch-set input{padding:8px 4px}.batch-add-ex{grid-template-columns:1fr 1fr}.batch-add-ex select{grid-column:1/-1}.batch-add-ex .btn{width:100%}.batch-ex-head{align-items:flex-start}.batch-ex-actions{flex-wrap:wrap;justify-content:flex-end}.batch-actions{bottom:-14px}}
     `; document.head.appendChild(style);
@@ -164,6 +190,7 @@
     $('batchClear').onclick=()=>{if(drafts.length&&!confirm('清空当前编辑内容？'))return;drafts=[];render()};
     $('batchSave').onclick=save;
     $('batchTrainingList').addEventListener('input',onInput);
+    $('batchTrainingList').addEventListener('change',onChange);
     $('batchTrainingList').addEventListener('click',onClick);
   }
 
@@ -190,17 +217,20 @@
       if(d.kind==="cardio"){
         return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>有氧</b><small>作为训练流程的一部分，可自由调整前后顺序</small></div>${move}</div><div class="batch-cardio-fields"><div><label>有氧分钟</label><input data-cardio-minutes type="number" min="0" step="1" inputmode="numeric" value="${esc(d.minutes)}" placeholder="例如 25"></div></div></section>`;
       }
-      const p=previous.get(d.exerciseId);
+      const exactPrevious=d.equipmentName?previous.get(exerciseEquipmentKey(d.exerciseId,d.equipmentName)):null;
+      const p=d.equipmentName?exactPrevious:previous.get(d.exerciseId);
       const setLoadText=x=>d.loadType==="band"?(x.resistanceLabel||"弹力带"):d.loadType==="bodyweight"?"BW":d.loadType==="bodyweight_extra"?(x.weight>0?"BW + "+x.weight+"kg":"BW"):(x.weight>0?x.weight+"kg":"未填重量");
-      const last=p?`上次 ${p.date.slice(5)} · ${p.items.map(x=>`${setLoadText(x)}×${x.reps}`).join(' / ')}`:'暂无历史';
+      const previousEquipment=p?.equipmentName?` · ${p.equipmentName}`:"";
+      const last=p?`上次 ${p.date.slice(5)}${previousEquipment} · ${p.items.map(x=>`${setLoadText(x)}×${x.reps}`).join(' / ')}`:(d.equipmentName?'此器械暂无历史':'暂无历史');
       const loadLabel=d.loadType==="band"?"阻力 / 弹力带":d.loadType==="bodyweight"?"自重":d.loadType==="bodyweight_extra"?"额外负重 kg":"重量 kg";
       const bandPresets=d.loadType==="band"?`<div class="batch-band-presets">${(d.resistanceOptions||[]).map(opt=>`<button type="button" class="batch-band-preset" data-band-preset="${esc(opt)}" data-ex-index="${di}">${esc(opt)}</button>`).join("")}</div>`:"";
+      const equipmentField=(d.loadType==="band"||d.loadType==="bodyweight")?"":`<div class="batch-equipment"><label for="batchEquipment_${di}">器械 / 设备（可选）</label><input id="batchEquipment_${di}" data-equipment type="text" list="batchEquipmentList_${di}" value="${esc(d.equipmentName||"")}" placeholder="例如 Hammer Strength 推胸机"><datalist id="batchEquipmentList_${di}">${(d.equipmentOptions||[]).map(name=>`<option value="${esc(name)}"></option>`).join("")}</datalist></div>`;
       const loadField=set=>{
         if(d.loadType==="bodyweight")return '<span class="batch-load-static">BW</span>';
         if(d.loadType==="band")return `<input data-field="resistanceLabel" type="text" value="${esc(set.resistanceLabel)}" placeholder="${esc(set.hintResistance||'黄色 / 红色')}">`;
         return `<input data-field="weight" type="number" step="0.5" inputmode="decimal" value="${esc(set.weight)}" placeholder="${esc(set.hintWeight||(d.loadType==="bodyweight_extra"?'0':'kg'))}">`;
       };
-      return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>${esc(d.exerciseName)}</b><small>${esc(d.group||'其他')} · ${esc(last)}</small></div>${move}</div>${bandPresets}<div class="batch-set-head"><span></span><span>${loadLabel}</span><span>次数</span><span>RIR</span><span></span></div>${d.sets.map((set,si)=>`<div class="batch-set" data-set-index="${si}"><span class="batch-set-index">${si+1}</span>${loadField(set)}<input data-field="reps" type="number" step="1" min="0" inputmode="numeric" value="${esc(set.reps)}" placeholder="${esc(set.hintReps||'次')}"><input data-field="rir" type="number" step="1" min="0" max="10" inputmode="numeric" value="${esc(set.rir)}" placeholder="-"><button type="button" class="batch-set-del" data-remove-set="${si}">×</button></div>`).join('')}<button type="button" class="batch-add-set" data-add-set="${di}">＋ 添加一组</button></section>`;
+      return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>${esc(d.exerciseName)}</b><small>${esc(d.group||'其他')} · ${esc(last)}</small></div>${move}</div>${equipmentField}${bandPresets}<div class="batch-set-head"><span></span><span>${loadLabel}</span><span>次数</span><span>RIR</span><span></span></div>${d.sets.map((set,si)=>`<div class="batch-set" data-set-index="${si}"><span class="batch-set-index">${si+1}</span>${loadField(set)}<input data-field="reps" type="number" step="1" min="0" inputmode="numeric" value="${esc(set.reps)}" placeholder="${esc(set.hintReps||'次')}"><input data-field="rir" type="number" step="1" min="0" max="10" inputmode="numeric" value="${esc(set.rir)}" placeholder="-"><button type="button" class="batch-set-del" data-remove-set="${si}">×</button></div>`).join('')}<button type="button" class="batch-add-set" data-add-set="${di}">＋ 添加一组</button></section>`;
     }).join('');
   }
 
@@ -209,9 +239,19 @@
     if(e.target.matches('[data-cardio-minutes]')){
       const d=drafts[+ex?.dataset.exIndex];if(d?.kind==="cardio")d.minutes=e.target.value;return;
     }
+    if(e.target.matches('[data-equipment]')){
+      const d=drafts[+ex?.dataset.exIndex];if(d)d.equipmentName=e.target.value;return;
+    }
     const field=e.target.dataset.field; if(!field) return;
     const row=e.target.closest('[data-set-index]'); if(!ex||!row) return;
     const d=drafts[+ex.dataset.exIndex], set=d?.sets?.[+row.dataset.setIndex]; if(set) set[field]=e.target.value;
+  }
+
+  function onChange(e){
+    if(!e.target.matches('[data-equipment]'))return;
+    const ex=e.target.closest('[data-ex-index]'),d=drafts[+ex?.dataset.exIndex];if(!d)return;
+    d.equipmentName=String(e.target.value||"").trim().replace(/\s+/g," ");
+    render();
   }
 
   function onClick(e){
@@ -230,9 +270,9 @@
     const remEx=e.target.closest('[data-remove-ex]');
     if(remEx){drafts.splice(+remEx.dataset.removeEx,1);render();return}
     const add=e.target.closest('[data-add-set]');
-    if(add){const d=drafts[+add.dataset.addSet];if(d){d.sets.push(blankSet(d.exerciseId,d.sets.length));render()}return}
+    if(add){const d=drafts[+add.dataset.addSet];if(d){d.sets.push(blankSet(d.exerciseId,d.sets.length,d.equipmentName||""));render()}return}
     const rem=e.target.closest('[data-remove-set]');
-    if(rem){const ex=rem.closest('[data-ex-index]'),d=drafts[+ex.dataset.exIndex];if(d){d.sets.splice(+rem.dataset.removeSet,1);if(!d.sets.length)d.sets=[blankSet(d.exerciseId,0)];render()}}
+    if(rem){const ex=rem.closest('[data-ex-index]'),d=drafts[+ex.dataset.exIndex];if(d){d.sets.splice(+rem.dataset.removeSet,1);if(!d.sets.length)d.sets=[blankSet(d.exerciseId,0,d.equipmentName||"")];render()}}
   }
 
   function addSelectedExercise(){
@@ -268,11 +308,13 @@
       }
       const entered=d.sets.filter(set=>+set.reps>0);
       if(!entered.length)return;
-      sequence.push({type:"exercise",exerciseId:d.exerciseId});
+      const equipmentName=String(d.equipmentName||"").trim().replace(/\s+/g," ");
+      sequence.push({type:"exercise",exerciseId:d.exerciseId,...(equipmentName?{equipmentName}:{})});
       const groupId=uid('setgroup');
       entered.forEach((set,i)=>rows.push({
         id:uid('tr'),setGroupId:groupId,setIndex:i+1,orderIndex:di,
         exerciseId:d.exerciseId,exerciseName:d.exerciseName,loadType:d.loadType||"weight",
+        ...(equipmentName?{equipmentName}:{ }),
         weight:(d.loadType==="weight"||d.loadType==="bodyweight_extra")?(+set.weight||0):0,
         ...(d.loadType==="band"?{resistanceLabel:String(set.resistanceLabel||"").trim()}:{ }),
         reps:+set.reps||0,sets:1,rir:String(set.rir).trim()===''?'':+set.rir,time:now,workoutId
