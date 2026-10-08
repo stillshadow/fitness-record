@@ -1,6 +1,5 @@
 (() => {
   const $ = id => document.getElementById(id);
-  const AVATAR = 'data:image/webp;base64,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';
   const STYLE = `
     body.ui-v3{--v3-bg:#07090d;--v3-panel:#0e1218;--v3-panel2:#141a22;--v3-text:#f4f6fb;--v3-muted:#7c8797;--v3-line:rgba(255,255,255,.07);--v3-accent:#9badff;background:radial-gradient(circle at 50% -8%,rgba(119,145,255,.12),transparent 32%),#07090d!important;padding-bottom:0!important;min-height:100vh}
     body.ui-v3>.bottom-nav,body.ui-v3 .bottom-nav,body.ui-v3 .desktop-tabs,body.ui-v3 .fab{display:none!important}
@@ -48,6 +47,34 @@
     #v3WeightChart{margin-top:7px}.v3-weight-chart-shell{display:grid;grid-template-columns:34px minmax(0,1fr);height:198px;min-width:0}.v3-chart-yaxis{height:174px;padding:8px 5px 18px 0;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;color:#687486;font-size:9px;line-height:1;pointer-events:none}.v3-weight-scroll{min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}.v3-weight-scroll::-webkit-scrollbar{display:none}.v3-weight-scroll svg{display:block;height:190px;max-width:none}.v3-chart-grid{stroke:rgba(255,255,255,.055);stroke-width:1}.v3-chart-raw{fill:none;stroke:#56627b;stroke-width:1.4;opacity:.75}.v3-chart-trend{fill:none;stroke:#aab9ff;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}.v3-chart-dot{fill:#71809b}.v3-chart-dot.latest{fill:#aab9ff}.v3-chart-dot.selected{fill:#eef1ff;stroke:#aab9ff;stroke-width:2}.v3-chart-hit{fill:transparent;cursor:pointer}.v3-chart-label{fill:#687486;font-size:9px}.v3-chart-detail{min-height:24px;display:flex;align-items:center;justify-content:center;gap:6px;color:#8e99aa;font-size:10px;padding:1px 4px 4px}.v3-chart-detail b{color:#e1e6ef;font-size:12px}.v3-chart-swipe{font-size:9px;color:#626d7c;text-align:center;margin-top:-2px}
     .v3-macros{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.v3-macro{padding:11px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.045)}.v3-macro small{display:block;color:var(--v3-muted);font-size:10px}.v3-macro b{font-size:16px}.v3-macro span{font-size:9px;color:#626d7c;margin-left:3px}.v3-mini-bar{height:3px;background:#171c24;border-radius:999px;margin-top:8px;overflow:hidden}.v3-mini-bar i{display:block;height:100%;background:#9badff;border-radius:999px}
     .v3-old-progress{display:none!important}
+    .diary-top{align-items:flex-start}
+    .diary-date-nav{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;align-items:center;gap:7px;min-width:0;flex:1}
+    .diary-date-step{width:36px;height:36px;border:1px solid var(--v3-line);border-radius:11px;background:#10151c;color:var(--v3-text);font-size:20px}
+    .diary-date-step:disabled{opacity:.28}
+    .diary-date-main{border:0;background:transparent;color:var(--v3-text);text-align:left;padding:0 4px;min-width:0}
+    .diary-date-main small{display:block;color:var(--v3-muted);font-size:10px;font-weight:600}.diary-date-main b{display:block;font-size:18px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .diary-home{display:grid;gap:10px;margin-top:17px}
+    .diary-card{background:linear-gradient(180deg,#10151d,#0c1117);border:1px solid var(--v3-line);border-radius:18px;padding:15px}
+    .diary-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.diary-card-head h3{margin:0;font-size:14px}.diary-card-head small{color:var(--v3-muted);font-size:10px}
+    .diary-weight-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}.diary-weight-row input{font-size:19px;font-weight:760;min-height:44px}.diary-weight-row button{min-width:72px}
+    .diary-main-value{font-size:23px;font-weight:780;letter-spacing:-.02em;margin-top:8px}.diary-sub{font-size:11px;color:var(--v3-muted);margin-top:4px;line-height:1.55}
+    .diary-actions{display:flex;gap:7px;margin-top:12px}.diary-actions .btn{flex:1;min-height:38px}
+    .diary-macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}.diary-macro{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.04);border-radius:11px;padding:9px 6px;text-align:center}.diary-macro small{display:block;color:var(--v3-muted);font-size:9px}.diary-macro b{display:block;margin-top:3px;font-size:13px}
+    .diary-progress-link{width:100%;min-height:50px;border:1px solid var(--v3-line);border-radius:16px;background:#10151d;color:var(--v3-text);display:flex;align-items:center;justify-content:space-between;padding:0 14px;text-align:left}.diary-progress-link b{font-size:14px}.diary-progress-link span{font-size:20px;color:#606b7b}
+    .diary-ai-anchor{display:none!important}
+    #v3TrainingDetail,#v3FoodDetail{min-height:100vh;padding:0 0 32px}
+    #v3TrainingDetail[hidden],#v3FoodDetail[hidden]{display:none!important}
+    .diary-detail-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:3px 2px 13px}.diary-detail-summary b{font-size:14px}.diary-detail-summary span{font-size:10px;color:var(--v3-muted)}
+    .diary-detail-list{display:grid;gap:9px}.diary-detail-card{border:1px solid var(--v3-line);background:#10151d;border-radius:16px;padding:13px}
+    .diary-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}.diary-detail-head b{font-size:14px}.diary-detail-head small{display:block;color:var(--v3-muted);font-size:10px;margin-top:2px}
+    .diary-set-list{display:grid;gap:5px;margin-top:10px}.diary-set{display:grid;grid-template-columns:26px minmax(0,1fr);gap:7px;align-items:center;font-size:12px}.diary-set i{font-style:normal;color:#647082;text-align:center;font-size:10px}
+    .diary-previous{margin-top:10px;padding-top:9px;border-top:1px solid var(--v3-line);font-size:10px;color:#758194;line-height:1.6}.diary-previous b{color:#aeb8ca;font-size:10px}
+    .diary-food-meal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.diary-food-meal-head b{font-size:14px}.diary-food-meal-head span{font-size:10px;color:var(--v3-muted)}
+    .diary-food-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.045)}.diary-food-item:first-of-type{border-top:0}.diary-food-item b{font-size:12px}.diary-food-item small{display:block;color:var(--v3-muted);font-size:9px;margin-top:1px}.diary-food-item strong{font-size:11px;text-align:right}.diary-food-total{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:11px}.diary-food-total div{background:rgba(255,255,255,.025);border-radius:9px;padding:7px 5px;text-align:center}.diary-food-total small{display:block;color:var(--v3-muted);font-size:8px}.diary-food-total b{font-size:11px}
+    .diary-empty{border:1px dashed var(--v3-line);border-radius:15px;padding:22px 14px;text-align:center;color:var(--v3-muted);font-size:11px}
+    #aiHomeCard{margin-top:15px!important}
+    #aiHomeCard .ai-home-head-copy small,#aiHomeCard .ai-home-provider{display:none!important}
+    @media(max-width:430px){.diary-card{padding:13px}.diary-macros{gap:5px}.diary-main-value{font-size:21px}}
     #v3Splash{position:fixed;inset:0;z-index:1000;background:#07090d;display:grid;place-items:center;opacity:1;transition:opacity .38s ease;pointer-events:auto}#v3Splash.hide{opacity:0;pointer-events:none}.v3-splash-inner{text-align:center;transform:translateY(-4vh)}.v3-splash-kicker{font-size:10px;letter-spacing:.34em;color:#687489;margin-bottom:12px;text-transform:uppercase}.v3-splash-name{font-size:25px;font-weight:800;letter-spacing:.04em;color:#f2f5fb;animation:v3SplashName .7s ease-out both}.v3-splash-line{height:2px;width:34px;border-radius:99px;background:#9badff;margin:16px auto 0;animation:v3SplashLine .8s .12s ease both}
     @keyframes v3Float{0%,100%{translate:0 0}50%{translate:0 -7px}}@keyframes v3Glow{0%,100%{transform:scale(.96);opacity:.72}50%{transform:scale(1.05);opacity:1}}@keyframes v3Shadow{0%,100%{transform:scaleX(.92);opacity:.62}50%{transform:scaleX(.78);opacity:.42}}@keyframes v3Orbit{to{transform:rotate(360deg)}}@keyframes v3PageIn{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes v3SplashName{from{opacity:0;transform:translateY(7px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}@keyframes v3SplashLine{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
     @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-avatar-stage{height:280px;min-height:0}.v3-avatar{height:250px;max-height:250px}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
@@ -101,32 +128,56 @@
     if($('v3Home')) return;
     const app=document.querySelector('.app'); if(!app) return;
     document.querySelector('.bottom-nav')?.remove(); document.querySelector('.desktop-tabs')?.remove(); document.getElementById('fab')?.remove();
+
     const home=document.createElement('main'); home.id='v3Home';
     home.innerHTML=`
-      <div class="v3-top"><div class="v3-today">今天<b>${prettyToday()}</b></div><button class="v3-icon-btn" id="v3SettingsBtn" aria-label="设置">${icon('gear')}</button></div>
-      <div class="v3-avatar-stage" id="v3AvatarStage"><div class="v3-avatar-orbit"></div><img class="v3-avatar" id="v3Avatar" src="${AVATAR}" alt="我的像素形象"></div>
-      <div class="v3-today-strip" id="v3TodayStrip"></div>
-      <div class="v3-action-stack">
-        <button class="v3-start" id="v3StartTraining"><span><strong id="v3StartText">记录训练</strong></span><span class="v3-arrow">›</span></button>
-        <div class="v3-grid">
-          <button class="v3-action" id="v3Food">${icon('food')}<span><b>记录食物</b></span></button>
-          <button class="v3-action" id="v3Weight">${icon('weight')}<span><b>记录晨重</b></span></button>
-          <button class="v3-action" id="v3Records">${icon('records')}<span><b>我的记录</b></span></button>
-          <button class="v3-action" id="v3Progress">${icon('progress')}<span><b>我的进度</b></span></button>
+      <div class="v3-top diary-top">
+        <div class="diary-date-nav">
+          <button type="button" class="diary-date-step" id="diaryPrevDate" aria-label="前一天">‹</button>
+          <button type="button" class="diary-date-main" id="diaryDateBtn"><small id="diaryDateKicker">今天</small><b id="diaryDateLabel"></b></button>
+          <button type="button" class="diary-date-step" id="diaryNextDate" aria-label="后一天">›</button>
+          <input id="diaryDateInput" type="date" hidden>
         </div>
-      </div>`;
+        <button class="v3-icon-btn" id="v3SettingsBtn" aria-label="设置">${icon('gear')}</button>
+      </div>
+      <div class="diary-home">
+        <section class="diary-card">
+          <div class="diary-card-head"><h3>晨重</h3><small id="diaryWeightStatus">未记录</small></div>
+          <div class="diary-weight-row"><input id="diaryWeightInput" type="number" inputmode="decimal" step="0.05" placeholder="kg"><button type="button" class="btn" id="diaryWeightSave">保存</button></div>
+        </section>
+        <section class="diary-card">
+          <div class="diary-card-head"><h3>训练</h3><small id="diaryTrainingStatus">未记录</small></div>
+          <div class="diary-main-value" id="diaryTrainingValue">未记录</div>
+          <div class="diary-sub" id="diaryTrainingSub"></div>
+          <div class="diary-actions"><button type="button" class="btn" id="v3StartTraining">记录训练</button><button type="button" class="btn ghost" id="diaryTrainingDetailBtn">查看训练</button></div>
+        </section>
+        <section class="diary-card">
+          <div class="diary-card-head"><h3>饮食</h3><small id="diaryFoodStatus">未记录</small></div>
+          <div class="diary-macros"><div class="diary-macro"><small>热量</small><b id="diaryKcal">0</b></div><div class="diary-macro"><small>碳水</small><b id="diaryC">0g</b></div><div class="diary-macro"><small>蛋白质</small><b id="diaryP">0g</b></div><div class="diary-macro"><small>脂肪</small><b id="diaryF">0g</b></div></div>
+          <div class="diary-actions"><button type="button" class="btn" id="v3Food">记录食物</button><button type="button" class="btn ghost" id="diaryFoodDetailBtn">查看饮食</button></div>
+        </section>
+        <button type="button" class="diary-progress-link" id="v3Progress"><b>我的进度</b><span>›</span></button>
+      </div>
+      <div class="v3-action-stack diary-ai-anchor"></div>`;
     app.insertBefore(home,app.firstChild);
+
+    const trainingDetail=document.createElement('section');trainingDetail.id='v3TrainingDetail';trainingDetail.hidden=true;
+    trainingDetail.innerHTML=`<div class="v3-pagebar"><button class="v3-back" data-diary-home aria-label="返回">‹</button><div><div class="v3-pagebar-title">训练</div><small id="diaryTrainingDetailDate"></small></div></div><div class="diary-detail-summary"><b id="diaryTrainingDetailSummary"></b><button type="button" class="btn" id="diaryTrainingDetailRecord">记录 / 编辑</button></div><div id="diaryTrainingDetailList" class="diary-detail-list"></div>`;
+    app.insertBefore(trainingDetail,home.nextSibling);
+
+    const foodDetail=document.createElement('section');foodDetail.id='v3FoodDetail';foodDetail.hidden=true;
+    foodDetail.innerHTML=`<div class="v3-pagebar"><button class="v3-back" data-diary-home aria-label="返回">‹</button><div><div class="v3-pagebar-title">饮食</div><small id="diaryFoodDetailDate"></small></div></div><div class="diary-detail-summary"><b id="diaryFoodDetailSummary"></b><button type="button" class="btn" id="diaryFoodDetailRecord">记录食物</button></div><div id="diaryFoodDetailList" class="diary-detail-list"></div>`;
+    app.insertBefore(foodDetail,trainingDetail.nextSibling);
 
     const settings=document.createElement('section'); settings.id='v3SettingsRoot'; settings.hidden=true;
     settings.innerHTML=`
-      <div class="v3-pagebar"><button class="v3-back" data-v3-home aria-label="返回">‹</button><div><div class="v3-pagebar-title">设置</div><small>训练、饮食和数据统一管理</small></div></div>
-      <div class="v3-settings-title">设置</div><div class="v3-settings-sub">日常记录留在首页，低频管理都收在这里。</div>
-      <div class="v3-settings-list">
-        <button class="v3-setting-row" data-v3-open="training"><span class="v3-setting-icon">${icon('training')}</span><span class="v3-setting-copy"><b>训练设置</b><small>训练模板与自定义动作</small></span><span class="v3-setting-chevron">›</span></button>
+      <div class="v3-pagebar"><button class="v3-back" data-v3-home aria-label="返回">‹</button><div><div class="v3-pagebar-title">设置</div><small>低频管理</small></div></div>
+      <div class="v3-settings-list" style="margin-top:18px">
+        <button class="v3-setting-row" data-v3-open="training"><span class="v3-setting-icon">${icon('training')}</span><span class="v3-setting-copy"><b>训练设置</b><small>模板与动作库</small></span><span class="v3-setting-chevron">›</span></button>
         <button class="v3-setting-row" data-v3-open="food"><span class="v3-setting-icon">${icon('food')}</span><span class="v3-setting-copy"><b>饮食设置</b><small>餐食模板与食物库</small></span><span class="v3-setting-chevron">›</span></button>
-        <button class="v3-setting-row" data-v3-open="settings"><span class="v3-setting-icon">${icon('target')}</span><span class="v3-setting-copy"><b>目标与数据</b><small>每日目标、AI 与本机备份</small></span><span class="v3-setting-chevron">›</span></button>
+        <button class="v3-setting-row" data-v3-open="settings"><span class="v3-setting-icon">${icon('target')}</span><span class="v3-setting-copy"><b>目标与数据</b><small>目标、AI Key 与备份</small></span><span class="v3-setting-chevron">›</span></button>
       </div>`;
-    app.insertBefore(settings,home.nextSibling);
+    app.insertBefore(settings,foodDetail.nextSibling);
   }
 
   function addSplash(){
@@ -149,15 +200,15 @@
     else document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${name}`));
   }
   function showHome(){
-    document.body.classList.remove('v3-legacy-open');
+    document.body.classList.remove('v3-legacy-open');hideDiaryDetails();
     $('v3Home').hidden=false; $('v3SettingsRoot').hidden=true; window.scrollTo({top:0,behavior:'instant'}); refreshHome();
   }
   function showSettings(){
-    document.body.classList.remove('v3-legacy-open');
+    document.body.classList.remove('v3-legacy-open');hideDiaryDetails();
     $('v3Home').hidden=true; $('v3SettingsRoot').hidden=false; window.scrollTo({top:0,behavior:'instant'});
   }
   function showLegacy(name,title,sub){
-    $('v3Home').hidden=true; $('v3SettingsRoot').hidden=true; document.body.classList.add('v3-legacy-open'); showBasePage(name);
+    hideDiaryDetails();$('v3Home').hidden=true; $('v3SettingsRoot').hidden=true; document.body.classList.add('v3-legacy-open'); showBasePage(name);
     const page=$(`page-${name}`); ensurePageBar(page,title,sub,name==='today'||name==='progress'?'home':'settings');
     if(name==='progress'){ window.renderStrength?.(); renderProgressV3(); }
     if(name==='today') moveRecentRecords();
@@ -183,6 +234,85 @@
       else { const q=(+f.grams||0)/100; c=(+f.c||0)*q; p=(+f.p||0)*q; fa=(+f.f||0)*q; }
       s.c+=c;s.p+=p;s.f+=fa;return s;
     },{c:0,p:0,f:0});
+  }
+  const activeDate = () => window.fitnessApp?.getActiveDate?.() || today();
+  const dateObj = date => new Date(String(date)+"T12:00:00");
+  const shiftDate = (date,delta) => { const d=dateObj(date);d.setDate(d.getDate()+delta);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  const prettyDateValue = date => { const d=dateObj(date),w=['周日','周一','周二','周三','周四','周五','周六'];return `${d.getMonth()+1}月${d.getDate()}日 · ${w[d.getDay()]}`; };
+  const equipmentNameOf = row => window.fitnessEquipmentNameOf?.(row) || String(row?.equipmentName||'').trim().replace(/\s+/g,' ');
+  const equipmentKey = name => window.fitnessEquipmentKey?.(name) || String(name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+  const setText = (row,ex={}) => {
+    const type=['weight','bodyweight','bodyweight_extra','band'].includes(row?.loadType)?row.loadType:(window.fitnessLoadTypeOf?.(ex)||ex.loadType||((+ex.bodyweightFactor||0)>0?'bodyweight_extra':'weight'));
+    const weight=+row?.weight||0,reps=+row?.reps||0;
+    const load=type==='band'?(row.resistanceLabel||'弹力带'):type==='bodyweight'?'BW':type==='bodyweight_extra'?(weight>0?`BW + ${weight}kg`:'BW'):(weight>0?`${weight}kg`:'重量未填');
+    return `${load} × ${reps||'-'}${(+row?.sets||1)>1?` × ${+row.sets}组`:''}${row?.rir!==''&&row?.rir!=null?` · RIR ${row.rir}`:''}`;
+  };
+  function foodMacro(entry){
+    if(entry?.totalMacros){const c=+entry.totalC||0,p=+entry.totalP||0,f=+entry.totalF||0;return {c,p,f,k:c*4+p*4+f*9};}
+    const q=(+entry?.grams||0)/100,c=(+entry?.c||0)*q,p=(+entry?.p||0)*q,f=(+entry?.f||0)*q;return {c,p,f,k:c*4+p*4+f*9};
+  }
+  function ensureDiaryDay(db,date){ db.days=db.days||{};db.days[date]=db.days[date]||{date,weight:null,cardio:0,note:'',planExerciseIds:[],planName:'',training:[],foods:[]};return db.days[date]; }
+  function setDiaryDate(date){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||'')))return;
+    window.fitnessApp?.setActiveDate?.(date);
+    refreshHome();
+    if(!$('v3TrainingDetail')?.hidden)renderTrainingDetail();
+    if(!$('v3FoodDetail')?.hidden)renderFoodDetail();
+  }
+  function hideDiaryDetails(){ if($('v3TrainingDetail'))$('v3TrainingDetail').hidden=true;if($('v3FoodDetail'))$('v3FoodDetail').hidden=true; }
+  function showDiaryDetail(kind){
+    document.body.classList.remove('v3-legacy-open');$('v3Home').hidden=true;$('v3SettingsRoot').hidden=true;hideDiaryDetails();
+    const page=kind==='training'?$('v3TrainingDetail'):$('v3FoodDetail');if(page)page.hidden=false;
+    if(kind==='training')renderTrainingDetail();else renderFoodDetail();
+    window.scrollTo({top:0,behavior:'instant'});
+  }
+  function trainingGroups(day,db){
+    const groups=[];
+    (day?.training||[]).forEach((row,idx)=>{
+      const id=row.exerciseId||row.exerciseName||('legacy_'+idx),eq=equipmentNameOf(row),key=`${id}::${equipmentKey(eq)}`;
+      let g=groups.find(x=>x.key===key);
+      if(!g){const ex=(db.exercises||[]).find(x=>x.id===row.exerciseId)||{id,name:row.exerciseName||'动作'};g={key,exerciseId:row.exerciseId||'',name:ex.name||row.exerciseName||'动作',ex,equipmentName:eq,items:[],order:Number.isFinite(+row.orderIndex)?+row.orderIndex:groups.length};groups.push(g);}
+      g.items.push(row);if(Number.isFinite(+row.orderIndex))g.order=Math.min(g.order,+row.orderIndex);
+    });
+    groups.forEach(g=>g.items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)));groups.sort((a,b)=>a.order-b.order);return groups;
+  }
+  function previousTrainingGroup(group,date,db){
+    const dates=Object.keys(db.days||{}).filter(d=>d<date).sort().reverse(),wantedEq=equipmentKey(group.equipmentName);
+    for(const d of dates){
+      const rows=(db.days?.[d]?.training||[]).filter(r=>{
+        const same=group.exerciseId?r.exerciseId===group.exerciseId:(!r.exerciseId&&r.exerciseName===group.name);
+        return same&&equipmentKey(equipmentNameOf(r))===wantedEq;
+      }).sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0));
+      if(rows.length)return {date:d,rows};
+    }
+    return null;
+  }
+  function renderTrainingDetail(){
+    const db=getDB(),date=activeDate(),day=db.days?.[date]||{},groups=trainingGroups(day,db),list=$('diaryTrainingDetailList');
+    if($('diaryTrainingDetailDate'))$('diaryTrainingDetailDate').textContent=prettyDateValue(date);
+    const sets=(day.training||[]).reduce((n,r)=>n+Math.max(1,+r.sets||1),0),cardio=+day.cardio||0;
+    if($('diaryTrainingDetailSummary'))$('diaryTrainingDetailSummary').textContent=[groups.length?`${groups.length} 个动作`:'',sets?`${sets} 组`:'',cardio?`有氧 ${cardio}min`:''].filter(Boolean).join(' · ')||'暂无训练';
+    if(!list)return;
+    if(!groups.length&&!cardio){list.innerHTML='<div class="diary-empty">这一天还没有训练记录。</div>';return;}
+    list.innerHTML=groups.map(g=>{
+      const prev=previousTrainingGroup(g,date,db),equipment=g.equipmentName||g.ex?.equipment||'';
+      const prevHtml=prev?`<div class="diary-previous"><b>上次 · ${prev.date.slice(5).replace('-','/')}</b><br>${prev.rows.map((r,i)=>`${i+1}. ${esc(setText(r,g.ex))}`).join('　')}</div>`:'<div class="diary-previous">此前暂无同动作、同器械记录</div>';
+      return `<article class="diary-detail-card"><div class="diary-detail-head"><div><b>${esc(g.name)}</b>${equipment?`<small>${esc(equipment)}</small>`:''}</div></div><div class="diary-set-list">${g.items.map((r,i)=>`<div class="diary-set"><i>${i+1}</i><span>${esc(setText(r,g.ex))}</span></div>`).join('')}</div>${prevHtml}</article>`;
+    }).join('')+(cardio?`<article class="diary-detail-card"><div class="diary-detail-head"><div><b>有氧</b><small>${cardio} min</small></div></div></article>`:'');
+  }
+  function renderFoodDetail(){
+    const db=getDB(),date=activeDate(),day=db.days?.[date]||{},foods=day.foods||[],list=$('diaryFoodDetailList');
+    if($('diaryFoodDetailDate'))$('diaryFoodDetailDate').textContent=prettyDateValue(date);
+    const total=foods.reduce((s,f)=>{const m=foodMacro(f);s.c+=m.c;s.p+=m.p;s.f+=m.f;s.k+=m.k;return s},{c:0,p:0,f:0,k:0});
+    if($('diaryFoodDetailSummary'))$('diaryFoodDetailSummary').textContent=foods.length?`${Math.round(total.k)} kcal · P ${Math.round(total.p)}g`:'暂无饮食';
+    if(!list)return;
+    if(!foods.length){list.innerHTML='<div class="diary-empty">这一天还没有饮食记录。</div>';return;}
+    const order=['早餐','午餐','加餐','晚餐','练后','其他'],groups=new Map();
+    foods.forEach(f=>{const slot=order.includes(f.slot)?f.slot:'其他';if(!groups.has(slot))groups.set(slot,[]);groups.get(slot).push(f);});
+    list.innerHTML=order.filter(slot=>groups.has(slot)).map(slot=>{
+      const items=groups.get(slot),sum=items.reduce((a,f)=>{const m=foodMacro(f);a.c+=m.c;a.p+=m.p;a.f+=m.f;a.k+=m.k;return a},{c:0,p:0,f:0,k:0});
+      return `<article class="diary-detail-card"><div class="diary-food-meal-head"><b>${slot}</b><span>${Math.round(sum.k)} kcal · C${Math.round(sum.c)} P${Math.round(sum.p)} F${Math.round(sum.f)}</span></div>${items.map(f=>{const m=foodMacro(f);return `<div class="diary-food-item"><div><b>${esc(f.name||'食物')}</b><small>${+f.grams>0?`${f.grams}${f.unit||'g'}`:''}${f.time?` · ${f.time}`:''}</small></div><strong>${Math.round(m.k)} kcal<br><small>C${Math.round(m.c)} P${Math.round(m.p)} F${Math.round(m.f)}</small></strong></div>`;}).join('')}<div class="diary-food-total"><div><small>热量</small><b>${Math.round(sum.k)}</b></div><div><small>碳水</small><b>${Math.round(sum.c)}g</b></div><div><small>蛋白质</small><b>${Math.round(sum.p)}g</b></div><div><small>脂肪</small><b>${Math.round(sum.f)}g</b></div></div></article>`;
+    }).join('');
   }
   const avg = a => a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
   let progressWeightRange=30;
@@ -282,47 +412,73 @@
   }
 
   function refreshHome(){
-    const db=getDB(),day=db.days?.[today()],weight=day?.weight;
-    const ws=$('v3WeightSub'); if(ws) ws.textContent=weight!=null?`今天 ${Number(weight).toFixed(2).replace(/0+$/,'').replace(/\.$/,'')} kg`:'今天还没记录';
-    const rows=day?.training||[], exerciseCount=new Set(rows.map(x=>x.exerciseId||x.exerciseName)).size,hasTraining=rows.length>0||(+day?.cardio||0)>0;
-    const text=$('v3StartText'),sub=$('v3StartSub');
-    if(text) text.textContent='记录训练';
-    if(sub) sub.textContent=hasTraining?`今天已记录 ${exerciseCount} 个动作${(+day?.cardio||0)>0?' · 有氧 '+(+day.cardio)+'min':''}`:'训练结束后一次录完整';
-    const m=foodTotals(day),target=db.settings||{},strip=$('v3TodayStrip');
-    if(strip) strip.innerHTML=`C <b>${Math.round(m.c)}/${+target.c||0}</b> · P <b>${Math.round(m.p)}/${+target.p||0}</b> · F <b>${Math.round(m.f)}/${+target.f||0}</b> · <span class="${hasTraining?'done':''}">${hasTraining?'训练已记录':'训练未记录'}</span>`;
+    const db=getDB(),date=activeDate(),day=db.days?.[date]||{},weight=day.weight,rows=day.training||[],m=foodTotals(day),k=m.c*4+m.p*4+m.f*9;
+    const isToday=date===today(),d=dateObj(date),future=date>today();
+    if($('diaryDateKicker'))$('diaryDateKicker').textContent=isToday?'今天':'记录';
+    if($('diaryDateLabel'))$('diaryDateLabel').textContent=prettyDateValue(date);
+    if($('diaryDateInput'))$('diaryDateInput').value=date;
+    if($('diaryNextDate'))$('diaryNextDate').disabled=future||isToday;
+
+    const wi=$('diaryWeightInput');if(wi&&document.activeElement!==wi)wi.value=weight??'';
+    if($('diaryWeightStatus'))$('diaryWeightStatus').textContent=weight!=null?`${Number(weight).toFixed(2).replace(/0+$/,'').replace(/\.$/,'')} kg`:'未记录';
+
+    const groups=trainingGroups(day,db),sets=rows.reduce((n,r)=>n+Math.max(1,+r.sets||1),0),cardio=+day.cardio||0;
+    if($('diaryTrainingStatus'))$('diaryTrainingStatus').textContent=groups.length||cardio?'已记录':'未记录';
+    if($('diaryTrainingValue'))$('diaryTrainingValue').textContent=groups.length?`${groups.length} 个动作`:cardio?'有氧':'未记录';
+    if($('diaryTrainingSub'))$('diaryTrainingSub').textContent=[sets?`${sets} 组`:'',cardio?`有氧 ${cardio}min`:''].filter(Boolean).join(' · ');
+
+    if($('diaryFoodStatus'))$('diaryFoodStatus').textContent=(day.foods||[]).length?`${day.foods.length} 条记录`:'未记录';
+    if($('diaryKcal'))$('diaryKcal').textContent=Math.round(k);
+    if($('diaryC'))$('diaryC').textContent=`${Math.round(m.c)}g`;
+    if($('diaryP'))$('diaryP').textContent=`${Math.round(m.p)}g`;
+    if($('diaryF'))$('diaryF').textContent=`${Math.round(m.f)}g`;
+
+    if(!$('v3TrainingDetail')?.hidden)renderTrainingDetail();
+    if(!$('v3FoodDetail')?.hidden)renderFoodDetail();
   }
 
   function wire(){
     $('v3SettingsBtn').onclick=showSettings; document.querySelector('[data-v3-home]').onclick=showHome;
-    $('v3Food').onclick=()=>$('quickFood')?.click(); $('v3Weight').onclick=()=>$('quickWeight')?.click();
-    $('v3Records').onclick=()=>showLegacy('today','我的记录','训练、饮食与晨重都按日期归档');
-    $('v3Progress').onclick=()=>showLegacy('progress','我的进度','只保留真正能帮助判断趋势的数据');
-    $('v3StartTraining').onclick=()=>{
-      let n=0; const go=()=>{ if(typeof window.openBatchTraining==='function') return window.openBatchTraining(); if(++n<12) return setTimeout(go,100); const t=$('toast'); if(t){t.textContent='训练记录模块还在加载';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);} }; go();
+    document.querySelectorAll('[data-diary-home]').forEach(b=>b.onclick=showHome);
+    $('diaryPrevDate').onclick=()=>setDiaryDate(shiftDate(activeDate(),-1));
+    $('diaryNextDate').onclick=()=>{if(activeDate()<today())setDiaryDate(shiftDate(activeDate(),1))};
+    $('diaryDateBtn').onclick=()=>{const input=$('diaryDateInput');if(input?.showPicker)input.showPicker();else input?.click()};
+    $('diaryDateInput').onchange=e=>{if(e.target.value&&e.target.value<=today())setDiaryDate(e.target.value)};
+    $('diaryWeightSave').onclick=()=>{
+      const v=+$('diaryWeightInput').value;if(!(v>0))return;
+      const db=getDB(),day=ensureDiaryDay(db,activeDate());day.weight=v;window.fitnessApp?.replaceDB?.(db);$('diaryWeightInput').blur();
     };
+    $('diaryTrainingDetailBtn').onclick=()=>showDiaryDetail('training');
+    $('diaryFoodDetailBtn').onclick=()=>showDiaryDetail('food');
+    $('v3Progress').onclick=()=>showLegacy('progress','我的进度','体重、力量与执行趋势');
+    $('v3StartTraining').onclick=()=>{
+      let n=0; const go=()=>{ if(typeof window.openBatchTraining==='function') return window.openBatchTraining(activeDate()); if(++n<12) return setTimeout(go,100); const t=$('toast'); if(t){t.textContent='训练记录模块还在加载';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);} }; go();
+    };
+    $('diaryTrainingDetailRecord').onclick=()=>$('v3StartTraining')?.click();
+    $('diaryFoodDetailRecord').onclick=()=>$('v3Food')?.click();
     document.querySelectorAll('[data-v3-open]').forEach(b=>b.onclick=()=>{
       const p=b.dataset.v3Open;
-      if(p==='training') showLegacy('training','训练设置','只管理模板和自定义动作');
+      if(p==='training') showLegacy('training','训练设置','模板与动作库');
       else if(p==='food') showLegacy('food','饮食设置','餐食模板与食物库');
-      else showLegacy('settings','目标与数据','每日目标、同步与备份');
+      else showLegacy('settings','目标与数据','目标、AI Key 与备份');
     });
     window.addEventListener('fitness:changed',()=>{refreshHome();if(document.body.classList.contains('v3-legacy-open')&&$('page-progress')?.classList.contains('active')){window.renderStrength?.();renderProgressV3()}});
+    window.addEventListener('fitness:date-changed',()=>refreshHome());
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshHome()});
   }
 
   function prepareLegacyPages(){
-    ensurePageBar($('page-today'),'我的记录','训练、饮食与晨重都按日期归档','home');
-    ensurePageBar($('page-progress'),'我的进度','体重、力量与饮食执行','home');
-    ensurePageBar($('page-training'),'训练设置','训练模板与自定义动作','settings');
+    ensurePageBar($('page-progress'),'我的进度','体重、力量与执行趋势','home');
+    ensurePageBar($('page-training'),'训练设置','模板与动作库','settings');
     ensurePageBar($('page-food'),'饮食设置','餐食模板与食物库','settings');
-    ensurePageBar($('page-settings'),'目标与数据','每日目标、AI 与本机备份','settings');
-    moveStrengthToProgress(); moveRecentRecords(); renderProgressV3();
+    ensurePageBar($('page-settings'),'目标与数据','目标、AI Key 与备份','settings');
+    moveStrengthToProgress(); renderProgressV3();
   }
 
   function setup(){
     if(!window.fitnessApp?.getDB||!document.querySelector('.app')) return setTimeout(setup,50);
-    injectStyle(); document.body.classList.add('ui-v3'); makeShell(); addSplash(); purgeLegacyDayPlans(); prepareLegacyPages(); wire(); showHome();
-    setTimeout(()=>{moveRecentRecords();moveStrengthToProgress();renderProgressV3();refreshHome();},450);
+    injectStyle(); document.body.classList.add('ui-v3'); makeShell(); purgeLegacyDayPlans(); prepareLegacyPages(); wire(); showHome();
+    setTimeout(()=>{moveStrengthToProgress();renderProgressV3();refreshHome();},350);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(setup,0),{once:true}); else setTimeout(setup,0);
 })();
