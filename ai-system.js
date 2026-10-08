@@ -32,17 +32,20 @@
       const q=foodMacros(x);s.C+=q.C;s.P+=q.P;s.F+=q.F;s.K+=q.K;return s;
     },{C:0,P:0,F:0,K:0});
   }
+  const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
+  const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
   function groupedTraining(day){
     const groups=[];
     for(const row of day?.training||[]){
-      let g=groups.find(x=>x.exerciseId===(row.exerciseId||row.exerciseName));
+      const exerciseId=row.exerciseId||row.exerciseName,equipmentName=equipmentNameOf(row),key=`${exerciseId}::${equipmentKey(equipmentName)}`;
+      let g=groups.find(x=>x.key===key);
       if(!g){
-        g={exerciseId:row.exerciseId||row.exerciseName,name:row.exerciseName||row.exerciseId||"未知动作",sets:[]};
+        g={key,exerciseId,name:row.exerciseName||row.exerciseId||"未知动作",equipment_name:equipmentName,sets:[]};
         groups.push(g);
       }
-      g.sets.push({weight:+row.weight||0,reps:+row.reps||0,rir:row.rir===""||row.rir==null?null:+row.rir});
+      g.sets.push({weight:+row.weight||0,resistance_label:row.resistanceLabel||"",reps:+row.reps||0,rir:row.rir===""||row.rir==null?null:+row.rir});
     }
-    return groups;
+    return groups.map(({key,...x})=>x);
   }
   function daySummary(date,day){
     const m=dayMacros(day);
@@ -121,28 +124,36 @@
   function exerciseLoadType(ex){
     return window.fitnessLoadTypeOf?.(ex)||(["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"));
   }
-  function buildExercisePayload(exerciseId){
+  function buildExercisePayload(exerciseId,equipmentName=""){
     const db=getDB(),ex=(db.exercises||[]).find(x=>x.id===exerciseId);
     if(!ex)throw new Error("找不到这个动作");
-    const loadType=exerciseLoadType(ex),sessions=[];
+    const loadType=exerciseLoadType(ex),sessions=[],wantedKey=equipmentKey(equipmentName);
     const dates=Object.keys(db.days||{}).sort();
     for(const date of dates){
-      const rows=(db.days[date]?.training||[]).filter(x=>x.exerciseId===exerciseId);
+      const rows=(db.days[date]?.training||[]).filter(x=>x.exerciseId===exerciseId&&(wantedKey?equipmentKey(equipmentNameOf(x))===wantedKey:true));
       if(!rows.length)continue;
-      const sets=rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)).map(x=>({
-        load_type:["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType)?x.loadType:loadType,
-        weight:+x.weight||0,
-        resistance_label:x.resistanceLabel||"",
-        reps:+x.reps||0,
-        rir:x.rir===""||x.rir==null?null:+x.rir
-      }));
-      const rms=loadType==="weight"?sets.map(x=>e1rm(x.weight,x.reps)).filter(x=>x!=null):[];
-      sessions.push({date,sets,best_e1rm:rms.length?+Math.max(...rms).toFixed(1):null});
+      const groups=new Map();
+      rows.forEach(row=>{
+        const eq=equipmentNameOf(row),key=equipmentKey(eq);
+        if(!groups.has(key))groups.set(key,{equipment_name:eq,rows:[]});
+        groups.get(key).rows.push(row);
+      });
+      for(const g of groups.values()){
+        const sets=g.rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)).map(x=>({
+          load_type:["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType)?x.loadType:loadType,
+          weight:+x.weight||0,
+          resistance_label:x.resistanceLabel||"",
+          reps:+x.reps||0,
+          rir:x.rir===""||x.rir==null?null:+x.rir
+        }));
+        const rms=loadType==="weight"?sets.map(x=>e1rm(x.weight,x.reps)).filter(x=>x!=null):[];
+        sessions.push({date,equipment_name:g.equipment_name,sets,best_e1rm:rms.length?+Math.max(...rms).toFixed(1):null});
+      }
     }
     return {
-      exercise:{id:ex.id,name:ex.name,group:ex.group||"",load_type:loadType,bodyweight_factor:+ex.bodyweightFactor||null,rep_min:+ex.repMin||null,rep_max:+ex.repMax||null,target_sets:+ex.sets||null},
+      exercise:{id:ex.id,name:ex.name,group:ex.group||"",load_type:loadType,equipment_filter:String(equipmentName||"").trim(),bodyweight_factor:+ex.bodyweightFactor||null,rep_min:+ex.repMin||null,rep_max:+ex.repMax||null,target_sets:+ex.sets||null},
       current_bodyweight:recentWeightContext(db,today()).latest?.weight??null,
-      sessions:sessions.slice(-10)
+      sessions:sessions.slice(-12)
     };
   }
 
@@ -236,8 +247,9 @@
     ].join("\n");
     if(mode==="exercise")return [
       "你是力量训练记录分析助手。",
-      "基于用户传入的某个动作最近训练记录，结合 load_type 分析负重/阻力、重复次数、RIR、最佳组和训练间隔变化。",
-      "load_type=weight 时可以参考估算1RM；load_type=band 时绝对不要计算或讨论e1RM，而要比较弹力带阻力/颜色/档位、次数和RIR；load_type=bodyweight 时比较次数和RIR；load_type=bodyweight_extra 时主要比较额外负重、次数和RIR，不要把额外负重单独当作总负重1RM。",
+      "基于用户传入的某个动作最近训练记录，结合 load_type、equipment_name 分析负重/阻力、重复次数、RIR、最佳组和训练间隔变化。",
+      "不同 equipment_name 的机器阻力标定不可直接比较；绝对不要因为更换器械后重量数字变小就判断力量下降。应分别分析每台器械内的趋势；如果提供了 equipment_filter，只分析该器械。",
+      "load_type=weight 时可以在同一器械内参考估算1RM；load_type=band 时绝对不要计算或讨论e1RM，而要比较弹力带阻力/颜色/档位、次数和RIR；load_type=bodyweight 时比较次数和RIR；load_type=bodyweight_extra 时主要比较额外负重、次数和RIR，不要把额外负重单独当作总负重1RM。",
       "优先判断：是否持续进步、基本持平、出现连续退步，还是数据不足。单次状态波动不能定义为停滞。",
       "固定重量动作中重量不变但次数或RIR改善，也应识别为进步。弹力带动作中同一阻力下次数增加/RIR改善，或在相近次数与RIR下换更强阻力，也应识别为进步。",
       "建议最多给2到3条，必须具体可执行，例如维持重量争取次数、达到某条件后小幅加重。不要替用户自动修改计划。",
