@@ -21,11 +21,10 @@
     load('ui-v3.js?v=66','ui-v3');
     load('training-plan-v2.js?v=56','training-plan-v2');
     load('ui-v2.js?v=54','ui-v2');
-    load('training-batch.js?v=62','training-batch');
-    load('ai-system.js?v=15','ai-system');
+    load('training-batch.js?v=63','training-batch');
+    load('ai-system.js?v=16','ai-system');
     load('last-performance.js?v=56','last-performance');
     load('ui-final.js?v=64','ui-final');
-    load('ui-minimal-light.js?v=1','ui-minimal-light');
     load('ui-keyboard.js?v=54','ui-keyboard');
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
