@@ -5,6 +5,12 @@
   if(!document.querySelector('link[data-minimal-light]')){
     const link=document.createElement("link");link.rel="stylesheet";link.href="ui-minimal-light.css?v=1";link.dataset.minimalLight="1";document.head.appendChild(link);
   }
+  const keepLightLast=()=>{
+    const link=document.querySelector('link[data-minimal-light]');
+    if(link&&document.getElementById("uiFinalStyle")&&document.head.lastElementChild!==link)document.head.appendChild(link);
+  };
+  new MutationObserver(()=>keepLightLast()).observe(document.head,{childList:true});
+  setTimeout(keepLightLast,800);
   const pad=n=>String(n).padStart(2,"0");
   const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
   const clone=x=>JSON.parse(JSON.stringify(x));
