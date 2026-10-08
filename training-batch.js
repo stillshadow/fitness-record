@@ -118,13 +118,13 @@
 
     const groups=[];
     rows.forEach((r,ri)=>{
-      const id=r.exerciseId||r.exerciseName||("legacy_"+ri);
-      let g=groups.find(x=>x.id===id);
+      const id=r.exerciseId||r.exerciseName||("legacy_"+ri),equipmentName=equipmentNameOf(r),key=exerciseEquipmentKey(id,equipmentName);
+      let g=groups.find(x=>x.key===key);
       if(!g){
         const baseEx=(db.exercises||[]).find(x=>x.id===r.exerciseId)||{id:r.exerciseId||id,name:r.exerciseName||'未知动作',group:''};
         const savedType=["weight","bodyweight","bodyweight_extra","band"].includes(r.loadType)?r.loadType:null;
         const ex=savedType?{...baseEx,loadType:savedType}:baseEx;
-        g={id,ex,rows:[],orderIndex:Number.isFinite(+r.orderIndex)?+r.orderIndex:groups.length};
+        g={id,key,equipmentName,ex,rows:[],orderIndex:Number.isFinite(+r.orderIndex)?+r.orderIndex:groups.length};
         groups.push(g);
       }
       g.rows.push(...expandLegacyRows([r]));
@@ -132,7 +132,8 @@
     });
     groups.forEach(g=>g.rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)));
 
-    const byId=new Map(groups.map(g=>[g.id,g]));
+    const byKey=new Map(groups.map(g=>[g.key,g])),byId=new Map();
+    groups.forEach(g=>{if(!byId.has(g.id))byId.set(g.id,g)});
     const used=new Set(), out=[];
     const sequence=Array.isArray(day.trainingSequence)?day.trainingSequence:[];
     sequence.forEach(step=>{
@@ -140,12 +141,12 @@
         if((+day.cardio||0)>0 && !used.has(CARDIO_ID)){out.push(cardioDraft(day.cardio));used.add(CARDIO_ID)}
         return;
       }
-      const id=step?.exerciseId||step?.id;
-      const g=byId.get(id);
-      if(g&&!used.has(id)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(id)}
+      const id=step?.exerciseId||step?.id,equipmentName=String(step?.equipmentName||"").trim();
+      const g=(equipmentName?byKey.get(exerciseEquipmentKey(id,equipmentName)):null)||byId.get(id);
+      if(g&&!used.has(g.key)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(g.key)}
     });
     groups.sort((a,b)=>a.orderIndex-b.orderIndex).forEach(g=>{
-      if(!used.has(g.id)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(g.id)}
+      if(!used.has(g.key)){out.push(draftForExercise(g.ex,g.rows.length,g.rows));used.add(g.key)}
     });
     if((+day.cardio||0)>0&&!used.has(CARDIO_ID))out.push(cardioDraft(day.cardio));
     drafts=out;
