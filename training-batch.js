@@ -27,6 +27,8 @@
   }
 
   let drafts = [];
+  let batchSceneFilter="all";
+  let batchMuscleFilter="all";
   let previous = new Map();
   let workoutId = '';
   let editDate = today();
@@ -43,14 +45,28 @@
   function categoryOrder(group){
     const g=String(group||'');
     if(g.startsWith('胸')) return 1;
-    if(g.startsWith('背')) return 2;
+    if(g.startsWith('背')||g.startsWith('斜方')) return 2;
     if(g.startsWith('肩')) return 3;
     if(g.startsWith('二头')) return 4;
     if(g.startsWith('三头')) return 5;
     if(/股四头|腘绳肌|臀|大腿/.test(g)) return 6;
-    if(g.startsWith('小腿')) return 7;
+    if(/小腿|胫骨/.test(g)) return 7;
     if(/腹|核心/.test(g)) return 8;
-    return 9;
+    if(g.startsWith('全身')) return 9;
+    return 10;
+  }
+  function muscleCategory(ex){
+    const g=String(ex?.group||"");
+    if(g.startsWith("胸"))return "胸";
+    if(g.startsWith("背")||g.startsWith("斜方"))return "背";
+    if(g.startsWith("肩"))return "肩";
+    if(g.startsWith("二头"))return "二头";
+    if(g.startsWith("三头"))return "三头";
+    if(/股四头|腘绳肌|臀|大腿/.test(g))return "腿/臀";
+    if(/小腿|胫骨/.test(g))return "小腿";
+    if(/腹|核心/.test(g))return "核心";
+    if(g.startsWith("全身"))return "全身";
+    return "其他";
   }
 
   function prescribedSetCount(text, fallback=3){
@@ -94,7 +110,7 @@
       ? existing.map(r=>({weight:r.weight>0?String(r.weight):'',resistanceLabel:r.resistanceLabel||'',reps:r.reps>0?String(r.reps):'',rir:r.rir===''||r.rir==null?'':String(r.rir),hintWeight:'',hintResistance:'',hintReps:''}))
       : Array.from({length:count},(_,i)=>blankSet(ex.id,i,equipmentName));
     const resistanceOptions=Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?[...ex.resistanceOptions]:(window.fitnessBandResistanceOptions||["30-50lb","50-70lb"]);
-    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',loadType:loadTypeOf(ex),resistanceOptions,equipmentName,equipmentOptions,sets};
+    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',loadType:loadTypeOf(ex),resistanceOptions,equipment:ex.equipment||"",equipmentName,equipmentOptions,sets};
   }
 
   function cardioDraft(minutes=''){
@@ -175,12 +191,12 @@
       .batch-planbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:11px}.batch-planbar select{min-height:42px}.batch-planbar .btn{min-width:86px}
       .batch-list{display:grid;gap:10px}.batch-ex{border:1px solid var(--line);background:var(--panel2);border-radius:16px;padding:11px}.batch-ex-head{display:flex;align-items:start;justify-content:space-between;gap:10px;margin-bottom:9px}.batch-ex-head b{font-size:14px}.batch-ex-head small{display:block;color:var(--muted);font-size:10px;margin-top:2px}.batch-ex-actions{display:flex;gap:4px;align-items:center}.batch-move,.batch-remove{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;min-width:32px;height:30px;padding:0 7px}.batch-remove{color:var(--bad)}
       .batch-equipment{margin:0 0 9px}.batch-equipment label{display:block;margin-bottom:5px;font-size:10px;color:var(--muted)}.batch-equipment input{width:100%;box-sizing:border-box;min-height:40px}.batch-set-head,.batch-set{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,.8fr) minmax(0,.65fr) 28px;gap:6px;align-items:center}.batch-set-head{font-size:10px;color:var(--muted);padding:0 2px 5px}.batch-set{margin-bottom:6px}.batch-set-index{text-align:center;color:var(--muted);font-size:11px}.batch-set input{padding:8px 7px;text-align:center}.batch-load-static{height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;color:#aab4c3;background:rgba(255,255,255,.025);font-size:11px}.batch-band-presets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 34px}.batch-band-preset{border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);border-radius:999px;min-height:30px;padding:0 10px;font-size:10px}.batch-band-preset:active{transform:translateY(1px)}.batch-set-del{height:34px;border:0;background:transparent;color:var(--muted);font-size:18px}.batch-add-set{width:100%;margin-top:2px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:7px}
-      .batch-add-ex{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:10px}.batch-ex-search{grid-column:1/-1;min-height:40px}.batch-cardio-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.batch-cardio-fields input{min-height:42px}.batch-empty{border:1px dashed var(--line);border-radius:14px;padding:22px 12px;text-align:center;color:var(--muted);font-size:12px}.batch-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px;position:sticky;bottom:-14px;background:linear-gradient(180deg,transparent,var(--panel) 28%);padding:18px 0 14px}
+      .batch-add-ex{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:10px}.batch-ex-search{grid-column:1/-1;min-height:40px}.batch-filter-row{grid-column:1/-1}.batch-cardio-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.batch-cardio-fields input{min-height:42px}.batch-empty{border:1px dashed var(--line);border-radius:14px;padding:22px 12px;text-align:center;color:var(--muted);font-size:12px}.batch-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px;position:sticky;bottom:-14px;background:linear-gradient(180deg,transparent,var(--panel) 28%);padding:18px 0 14px}
       @media(max-width:430px){#batchTrainingModal{padding:8px}.batch-set-head,.batch-set{grid-template-columns:24px minmax(0,1fr) minmax(56px,.72fr) minmax(48px,.58fr) 24px;gap:4px}.batch-ex{padding:9px}.batch-set input{padding:8px 4px}.batch-add-ex{grid-template-columns:1fr 1fr}.batch-add-ex select{grid-column:1/-1}.batch-add-ex .btn{width:100%}.batch-ex-head{align-items:flex-start}.batch-ex-actions{flex-wrap:wrap;justify-content:flex-end}.batch-actions{bottom:-14px}}
     `; document.head.appendChild(style);
 
     const modal=document.createElement('div'); modal.className='modal'; modal.id='batchTrainingModal';
-    modal.innerHTML=`<div class="modal-panel"><div class="batch-head"><div><h2>记录训练</h2><small id="batchDateText">训练结束后一次录完整场</small></div><button type="button" class="btn ghost" id="batchClose">关闭</button></div><div class="batch-planbar"><select id="batchPlan"></select><button type="button" class="btn soft" id="batchLoadPlan">载入模板</button></div><div id="batchTrainingList" class="batch-list"></div><div class="batch-add-ex"><input id="batchExerciseSearch" class="batch-ex-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><select id="batchExercise"></select><button type="button" class="btn soft" id="batchAddExercise">＋ 动作</button><button type="button" class="btn soft" id="batchAddCardio">＋ 有氧</button></div><div class="batch-actions"><button type="button" class="btn ghost" id="batchClear">清空训练</button><button type="button" class="btn" id="batchSave">保存训练</button></div></div>`;
+    modal.innerHTML=`<div class="modal-panel"><div class="batch-head"><div><h2>记录训练</h2><small id="batchDateText">训练结束后一次录完整场</small></div><button type="button" class="btn ghost" id="batchClose">关闭</button></div><div class="batch-planbar"><select id="batchPlan"></select><button type="button" class="btn soft" id="batchLoadPlan">载入模板</button></div><div id="batchTrainingList" class="batch-list"></div><div class="batch-add-ex"><input id="batchExerciseSearch" class="batch-ex-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><div id="batchSceneFilters" class="batch-filter-row"></div><div id="batchMuscleFilters" class="batch-filter-row"></div><select id="batchExercise"></select><button type="button" class="btn soft" id="batchAddExercise">＋ 动作</button><button type="button" class="btn soft" id="batchAddCardio">＋ 有氧</button></div><div class="batch-actions"><button type="button" class="btn ghost" id="batchClear">清空训练</button><button type="button" class="btn" id="batchSave">保存训练</button></div></div>`;
     document.body.appendChild(modal);
     $('batchClose').onclick=()=>modal.classList.remove('open');
     modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
@@ -188,6 +204,8 @@
     $('batchAddExercise').onclick=addSelectedExercise;
     $('batchAddCardio').onclick=addCardio;
     $('batchExerciseSearch').addEventListener('input',fillSelectors);
+    $('batchSceneFilters').addEventListener('click',e=>{const b=e.target.closest('[data-batch-scene]');if(!b)return;batchSceneFilter=b.dataset.batchScene;fillSelectors()});
+    $('batchMuscleFilters').addEventListener('click',e=>{const b=e.target.closest('[data-batch-muscle]');if(!b)return;batchMuscleFilter=b.dataset.batchMuscle;fillSelectors()});
     $('batchClear').onclick=()=>{if(drafts.length&&!confirm('清空当前编辑内容？'))return;drafts=[];render()};
     $('batchSave').onclick=save;
     $('batchTrainingList').addEventListener('input',onInput);
@@ -200,9 +218,17 @@
     const plans=$('batchPlan');
     plans.innerHTML='<option value="">选择训练模板…</option>'+(db.plans||[]).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
     const used=new Set(drafts.filter(x=>x.kind!=="cardio").map(x=>x.exerciseId));
+    const all=[...(db.exercises||[])].filter(x=>!used.has(x.id));
+    const scenes=[...new Set(all.flatMap(x=>x.scenes||["other"]))].sort((a,b)=>(window.EXERCISE_SCENES?.[a]?.order??999)-(window.EXERCISE_SCENES?.[b]?.order??999));
+    const muscles=[...new Set(all.map(muscleCategory))].sort((a,b)=>["胸","背","肩","二头","三头","腿/臀","小腿","核心","全身","其他"].indexOf(a)-["胸","背","肩","二头","三头","腿/臀","小腿","核心","全身","其他"].indexOf(b));
+    if(batchSceneFilter!=="all"&&!scenes.includes(batchSceneFilter))batchSceneFilter="all";
+    if(batchMuscleFilter!=="all"&&!muscles.includes(batchMuscleFilter))batchMuscleFilter="all";
+    $('batchSceneFilters').innerHTML=`<button type="button" class="batch-filter-chip ${batchSceneFilter==="all"?"active":""}" data-batch-scene="all">全部场景</button>`+scenes.map(id=>`<button type="button" class="batch-filter-chip ${batchSceneFilter===id?"active":""}" data-batch-scene="${esc(id)}">${esc(window.exerciseSceneLabel?.(id)||id)}</button>`).join("");
+    $('batchMuscleFilters').innerHTML=`<button type="button" class="batch-filter-chip ${batchMuscleFilter==="all"?"active":""}" data-batch-muscle="all">全部肌群</button>`+muscles.map(id=>`<button type="button" class="batch-filter-chip ${batchMuscleFilter===id?"active":""}" data-batch-muscle="${esc(id)}">${esc(id)}</button>`).join("");
     const q=String($('batchExerciseSearch')?.value||"").trim().toLocaleLowerCase();
-    const exs=[...(db.exercises||[])].filter(x=>{
-      if(used.has(x.id))return false;
+    const exs=all.filter(x=>{
+      if(batchSceneFilter!=="all"&&!(x.scenes||["other"]).includes(batchSceneFilter))return false;
+      if(batchMuscleFilter!=="all"&&muscleCategory(x)!==batchMuscleFilter)return false;
       if(!q)return true;
       const scene=(x.scenes||[]).map(id=>window.exerciseSceneLabel?.(id)||id).join(" ");
       const text=[x.name,x.group,x.equipment,scene,...(x.aliases||[])].filter(Boolean).join(" ").toLocaleLowerCase();
@@ -232,7 +258,7 @@
       const last=p?`上次 ${p.date.slice(5)}${previousEquipment} · ${p.items.map(x=>`${setLoadText(x)}×${x.reps}`).join(' / ')}`:(d.equipmentName?'此器械暂无历史':'暂无历史');
       const loadLabel=d.loadType==="band"?"阻力 / 弹力带":d.loadType==="bodyweight"?"自重":d.loadType==="bodyweight_extra"?"额外负重 kg":"重量 kg";
       const bandPresets=d.loadType==="band"?`<div class="batch-band-presets">${(d.resistanceOptions||[]).map(opt=>`<button type="button" class="batch-band-preset" data-band-preset="${esc(opt)}" data-ex-index="${di}">${esc(opt)}</button>`).join("")}</div>`:"";
-      const equipmentField=(d.loadType==="band"||d.loadType==="bodyweight")?"":`<div class="batch-equipment"><label for="batchEquipment_${di}">器械 / 设备（可选）</label><input id="batchEquipment_${di}" data-equipment type="text" list="batchEquipmentList_${di}" value="${esc(d.equipmentName||"")}" placeholder="例如 Hammer Strength 推胸机"><datalist id="batchEquipmentList_${di}">${(d.equipmentOptions||[]).map(name=>`<option value="${esc(name)}"></option>`).join("")}</datalist></div>`;
+      const equipmentField=(d.loadType==="band"||d.loadType==="bodyweight")?"":`<div class="batch-standard-equipment">${d.equipment?"器械："+esc(d.equipment):"自由负重 / 自定义器械"}</div><details class="batch-specific-equipment" ${d.equipmentName?"open":""}><summary>区分具体机器（可选）</summary><input id="batchEquipment_${di}" data-equipment type="text" list="batchEquipmentList_${di}" value="${esc(d.equipmentName||"")}" placeholder="例如 二楼 1 号推胸机"><datalist id="batchEquipmentList_${di}">${(d.equipmentOptions||[]).map(name=>`<option value="${esc(name)}"></option>`).join("")}</datalist></details>`;
       const loadField=set=>{
         if(d.loadType==="bodyweight")return '<span class="batch-load-static">BW</span>';
         if(d.loadType==="band")return `<input data-field="resistanceLabel" type="text" value="${esc(set.resistanceLabel)}" placeholder="${esc(set.hintResistance||'黄色 / 红色')}">`;

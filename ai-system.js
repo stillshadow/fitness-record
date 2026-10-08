@@ -304,7 +304,8 @@
     if(!apiKey)throw new Error("请先到“目标与数据 → AI 服务”填写 DeepSeek API Key");
     const content=[{type:"input_text",text:userText(mode,payload)}];
     if((mode==="food_estimate"||mode==="nutrition_label")&&imageDataUrl){
-      content.push({type:"input_image",image_url:imageDataUrl,detail:mode==="nutrition_label"?"high":"low"});
+      const images=Array.isArray(imageDataUrl)?imageDataUrl:[imageDataUrl];
+      images.filter(Boolean).slice(0,6).forEach(url=>content.push({type:"input_image",image_url:url,detail:mode==="nutrition_label"?"high":"low"}));
     }
     const schema=mode==="food_estimate"?foodSchema:mode==="nutrition_label"?nutritionLabelSchema:insightSchema;
     const formatName=mode==="food_estimate"?"food_estimate":mode==="nutrition_label"?"nutrition_label":"fitness_insight";
@@ -443,7 +444,7 @@
     document.head.appendChild(style);
   }
 
-  let pendingFoodImage=null,pendingFoodResult=null,pendingSlot="午餐",pendingTime="",foodAIOrigin="home";
+  let pendingFoodImages=[],pendingFoodResult=null,pendingSlot="午餐",pendingTime="",foodAIOrigin="home";
   function inferMealSlotAI(){
     const h=new Date().getHours();
     if(h<10)return "早餐";if(h<14)return "午餐";if(h<17)return "加餐";if(h<21)return "晚餐";return "练后";
@@ -459,12 +460,13 @@
     if(!$("aiFoodModal")){
       const modal=document.createElement("div");modal.className="modal";modal.id="aiFoodModal";
       modal.innerHTML='<div class="modal-panel"><div class="ai-modal-head"><div><b>AI 食物估算</b><small>照片、重量和备注一起判断</small></div><button type="button" class="ai-modal-close" id="aiFoodClose" aria-label="关闭">×</button></div>'+
-        '<div class="ai-upload" id="aiUpload"><img class="ai-upload-preview" id="aiFoodPreview" alt=""><label class="btn soft" for="aiFoodImage">📷 拍照 / 选择图片</label><input id="aiFoodImage" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><div class="meta" style="margin-top:7px">图片可选，也可以只写食物描述和重量</div></div>'+
+        '<div class="ai-upload" id="aiUpload"><div class="ai-food-previews" id="aiFoodPreviews"></div><label class="btn soft" for="aiFoodImage">📷 拍照 / 从相册选择</label><input id="aiFoodImage" type="file" accept="image/*" multiple><div class="meta" style="margin-top:7px">可一次选择多张图片；不同角度、包装和餐盘可以一起分析</div></div>'+
         '<div class="ai-fields"><div><label for="aiFoodWeight">已知总重量 g（可选）</label><input id="aiFoodWeight" type="number" min="0" step="1" inputmode="decimal"></div><div><label for="aiFoodSlot">餐次</label><select id="aiFoodSlot"><option>早餐</option><option>午餐</option><option>加餐</option><option>晚餐</option><option>练后</option></select></div><div class="wide"><label for="aiFoodNote">描述 / 备注</label><textarea id="aiFoodNote" placeholder="例如：黄焖鸡米饭，鸡皮没吃，汤汁没有拌饭"></textarea></div></div>'+
         '<div id="aiFoodResult"></div><div class="modal-actions"><button class="btn ghost" id="aiFoodBack">手动记录</button><button class="btn" id="aiFoodAnalyze">AI 估算</button></div></div>';
       document.body.appendChild(modal);
       $("aiFoodClose").onclick=closeFoodAI;$("aiFoodBack").onclick=openManualFoodFromAI;$("aiFoodAnalyze").onclick=runFoodAI;
       $("aiFoodImage").addEventListener("change",onFoodImage);
+      $("aiFoodPreviews").addEventListener("click",e=>{const b=e.target.closest("[data-remove-food-image]");if(!b)return;pendingFoodImages.splice(+b.dataset.removeFoodImage,1);renderFoodImagePreviews()});
       $("aiFoodSlot").addEventListener("change",()=>{pendingSlot=$("aiFoodSlot").value;syncFoodSaveLabel()});
       modal.addEventListener("click",e=>{if(e.target===modal)closeFoodAI()});
     }
@@ -482,8 +484,8 @@
     pendingSlot=fromManual?($("mealSlot")?.value||inferMealSlotAI()):inferMealSlotAI();
     pendingTime=fromManual?($("foodTime")?.value||localTimeAI()):localTimeAI();
     $("foodModal")?.classList.remove("open");
-    pendingFoodImage=null;pendingFoodResult=null;
-    $("aiFoodImage").value="";$("aiFoodPreview").removeAttribute("src");$("aiUpload").classList.remove("has-image");
+    pendingFoodImages=[];pendingFoodResult=null;
+    $("aiFoodImage").value="";renderFoodImagePreviews();
     $("aiFoodWeight").value="";$("aiFoodNote").value="";$("aiFoodResult").innerHTML="";
     $("aiFoodSlot").value=pendingSlot;
     $("aiFoodAnalyze").textContent="AI 估算";$("aiFoodModal").classList.add("open");
@@ -519,11 +521,21 @@
     return {data,imageDataUrl};
   }
   window.fitnessAI={...(window.fitnessAI||{}),scanNutritionLabel};
+  function renderFoodImagePreviews(){
+    const box=$("aiFoodPreviews");if(!box)return;
+    box.innerHTML=pendingFoodImages.map((src,i)=>'<div class="ai-food-preview-item"><img src="'+src+'" alt="食物图片 '+(i+1)+'"><button type="button" class="ai-food-preview-remove" data-remove-food-image="'+i+'" aria-label="移除图片">×</button></div>').join("");
+    $("aiUpload")?.classList.toggle("has-image",pendingFoodImages.length>0);
+  }
   async function onFoodImage(e){
+    const files=[...(e.target.files||[])].slice(0,6);
+    if(!files.length)return;
     try{
-      pendingFoodImage=await fileToDataUrl(e.target.files?.[0]);
-      if(pendingFoodImage){$("aiFoodPreview").src=pendingFoodImage;$("aiUpload").classList.add("has-image")}
-    }catch(err){pendingFoodImage=null;toast(err.message||"图片读取失败")}
+      const converted=[];
+      for(const file of files)converted.push(await fileToDataUrl(file));
+      pendingFoodImages=[...pendingFoodImages,...converted.filter(Boolean)].slice(0,6);
+      renderFoodImagePreviews();
+    }catch(err){toast(err.message||"图片读取失败")}
+    finally{e.target.value=""}
   }
   function renderFoodResult(r){
     pendingFoodResult=r;
@@ -545,10 +557,10 @@
   async function runFoodAI(){
     pendingSlot=$("aiFoodSlot")?.value||pendingSlot;
     const note=$("aiFoodNote").value.trim(),weight=+$("aiFoodWeight").value||null;
-    if(!pendingFoodImage&&!note)return toast("请拍一张照片，或写一下这顿吃了什么");
+    if(!pendingFoodImages.length&&!note)return toast("请选择图片，或写一下这顿吃了什么");
     const btn=$("aiFoodAnalyze");btn.disabled=true;btn.textContent="分析中…";$("aiFoodResult").innerHTML='<div class="ai-loading">DeepSeek 正在估算这顿饭…</div>';
     try{
-      const data=await callAI("food_estimate",{weight_grams:weight,note,meal_slot:pendingSlot},pendingFoodImage);
+      const data=await callAI("food_estimate",{weight_grams:weight,note,meal_slot:pendingSlot,image_count:pendingFoodImages.length},pendingFoodImages);
       renderFoodResult(data);
     }catch(err){$("aiFoodResult").innerHTML='<div class="empty">'+escapeHtml(err.message||"AI 请求失败")+'</div>';btn.textContent="重试"}
     finally{btn.disabled=false}

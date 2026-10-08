@@ -6,7 +6,7 @@
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const SYSTEM_VERSION = 20;
   const CARDIO_ID="__cardio__";
-  const BAND_RESISTANCE_OPTIONS=["30-50lb","50-70lb"];
+  const BAND_RESISTANCE_OPTIONS=["30-50lb","50-70lb","10-20lb","20-30lb","70-90lb","90-120lb"];
   const BAND_LIBRARY = [
     {id:"band_pushup",name:"弹力带俯卧撑",group:"胸/三头",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
     {id:"band_lateral_raise",name:"弹力带侧平举",group:"肩",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
@@ -320,8 +320,9 @@
     items.forEach(ex=>{
       const d=document.createElement("div");d.className="item exercise-library-item";
       d.dataset.exerciseId=ex.id;
+      d.dataset.exerciseSource=libraryById.has(ex.id)?"builtin":"custom";
       d.dataset.exerciseScenes=(ex.scenes||[]).join(",");
-      const art=window.renderExerciseIllustration?.(ex,"small")||"";
+      const art=ex.imageUrl?`<img class="exercise-photo" src="${esc(ex.imageUrl)}" alt="${esc(ex.name)}" loading="lazy">`:"";
       const scene=window.exerciseSceneLabel?.(ex.scenes?.[0])||"自定义";
       const equipment=ex.equipment||"自定义器械";
       const aliases=Array.isArray(ex.aliases)?ex.aliases.join(" "):"";
@@ -738,7 +739,7 @@
   const load = () => {
     if (document.querySelector('script[data-history-system]')) return;
     const s = document.createElement('script');
-    s.src = 'history-system.js?v=25';
+    s.src = 'history-system.js?v=26';
     s.dataset.historySystem = '1';
     document.head.appendChild(s);
   };
