@@ -676,19 +676,13 @@
       const state=currentCacheState(mode,null);
       btn.classList.toggle("has-cache",state.valid);
       btn.classList.toggle("stale",state.stale);
-      let status=btn.querySelector("small");
-      if(state.valid){
-        if(!status){status=document.createElement("small");btn.appendChild(status)}
-        status.textContent=state.stale?"已生成 · 数据有更新":"今日已生成 · "+formatGeneratedTime(state.entry.generatedAt);
-      }else if(status){
-        status.remove();
-      }
+      btn.querySelector("small")?.remove();
     }
   }
   function injectHomeCard(){
     const stack=$("v3Home")?.querySelector(".v3-action-stack");if(!stack||$("aiHomeCard"))return;
     const card=document.createElement("div");card.className="ai-home-card";card.id="aiHomeCard";
-    card.innerHTML='<div class="ai-home-head"><div class="ai-home-head-copy"><b>✦ AI 分析</b><small>当天报告生成一次，之后直接查看缓存</small></div><span class="ai-home-provider">DeepSeek</span></div><div class="ai-home-actions"><button type="button" class="ai-home-action" id="aiToday"><strong>今日简报</strong></button><button type="button" class="ai-home-action" id="aiWeekly"><strong>最近 7 天</strong></button></div>';
+    card.innerHTML='<div class="ai-home-head"><div class="ai-home-head-copy"><b>✦ AI 分析</b></div></div><div class="ai-home-actions"><button type="button" class="ai-home-action" id="aiToday"><strong>今日简报</strong></button><button type="button" class="ai-home-action" id="aiWeekly"><strong>最近 7 天</strong></button></div>';
     stack.insertAdjacentElement("afterend",card);
     $("aiToday").onclick=()=>runInsight("today");
     $("aiWeekly").onclick=()=>runInsight("weekly");
