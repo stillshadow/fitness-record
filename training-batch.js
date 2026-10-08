@@ -252,10 +252,11 @@
         return `<section class="batch-ex" data-ex-index="${di}"><div class="batch-ex-head"><div><b>有氧</b><small>作为训练流程的一部分，可自由调整前后顺序</small></div>${move}</div><div class="batch-cardio-fields"><div><label>有氧分钟</label><input data-cardio-minutes type="number" min="0" step="1" inputmode="numeric" value="${esc(d.minutes)}" placeholder="例如 25"></div></div></section>`;
       }
       const exactPrevious=d.equipmentName?previous.get(exerciseEquipmentKey(d.exerciseId,d.equipmentName)):null;
-      const p=d.equipmentName?exactPrevious:previous.get(d.exerciseId);
+      const hasMultipleMachines=(d.equipmentOptions||[]).length>1;
+      const p=d.equipmentName?exactPrevious:(hasMultipleMachines?null:previous.get(d.exerciseId));
       const setLoadText=x=>d.loadType==="band"?(x.resistanceLabel||"弹力带"):d.loadType==="bodyweight"?"BW":d.loadType==="bodyweight_extra"?(x.weight>0?"BW + "+x.weight+"kg":"BW"):(x.weight>0?x.weight+"kg":"未填重量");
       const previousEquipment=p?.equipmentName?` · ${p.equipmentName}`:"";
-      const last=p?`上次 ${p.date.slice(5)}${previousEquipment} · ${p.items.map(x=>`${setLoadText(x)}×${x.reps}`).join(' / ')}`:(d.equipmentName?'此器械暂无历史':'暂无历史');
+      const last=p?`上次 ${p.date.slice(5)}${previousEquipment} · ${p.items.map(x=>`${setLoadText(x)}×${x.reps}`).join(' / ')}`:(d.equipmentName?'此器械暂无历史':hasMultipleMachines?'先选择具体机器查看上次成绩':'暂无历史');
       const loadLabel=d.loadType==="band"?"阻力 / 弹力带":d.loadType==="bodyweight"?"自重":d.loadType==="bodyweight_extra"?"额外负重 kg":"重量 kg";
       const bandPresets=d.loadType==="band"?`<div class="batch-band-presets">${(d.resistanceOptions||[]).map(opt=>`<button type="button" class="batch-band-preset" data-band-preset="${esc(opt)}" data-ex-index="${di}">${esc(opt)}</button>`).join("")}</div>`:"";
       const equipmentField=(d.loadType==="band"||d.loadType==="bodyweight")?"":`<div class="batch-standard-equipment">${d.equipment?"器械："+esc(d.equipment):"自由负重 / 自定义器械"}</div><details class="batch-specific-equipment" ${d.equipmentName?"open":""}><summary>区分具体机器（可选）</summary><input id="batchEquipment_${di}" data-equipment type="text" list="batchEquipmentList_${di}" value="${esc(d.equipmentName||"")}" placeholder="例如 二楼 1 号推胸机"><datalist id="batchEquipmentList_${di}">${(d.equipmentOptions||[]).map(name=>`<option value="${esc(name)}"></option>`).join("")}</datalist></details>`;
