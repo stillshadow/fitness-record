@@ -328,7 +328,7 @@
   }
 
   const INSIGHT_CACHE_STORAGE="chibianyingAiInsightCacheV2";
-  let currentInsight={mode:null,exerciseId:null,payload:null,fingerprint:"",entry:null};
+  let currentInsight={mode:null,exerciseId:null,equipmentName:"",payload:null,fingerprint:"",entry:null};
   let insightReturnScroll=0;
 
   function payloadFingerprint(payload){
@@ -349,22 +349,23 @@
   function writeInsightCache(cache){
     try{localStorage.setItem(INSIGHT_CACHE_STORAGE,JSON.stringify(cache))}catch{}
   }
-  function insightPayload(mode,exerciseId){
-    return mode==="today"?buildTodayPayload():mode==="weekly"?buildWeeklyPayload():buildExercisePayload(exerciseId);
+  const exerciseCacheKey=(exerciseId,equipmentName="")=>equipmentName?`${exerciseId}::${equipmentKey(equipmentName)}`:exerciseId;
+  function insightPayload(mode,exerciseId,equipmentName=""){
+    return mode==="today"?buildTodayPayload():mode==="weekly"?buildWeeklyPayload():buildExercisePayload(exerciseId,equipmentName);
   }
-  function cacheEntryFor(mode,exerciseId){
+  function cacheEntryFor(mode,exerciseId,equipmentName=""){
     const cache=readInsightCache();
-    return mode==="exercise"?cache.exercises?.[exerciseId]||null:cache[mode]||null;
+    return mode==="exercise"?cache.exercises?.[exerciseCacheKey(exerciseId,equipmentName)]||null:cache[mode]||null;
   }
   function validCacheEntry(mode,exerciseId,entry,fingerprint){
     if(!entry?.data)return false;
     if(mode==="today"||mode==="weekly")return entry.date===today();
     return !!exerciseId&&entry.fingerprint===fingerprint;
   }
-  function saveInsightEntry(mode,exerciseId,data,fingerprint){
+  function saveInsightEntry(mode,exerciseId,data,fingerprint,equipmentName=""){
     const cache=readInsightCache();
     const entry={date:today(),generatedAt:new Date().toISOString(),fingerprint,data};
-    if(mode==="exercise")cache.exercises[exerciseId]=entry;
+    if(mode==="exercise")cache.exercises[exerciseCacheKey(exerciseId,equipmentName)]=entry;
     else cache[mode]=entry;
     writeInsightCache(cache);
     return entry;
@@ -377,9 +378,9 @@
   function insightLabel(mode){
     return mode==="today"?"今日简报":mode==="weekly"?"最近 7 天":"动作分析";
   }
-  function currentCacheState(mode,exerciseId){
+  function currentCacheState(mode,exerciseId,equipmentName=""){
     try{
-      const payload=insightPayload(mode,exerciseId),fingerprint=payloadFingerprint(payload),entry=cacheEntryFor(mode,exerciseId);
+      const payload=insightPayload(mode,exerciseId,equipmentName),fingerprint=payloadFingerprint(payload),entry=cacheEntryFor(mode,exerciseId,equipmentName);
       const valid=validCacheEntry(mode,exerciseId,entry,fingerprint);
       const stale=valid&&entry.fingerprint!==fingerprint;
       return {payload,fingerprint,entry,valid,stale};
@@ -470,7 +471,7 @@
     if(!$("aiInsightModal")){
       const modal=document.createElement("div");modal.className="modal";modal.id="aiInsightModal";
       modal.innerHTML='<div class="modal-panel ai-report-panel"><div class="ai-report-head"><div><h2 id="aiInsightTitle">AI 分析</h2><small id="aiInsightSubtitle">DeepSeek 健身报告</small></div><button type="button" class="ai-report-close" id="aiInsightClose" aria-label="关闭">×</button></div><div class="ai-report-body"><div class="ai-report-meta" id="aiInsightMeta"></div><div id="aiInsightContent"></div></div><div class="ai-report-actions"><button type="button" class="btn soft" id="aiInsightRefresh">重新分析</button></div></div>';
-      document.body.appendChild(modal);$("aiInsightClose").onclick=closeInsightModal;$("aiInsightRefresh").onclick=()=>{if(currentInsight.mode)runInsight(currentInsight.mode,currentInsight.exerciseId,{force:true})};
+      document.body.appendChild(modal);$("aiInsightClose").onclick=closeInsightModal;$("aiInsightRefresh").onclick=()=>{if(currentInsight.mode)runInsight(currentInsight.mode,currentInsight.exerciseId,{force:true,equipmentName:currentInsight.equipmentName||""})};
       modal.addEventListener("click",e=>{if(e.target===modal)closeInsightModal()});
     }
   }
