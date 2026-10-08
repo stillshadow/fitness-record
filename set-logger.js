@@ -36,7 +36,7 @@
         if(name&&!seen.has(key)){seen.add(key);out.push(name)}
       });
     });
-    return out;
+    return out.slice(0,8);
   }
 
   function planPrescription(exerciseId){
