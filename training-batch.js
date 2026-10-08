@@ -10,6 +10,21 @@
   const clone = x => JSON.parse(JSON.stringify(x));
   const CARDIO_ID = "__cardio__";
   const loadTypeOf = ex => window.fitnessLoadTypeOf?.(ex) || (["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"));
+  const equipmentNameOf = x => window.fitnessEquipmentNameOf?.(x) || String(x?.equipmentName||"").trim().replace(/\s+/g," ");
+  const equipmentKey = name => window.fitnessEquipmentKey?.(name) || String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
+  const exerciseEquipmentKey = (id,name="") => window.fitnessExerciseEquipmentKey?.(id,name) || `${id||""}::${equipmentKey(name)}`;
+  function equipmentOptionsForExercise(db,exerciseId){
+    const seen=new Set(),out=[];
+    const dates=Object.keys(db.days||{}).sort().reverse();
+    dates.forEach(date=>{
+      [...(db.days?.[date]?.training||[])].reverse().forEach(row=>{
+        if(row.exerciseId!==exerciseId)return;
+        const name=equipmentNameOf(row),key=equipmentKey(name);
+        if(name&&!seen.has(key)){seen.add(key);out.push(name)}
+      });
+    });
+    return out;
+  }
 
   let drafts = [];
   let previous = new Map();
@@ -50,26 +65,36 @@
     const out=new Map();
     const dates=Object.keys(db.days||{}).filter(d=>d<beforeDate).sort().reverse();
     for(const date of dates){
-      const rows=db.days?.[date]?.training||[];
-      const grouped=new Map();
-      rows.forEach(r=>{ if(!r.exerciseId) return; if(!grouped.has(r.exerciseId)) grouped.set(r.exerciseId,[]); grouped.get(r.exerciseId).push(r); });
-      for(const [id,items] of grouped){ if(!out.has(id)) out.set(id,{date,items:items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0))}); }
-      if(out.size >= (db.exercises||[]).length) break;
+      const rows=db.days?.[date]?.training||[],grouped=new Map();
+      rows.forEach(r=>{
+        if(!r.exerciseId)return;
+        const equipmentName=equipmentNameOf(r),key=exerciseEquipmentKey(r.exerciseId,equipmentName);
+        if(!grouped.has(key))grouped.set(key,{exerciseId:r.exerciseId,equipmentName,items:[]});
+        grouped.get(key).items.push(r);
+      });
+      for(const [key,g] of grouped){
+        const entry={date,equipmentName:g.equipmentName,items:g.items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0))};
+        if(!out.has(key))out.set(key,entry);
+        if(!out.has(g.exerciseId))out.set(g.exerciseId,entry);
+      }
     }
     return out;
   }
 
-  function blankSet(exerciseId,index){
-    const p=previous.get(exerciseId)?.items?.[index] || previous.get(exerciseId)?.items?.at?.(-1) || null;
+  function blankSet(exerciseId,index,equipmentName=""){
+    const p=previous.get(equipmentName?exerciseEquipmentKey(exerciseId,equipmentName):exerciseId)?.items?.[index] || previous.get(equipmentName?exerciseEquipmentKey(exerciseId,equipmentName):exerciseId)?.items?.at?.(-1) || null;
     return {weight:'',resistanceLabel:'',reps:'',rir:'',hintWeight:p?.weight>0?String(p.weight):'',hintResistance:p?.resistanceLabel||'',hintReps:p?.reps>0?String(p.reps):''};
   }
 
   function draftForExercise(ex, count=3, existing=[]){
+    const db=getDB(),equipmentOptions=equipmentOptionsForExercise(db,ex.id);
+    const existingEquipment=equipmentNameOf(existing[0]||{});
+    const equipmentName=existingEquipment||(equipmentOptions.length===1?equipmentOptions[0]:"");
     const sets=existing.length
       ? existing.map(r=>({weight:r.weight>0?String(r.weight):'',resistanceLabel:r.resistanceLabel||'',reps:r.reps>0?String(r.reps):'',rir:r.rir===''||r.rir==null?'':String(r.rir),hintWeight:'',hintResistance:'',hintReps:''}))
-      : Array.from({length:count},(_,i)=>blankSet(ex.id,i));
+      : Array.from({length:count},(_,i)=>blankSet(ex.id,i,equipmentName));
     const resistanceOptions=Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?[...ex.resistanceOptions]:(window.fitnessBandResistanceOptions||["30-50lb","50-70lb"]);
-    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',loadType:loadTypeOf(ex),resistanceOptions,sets};
+    return {kind:"exercise",exerciseId:ex.id,exerciseName:ex.name,group:ex.group||'',loadType:loadTypeOf(ex),resistanceOptions,equipmentName,equipmentOptions,sets};
   }
 
   function cardioDraft(minutes=''){
