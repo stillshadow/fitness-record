@@ -119,7 +119,11 @@
   function tick(){ensureHome();refreshHome();refreshProgress()}
   window.addEventListener("fitness:changed",()=>setTimeout(tick,0));
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")tick()});
-  const observer=new MutationObserver(()=>{if($("v3Home")&&!$("minimalToday"))tick();if($("page-progress")&&$("page-progress").classList.contains("active"))refreshProgress()});
+  const observer=new MutationObserver(mutations=>{
+    if($("v3Home")&&!$("minimalToday"))tick();
+    const page=$("page-progress");
+    if(page&&page.classList.contains("active")&&mutations.some(m=>m.type==="attributes"&&m.target===page&&m.attributeName==="class"))setTimeout(refreshProgress,0);
+  });
   observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:["class","hidden"]});
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(tick,100),{once:true});else setTimeout(tick,100);
 })();
