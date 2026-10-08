@@ -156,6 +156,7 @@
     window.openTrainingModal?.(exerciseId);
     setTimeout(()=>{
       const select=$("trainingExercise");if(select&&select.value!==exerciseId){const opt=[...select.options].find(o=>o.value===exerciseId);if(opt)select.value=exerciseId}
+      editingEquipmentFilterKey=equipmentName===null?null:equipmentKey(equipmentName);
       editingExerciseId=exerciseId;currentExerciseId=exerciseId;const existingRows=rowsForEdit(exerciseId,editingWorkoutId);editingLoadType=existingRows.find(x=>["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType))?.loadType||"";currentEquipmentName=equipmentName===null?(equipmentNameOf(existingRows[0]||{})):(String(equipmentName||"").trim().replace(/\s+/g," "));setDrafts=draftsFromExisting(exerciseId,editingWorkoutId);setPickerDisabled(true);
       const title=$("trainingModal")?.querySelector(".section h2"),ex=currentExercise();if(title)title.textContent=workoutContext()?ex?.name||"编辑训练":"编辑力量训练";
       hideOriginalStrengthInputs();applyWorkoutEntryUI();const editor=ensureEditor();if(editor)editor.style.display="block";renderEditor();
