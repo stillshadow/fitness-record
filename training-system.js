@@ -307,16 +307,26 @@
 
   function renderExercises(){
     const box=$("exerciseList");if(!box)return;
-    const db=getDB();box.innerHTML="";
+    const db=getDB(),sceneDefs=window.EXERCISE_SCENES||{};
+    box.innerHTML="";
+    const sceneOrder=ex=>sceneDefs[ex?.scenes?.[0]]?.order??999;
     const items=[...(db.exercises||[])].sort((a,b)=>{
+      const so=sceneOrder(a)-sceneOrder(b);if(so)return so;
       const ai=groupOrder.indexOf(a.group),bi=groupOrder.indexOf(b.group);
       const ag=ai<0?999:ai,bg=bi<0?999:bi;
       return ag-bg || String(a.name).localeCompare(String(b.name),"zh-CN");
     });
     if(!items.length){box.innerHTML='<div class="empty">暂无动作。</div>';return}
     items.forEach(ex=>{
-      const d=document.createElement("div");d.className="item";
-      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")} · ${esc(loadTypeLabel(loadTypeOf(ex)))}</div></div><div class="item-actions"><button class="btn ghost" data-edit-ex="${esc(ex.id)}">编辑</button><button class="btn danger" data-del-ex="${esc(ex.id)}">删</button></div>`;
+      const d=document.createElement("div");d.className="item exercise-library-item";
+      d.dataset.exerciseId=ex.id;
+      d.dataset.exerciseScenes=(ex.scenes||[]).join(",");
+      const art=window.renderExerciseIllustration?.(ex,"small")||"";
+      const scene=window.exerciseSceneLabel?.(ex.scenes?.[0])||"自定义";
+      const equipment=ex.equipment||"自定义器械";
+      const aliases=Array.isArray(ex.aliases)?ex.aliases.join(" "):"";
+      d.dataset.exerciseSearch=[ex.name,ex.group,equipment,scene,aliases].filter(Boolean).join(" ").toLocaleLowerCase();
+      d.innerHTML=`<div class="item-main exercise-library-main">${art}<div class="exercise-library-copy"><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")} · ${esc(scene)}</div><div class="exercise-library-tags"><span>${esc(equipment)}</span><span>${esc(loadTypeLabel(loadTypeOf(ex)))}</span></div></div></div><div class="item-actions"><button class="btn ghost" data-edit-ex="${esc(ex.id)}">编辑</button><button class="btn danger" data-del-ex="${esc(ex.id)}">删</button></div>`;
       box.appendChild(d);
     });
     box.querySelectorAll("[data-edit-ex]").forEach(b=>b.addEventListener("click",()=>openExerciseModal(b.dataset.editEx)));
@@ -327,6 +337,11 @@
     if(!confirm("删除这个动作？历史训练不会删除，模板中的该动作会被移除。"))return;
     const db=getDB();
     db.exercises=(db.exercises||[]).filter(x=>x.id!==id);
+    if(libraryById.has(id)){
+      db.meta=db.meta||{};
+      const hidden=new Set(Array.isArray(db.meta.hiddenPresetExerciseIds)?db.meta.hiddenPresetExerciseIds:[]);
+      hidden.add(id);db.meta.hiddenPresetExerciseIds=[...hidden];
+    }
     (db.plans||[]).forEach(p=>{
       p.exerciseIds=(p.exerciseIds||[]).filter(x=>x!==id);
       if(p.prescriptions)delete p.prescriptions[id];
@@ -387,8 +402,9 @@
     const loadType=validLoadType($("exerciseLoadType")?.value)?$("exerciseLoadType").value:loadTypeOf(old||{name});
     const inferredFactor=+old?.bodyweightFactor || inferBodyweightFactor(name);
     const factor=(loadType==="bodyweight"||loadType==="bodyweight_extra")?inferredFactor:0;
-    const resistanceOptions=loadType==="band"?(Array.isArray(old?.resistanceOptions)&&old.resistanceOptions.length?old.resistanceOptions:BAND_RESISTANCE_OPTIONS):null;
-    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...(resistanceOptions?{resistanceOptions:[...resistanceOptions]}:{}),...(factor?{bodyweightFactor:factor}:{})};
+    const preset=libraryById.get(id);
+    const resistanceOptions=loadType==="band"?(Array.isArray(old?.resistanceOptions)&&old.resistanceOptions.length?old.resistanceOptions:(preset?.resistanceOptions||BAND_RESISTANCE_OPTIONS)):null;
+    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...copyCatalogMeta({...preset,...old}),...(resistanceOptions?{resistanceOptions:[...resistanceOptions]}:{}),...(factor?{bodyweightFactor:factor}:{})};
     db.exercises=db.exercises||[];
     const i=db.exercises.findIndex(x=>x.id===id);
     if(i>=0)db.exercises[i]=obj;else db.exercises.push(obj);
