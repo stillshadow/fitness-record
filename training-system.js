@@ -450,7 +450,7 @@
     const db=getDB(), map={};
     Object.values(db.days||{}).forEach(day=>(day.training||[]).forEach(x=>{
       if(!x.exerciseId||!x.reps)return;
-      const ex=exerciseForEntry(x,db),loadType=loadTypeOf(ex),factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name),external=+x.weight||0,reps=+x.reps||0;
+      const ex=exerciseForEntry(x,db),loadType=validLoadType(x.loadType)?x.loadType:loadTypeOf(ex),factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name),external=+x.weight||0,reps=+x.reps||0;
       const equipmentName=equipmentNameOf(x),mapKey=exerciseEquipmentKey(x.exerciseId,equipmentName);
 
       if(loadType==="band"){
