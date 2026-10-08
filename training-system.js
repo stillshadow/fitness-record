@@ -6,7 +6,7 @@
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const SYSTEM_VERSION = 20;
   const CARDIO_ID="__cardio__";
-  const BAND_RESISTANCE_OPTIONS=["30-50lb","50-70lb"];
+  const BAND_RESISTANCE_OPTIONS=["30-50lb","50-70lb","10-20lb","20-30lb","70-90lb","90-120lb"];
   const BAND_LIBRARY = [
     {id:"band_pushup",name:"弹力带俯卧撑",group:"胸/三头",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
     {id:"band_lateral_raise",name:"弹力带侧平举",group:"肩",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS},
