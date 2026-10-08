@@ -8,11 +8,11 @@
   let editingPlanId="",editingPlanRows=[];
 
   const DEFAULT_PLANS=[
-    {id:"push",name:"推｜胸 + 中束 + 三头",exerciseIds:["bench","incline_machine_press","dip","cable_lateral_raise","overhead_triceps_extension","legraise"],finisherIds:[],prescriptions:{bench:"4 × 6–10",incline_machine_press:"3 × 8–12",dip:"3 × 8–12 · 前倾",cable_lateral_raise:"4 × 12–20",overhead_triceps_extension:"3 × 10–15",legraise:"3 × 8"}},
+    {id:"push",name:"推｜胸 + 中束 + 三头",exerciseIds:["bench","incline_chest_press_machine","dip","cable_lateral_raise","overhead_triceps_extension","legraise"],finisherIds:[],prescriptions:{bench:"4 × 6–10",incline_chest_press_machine:"3 × 8–12",dip:"3 × 8–12 · 前倾",cable_lateral_raise:"4 × 12–20",overhead_triceps_extension:"3 × 10–15",legraise:"3 × 8"}},
     {id:"pull",name:"拉｜背 + 后束 + 二头",exerciseIds:["cable_single_pulldown","neutral_pulldown","machine_single_row","seated_row_high_elbow","cable_curl","legraise"],finisherIds:[],prescriptions:{cable_single_pulldown:"3 × 10–12",neutral_pulldown:"3 × 8–12",machine_single_row:"3 × 8–12",seated_row_high_elbow:"3 × 12–15",cable_curl:"3 × 10–15",legraise:"3 × 8"}},
-    {id:"legs",name:"腿｜股四头 + 臀 + 腘绳肌 + 小腿",exerciseIds:["barbell_squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise","legraise"],finisherIds:[],prescriptions:{barbell_squat:"4 × 6–10",bulgarian_split_squat:"3 × 8–12",rdl:"3 × 8–12",seated_leg_curl:"3 × 10–15",standing_calf_raise:"4 × 10–15",legraise:"3 × 8"}}
+    {id:"legs",name:"腿｜股四头 + 臀 + 腘绳肌 + 小腿",exerciseIds:["squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise","legraise"],finisherIds:[],prescriptions:{squat:"4 × 6–10",bulgarian_split_squat:"3 × 8–12",rdl:"3 × 8–12",seated_leg_curl:"3 × 10–15",standing_calf_raise:"4 × 10–15",legraise:"3 × 8"}}
   ];
-  const EXTRA_EXERCISES=[{id:"incline_machine_press",name:"上斜器械推胸",group:"胸"},{id:"barbell_squat",name:"杠铃深蹲",group:"股四头/臀"}];
+  const EXTRA_EXERCISES=[];
   const getDB=()=>window.fitnessApp?.getDB?.()||{exercises:[],plans:[]};
   const putDB=db=>{window.fitnessApp.replaceDB(db);window.dispatchEvent(new CustomEvent("fitness:changed"))};
   const toast=msg=>{const t=$("toast");if(!t)return;t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),1800)};
