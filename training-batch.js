@@ -270,9 +270,9 @@
     const remEx=e.target.closest('[data-remove-ex]');
     if(remEx){drafts.splice(+remEx.dataset.removeEx,1);render();return}
     const add=e.target.closest('[data-add-set]');
-    if(add){const d=drafts[+add.dataset.addSet];if(d){d.sets.push(blankSet(d.exerciseId,d.sets.length));render()}return}
+    if(add){const d=drafts[+add.dataset.addSet];if(d){d.sets.push(blankSet(d.exerciseId,d.sets.length,d.equipmentName||""));render()}return}
     const rem=e.target.closest('[data-remove-set]');
-    if(rem){const ex=rem.closest('[data-ex-index]'),d=drafts[+ex.dataset.exIndex];if(d){d.sets.splice(+rem.dataset.removeSet,1);if(!d.sets.length)d.sets=[blankSet(d.exerciseId,0)];render()}}
+    if(rem){const ex=rem.closest('[data-ex-index]'),d=drafts[+ex.dataset.exIndex];if(d){d.sets.splice(+rem.dataset.removeSet,1);if(!d.sets.length)d.sets=[blankSet(d.exerciseId,0,d.equipmentName||"")];render()}}
   }
 
   function addSelectedExercise(){
@@ -308,11 +308,13 @@
       }
       const entered=d.sets.filter(set=>+set.reps>0);
       if(!entered.length)return;
-      sequence.push({type:"exercise",exerciseId:d.exerciseId});
+      const equipmentName=String(d.equipmentName||"").trim().replace(/\s+/g," ");
+      sequence.push({type:"exercise",exerciseId:d.exerciseId,...(equipmentName?{equipmentName}:{})});
       const groupId=uid('setgroup');
       entered.forEach((set,i)=>rows.push({
         id:uid('tr'),setGroupId:groupId,setIndex:i+1,orderIndex:di,
         exerciseId:d.exerciseId,exerciseName:d.exerciseName,loadType:d.loadType||"weight",
+        ...(equipmentName?{equipmentName}:{ }),
         weight:(d.loadType==="weight"||d.loadType==="bodyweight_extra")?(+set.weight||0):0,
         ...(d.loadType==="band"?{resistanceLabel:String(set.resistanceLabel||"").trim()}:{ }),
         reps:+set.reps||0,sets:1,rir:String(set.rir).trim()===''?'':+set.rir,time:now,workoutId
