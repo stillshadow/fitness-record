@@ -70,17 +70,12 @@
     #aiHomeCard{margin-top:15px!important}
     #aiHomeCard .ai-home-head-copy small,#aiHomeCard .ai-home-provider{display:none!important}
     @media(max-width:430px){.diary-card{padding:13px}.diary-macros{gap:5px}.diary-main-value{font-size:21px}}
-    @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-avatar-stage{height:280px;min-height:0}.v3-avatar{height:250px;max-height:250px}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
-    @media(max-width:430px){#v3Home{padding-top:calc(38px + env(safe-area-inset-top));overflow-anchor:none}.v3-avatar-stage{height:260px;min-height:0;padding:12px 0 6px}.v3-avatar{height:230px;max-height:230px;max-width:70vw}.v3-grid{gap:8px}.v3-action{min-height:58px}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}.v3-chart-toolbar{align-items:flex-start}.v3-chart-ranges{gap:4px}.v3-chart-range,.v3-chart-latest{padding:0 9px;min-height:34px}.v3-weight-chart-shell{grid-template-columns:31px minmax(0,1fr)}}
+    @media(max-width:700px){body.ui-v3 .app{padding:0 12px 34px!important}.v3-progress-summary{grid-template-columns:repeat(3,1fr)}.v3-stat{padding:11px 8px}.v3-stat strong{font-size:16px}}
+    @media(max-width:430px){#v3Home{padding-top:calc(28px + env(safe-area-inset-top));overflow-anchor:none}.v3-macros{gap:6px}.v3-macro{padding:9px 8px}.v3-chart-toolbar{align-items:flex-start}.v3-chart-ranges{gap:4px}.v3-chart-range,.v3-chart-latest{padding:0 9px;min-height:34px}.v3-weight-chart-shell{grid-template-columns:31px minmax(0,1fr)}}
     /* Calm UI: keep the interface static and predictable. */
-    body.ui-v3 *,body.ui-v3 *::before,body.ui-v3 *::after,#v3Splash *{
-      animation:none!important;
-      transition:none!important;
-    }
-    body.ui-v3 .v3-avatar{transform:none!important;will-change:auto!important}
-    body.ui-v3 .v3-avatar-orbit{display:none!important}
-    body.ui-v3 .v3-action:active,body.ui-v3 .v3-start:active,body.ui-v3 .btn:active{transform:scale(.985)!important}
-    @media(prefers-reduced-motion:reduce){body.ui-v3 *,#v3Splash *{animation:none!important;transition:none!important}.v3-avatar{transform:none!important}}
+    body.ui-v3 *,body.ui-v3 *::before,body.ui-v3 *::after{animation:none!important;transition:none!important}
+    body.ui-v3 .btn:active{transform:scale(.985)!important}
+    @media(prefers-reduced-motion:reduce){body.ui-v3 *{animation:none!important;transition:none!important}}
   `;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
