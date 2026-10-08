@@ -21,16 +21,14 @@ try{
   };
 
   loadEarly("ui-v3.js?v=66","ui-v3");
-  loadEarly("ai-system.js?v=15","ai-system");
-  loadEarly("ui-minimal-light.js?v=1","ui-minimal-light");
+  loadEarly("ai-system.js?v=16","ai-system");
 
   let tries = 0;
   const reveal = setInterval(() => {
     tries++;
     const homeReady = !!document.getElementById("v3Home");
     const aiReady = !!document.getElementById("aiHomeCard");
-    const minimalReady = !!document.getElementById("minimalToday");
-    if ((homeReady && aiReady && minimalReady) || tries > 110) {
+    if ((homeReady && aiReady) || tries > 100) {
       clearInterval(reveal);
       if (app) app.style.visibility = "";
     }
@@ -317,7 +315,7 @@ try{
   const load = () => {
     if (document.querySelector('script[data-training-system]')) return;
     const s = document.createElement('script');
-    s.src = 'training-system.js?v=24';
+    s.src = 'training-system.js?v=25';
     s.dataset.trainingSystem = '1';
     document.head.appendChild(s);
   };
