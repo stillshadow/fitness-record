@@ -213,6 +213,8 @@
     {id:"other",label:"其他"}
   ];
   let activeLibraryCategory="all";
+  let activeLibraryScene="all";
+  let librarySearch="";
   let changingPicker=false;
 
   const getDB=()=>window.fitnessApp?.getDB?.()||{exercises:[]};
@@ -240,13 +242,24 @@
     const style=document.createElement("style");
     style.id="exerciseCategoryStyle";
     style.textContent=`
-      .exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0 9px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-      .exercise-category-bar::-webkit-scrollbar{display:none}
-      .exercise-category-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:12px}
-      .exercise-category-chip.active{background:var(--accent);border-color:var(--accent);color:#09101b;font-weight:800}
-      .exercise-library-heading{font-size:12px;font-weight:850;color:var(--accent2);padding:8px 2px 1px}
+      .exercise-library-tools{display:grid;gap:8px;margin-bottom:9px}
+      .exercise-library-search{width:100%;min-height:42px;box-sizing:border-box}
+      .exercise-scene-bar,.exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+      .exercise-scene-bar::-webkit-scrollbar,.exercise-category-bar::-webkit-scrollbar{display:none}
+      .exercise-scene-chip,.exercise-category-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:11px;white-space:nowrap}
+      .exercise-scene-chip.active,.exercise-category-chip.active{background:var(--accent);border-color:var(--accent);color:#09101b;font-weight:800}
+      .exercise-library-heading{font-size:12px;font-weight:850;color:var(--accent2);padding:11px 2px 2px}
+      .exercise-library-item{align-items:center}
+      .exercise-library-main{display:flex;align-items:center;gap:10px;min-width:0}
+      .exercise-library-copy{min-width:0}
+      .exercise-illustration{width:50px;height:50px;flex:0 0 50px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025);display:grid;place-items:center;color:#9eacf7}
+      .exercise-illustration svg{width:34px;height:34px}
+      .exercise-illustration-small{width:48px;height:48px;flex-basis:48px}
+      .exercise-library-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+      .exercise-library-tags span{display:inline-flex;align-items:center;min-height:21px;padding:2px 7px;border:1px solid rgba(255,255,255,.06);border-radius:999px;color:#758196;font-size:9px;background:rgba(255,255,255,.018)}
+      .exercise-library-count{font-size:10px;color:var(--muted);padding:0 2px}
       #trainingGroupWrap{min-width:0}
-      @media(max-width:700px){#trainingGroupWrap{grid-column:span 12!important}}
+      @media(max-width:700px){#trainingGroupWrap{grid-column:span 12!important}.exercise-illustration{width:44px;height:44px;flex-basis:44px}.exercise-illustration svg{width:31px;height:31px}.exercise-library-item .item-actions{gap:4px}.exercise-library-item .item-actions .btn{padding:7px 8px!important}}
     `;
     document.head.appendChild(style);
   }
