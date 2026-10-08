@@ -20,7 +20,7 @@ try{
     document.head.appendChild(s);
   };
 
-  loadEarly("ui-v3.js?v=66","ui-v3");
+  loadEarly("ui-v3.js?v=67","ui-v3");
   loadEarly("ai-system.js?v=16","ai-system");
 
   let tries = 0;
