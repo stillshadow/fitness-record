@@ -3,7 +3,7 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const fmt = n => Number(n || 0).toFixed(1).replace(/\.0$/,"");
-  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",editingLoadType="",setDrafts=[],savingSets=false;
+  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",editingLoadType="",currentEquipmentName="",editingEquipmentFilterKey=null,setDrafts=[],savingSets=false;
 
   const todayString=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
   const activeDate=()=>{const t=$("activeDateLabel")?.textContent.trim()||"";return /^\d{4}-\d{2}-\d{2}$/.test(t)?t:todayString()};
@@ -25,6 +25,19 @@
   function currentExercise(){const id=$("trainingExercise")?.value||"";return (getDB().exercises||[]).find(x=>x.id===id)||null}
   function isStrengthMode(){return !!$("trainingExercise")?.value}
   function loadTypeOf(ex){return window.fitnessLoadTypeOf?.(ex)||(["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"))}
+  const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
+  const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
+  function equipmentOptionsForExercise(exerciseId){
+    const db=getDB(),seen=new Set(),out=[];
+    Object.keys(db.days||{}).sort().reverse().forEach(date=>{
+      [...(db.days?.[date]?.training||[])].reverse().forEach(row=>{
+        if(row.exerciseId!==exerciseId)return;
+        const name=equipmentNameOf(row),key=equipmentKey(name);
+        if(name&&!seen.has(key)){seen.add(key);out.push(name)}
+      });
+    });
+    return out;
+  }
 
   function planPrescription(exerciseId){
     const ctx=workoutContext();
@@ -41,10 +54,19 @@
   }
 
   const blankSet=(weight="",resistanceLabel="")=>({weight:String(weight??""),resistanceLabel:String(resistanceLabel??""),reps:"",rir:""});
-  function resetDrafts(exerciseId){currentExerciseId=exerciseId||"";setDrafts=Array.from({length:exerciseId?prescribedSetCount(exerciseId):1},()=>blankSet())}
+  function resetDrafts(exerciseId){
+    currentExerciseId=exerciseId||"";
+    const opts=exerciseId?equipmentOptionsForExercise(exerciseId):[];
+    currentEquipmentName=opts.length===1?opts[0]:"";
+    editingEquipmentFilterKey=null;
+    setDrafts=Array.from({length:exerciseId?prescribedSetCount(exerciseId):1},()=>blankSet());
+  }
   function rowsForEdit(exerciseId,workoutId=""){
     const day=getDB().days?.[activeDate()];
-    return (day?.training||[]).filter(x=>x.exerciseId===exerciseId&&(!workoutId||x.workoutId===workoutId));
+    return (day?.training||[]).filter(x=>{
+      if(x.exerciseId!==exerciseId|| (workoutId&&x.workoutId!==workoutId))return false;
+      return editingEquipmentFilterKey===null||equipmentKey(equipmentNameOf(x))===editingEquipmentFilterKey;
+    });
   }
   function draftsFromExisting(exerciseId,workoutId=""){
     const out=[];rowsForEdit(exerciseId,workoutId).forEach(x=>{for(let i=0;i<Math.max(1,+x.sets||1);i++)out.push({weight:(+x.weight||0)>0?String(+x.weight):"",resistanceLabel:x.resistanceLabel||"",reps:(+x.reps||0)>0?String(+x.reps):"",rir:x.rir===""||x.rir==null?"":String(x.rir)})});
