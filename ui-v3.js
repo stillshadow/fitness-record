@@ -63,7 +63,7 @@
     .diary-set-list{display:grid;gap:5px;margin-top:10px}.diary-set{display:grid;grid-template-columns:26px minmax(0,1fr);gap:7px;align-items:center;font-size:12px}.diary-set i{font-style:normal;color:#647082;text-align:center;font-size:10px}
     .diary-previous{margin-top:10px;padding-top:9px;border-top:1px solid var(--v3-line);font-size:10px;color:#758194;line-height:1.6}.diary-previous b{color:#aeb8ca;font-size:10px}
     .diary-food-meal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.diary-food-meal-head b{font-size:14px}.diary-food-meal-head span{font-size:10px;color:var(--v3-muted)}
-    .diary-food-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.045)}.diary-food-item:first-of-type{border-top:0}.diary-food-item b{font-size:12px}.diary-food-item small{display:block;color:var(--v3-muted);font-size:9px;margin-top:1px}.diary-food-item strong{font-size:11px;text-align:right}.diary-food-total{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:11px}.diary-food-total div{background:rgba(255,255,255,.025);border-radius:9px;padding:7px 5px;text-align:center}.diary-food-total small{display:block;color:var(--v3-muted);font-size:8px}.diary-food-total b{font-size:11px}
+    .diary-food-item{display:grid;grid-template-columns:minmax(0,1fr) auto 26px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid rgba(255,255,255,.045)}.diary-food-delete{width:26px;height:26px;border:0;background:transparent;color:#6f7a8b;font-size:16px;border-radius:8px}.diary-food-delete:active{background:rgba(255,255,255,.05);color:#ff8b96}.diary-food-item:first-of-type{border-top:0}.diary-food-item b{font-size:12px}.diary-food-item small{display:block;color:var(--v3-muted);font-size:9px;margin-top:1px}.diary-food-item strong{font-size:11px;text-align:right}.diary-food-total{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:11px}.diary-food-total div{background:rgba(255,255,255,.025);border-radius:9px;padding:7px 5px;text-align:center}.diary-food-total small{display:block;color:var(--v3-muted);font-size:8px}.diary-food-total b{font-size:11px}
     .diary-empty{border:1px dashed var(--v3-line);border-radius:15px;padding:22px 14px;text-align:center;color:var(--v3-muted);font-size:11px}
     .diary-progress-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.diary-progress-metric{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.045);border-radius:12px;padding:10px}.diary-progress-metric small{display:block;color:var(--v3-muted);font-size:9px}.diary-progress-metric b{display:block;font-size:15px;margin-top:3px}.diary-progress-metric span{display:block;color:#626d7c;font-size:8px;margin-top:2px}
     @media(max-width:430px){.diary-progress-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -294,7 +294,7 @@
     foods.forEach(f=>{const slot=order.includes(f.slot)?f.slot:'其他';if(!groups.has(slot))groups.set(slot,[]);groups.get(slot).push(f);});
     list.innerHTML=order.filter(slot=>groups.has(slot)).map(slot=>{
       const items=groups.get(slot),sum=items.reduce((a,f)=>{const m=foodMacro(f);a.c+=m.c;a.p+=m.p;a.f+=m.f;a.k+=m.k;return a},{c:0,p:0,f:0,k:0});
-      return `<article class="diary-detail-card"><div class="diary-food-meal-head"><b>${slot}</b><span>${Math.round(sum.k)} kcal · C${Math.round(sum.c)} P${Math.round(sum.p)} F${Math.round(sum.f)}</span></div>${items.map(f=>{const m=foodMacro(f);return `<div class="diary-food-item"><div><b>${esc(f.name||'食物')}</b><small>${+f.grams>0?`${f.grams}${f.unit||'g'}`:''}${f.time?` · ${f.time}`:''}</small></div><strong>${Math.round(m.k)} kcal<br><small>C${Math.round(m.c)} P${Math.round(m.p)} F${Math.round(m.f)}</small></strong></div>`;}).join('')}<div class="diary-food-total"><div><small>热量</small><b>${Math.round(sum.k)}</b></div><div><small>碳水</small><b>${Math.round(sum.c)}g</b></div><div><small>蛋白质</small><b>${Math.round(sum.p)}g</b></div><div><small>脂肪</small><b>${Math.round(sum.f)}g</b></div></div></article>`;
+      return `<article class="diary-detail-card"><div class="diary-food-meal-head"><b>${slot}</b><span>${Math.round(sum.k)} kcal · C${Math.round(sum.c)} P${Math.round(sum.p)} F${Math.round(sum.f)}</span></div>${items.map(f=>{const m=foodMacro(f);return `<div class="diary-food-item"><div><b>${esc(f.name||'食物')}</b><small>${+f.grams>0?`${f.grams}${f.unit||'g'}`:''}${f.time?` · ${f.time}`:''}</small></div><strong>${Math.round(m.k)} kcal<br><small>C${Math.round(m.c)} P${Math.round(m.p)} F${Math.round(m.f)}</small></strong><button type="button" class="diary-food-delete" data-diary-del-food="${esc(f.id)}" aria-label="删除">×</button></div>`;}).join('')}<div class="diary-food-total"><div><small>热量</small><b>${Math.round(sum.k)}</b></div><div><small>碳水</small><b>${Math.round(sum.c)}g</b></div><div><small>蛋白质</small><b>${Math.round(sum.p)}g</b></div><div><small>脂肪</small><b>${Math.round(sum.f)}g</b></div></div></article>`;
     }).join('');
   }
   const avg = a => a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
@@ -441,6 +441,12 @@
     };
     $('diaryTrainingDetailRecord').onclick=()=>$('v3StartTraining')?.click();
     $('diaryFoodDetailRecord').onclick=()=>$('v3Food')?.click();
+    $('diaryFoodDetailList').addEventListener('click',e=>{
+      const btn=e.target.closest('[data-diary-del-food]');if(!btn)return;
+      if(!confirm('删除这条饮食记录？'))return;
+      if(typeof window.deleteFoodEntry==='function')window.deleteFoodEntry(btn.dataset.diaryDelFood);
+      renderFoodDetail();
+    });
     document.querySelectorAll('[data-v3-open]').forEach(b=>b.onclick=()=>{
       const p=b.dataset.v3Open;
       if(p==='training') showLegacy('training','训练设置','模板与动作库');
