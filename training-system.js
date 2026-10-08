@@ -322,7 +322,7 @@
       d.dataset.exerciseId=ex.id;
       d.dataset.exerciseSource=libraryById.has(ex.id)?"builtin":"custom";
       d.dataset.exerciseScenes=(ex.scenes||[]).join(",");
-      const art=window.renderExerciseIllustration?.(ex,"small")||"";
+      const art=ex.imageUrl?`<img class="exercise-photo" src="${esc(ex.imageUrl)}" alt="${esc(ex.name)}" loading="lazy">`:"";
       const scene=window.exerciseSceneLabel?.(ex.scenes?.[0])||"自定义";
       const equipment=ex.equipment||"自定义器械";
       const aliases=Array.isArray(ex.aliases)?ex.aliases.join(" "):"";
