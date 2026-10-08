@@ -149,11 +149,14 @@
     if(!editingExerciseId&&(forceReset||currentExerciseId!==id))resetDrafts(id);if(hint)hint.style.display="none";editor.style.display="block";setPickerDisabled(!!workoutContext()||!!editingExerciseId);renderEditor();
   }
 
-  function openEditTrainingSets(exerciseId,workoutId=""){
-    if(!exerciseId)return;editingWorkoutId=workoutId||"";window.openTrainingModal?.(exerciseId);
+  function openEditTrainingSets(exerciseId,workoutId="",equipmentName=null){
+    if(!exerciseId)return;
+    editingWorkoutId=workoutId||"";
+    editingEquipmentFilterKey=equipmentName===null?null:equipmentKey(equipmentName);
+    window.openTrainingModal?.(exerciseId);
     setTimeout(()=>{
       const select=$("trainingExercise");if(select&&select.value!==exerciseId){const opt=[...select.options].find(o=>o.value===exerciseId);if(opt)select.value=exerciseId}
-      editingExerciseId=exerciseId;currentExerciseId=exerciseId;const existingRows=rowsForEdit(exerciseId,editingWorkoutId);editingLoadType=existingRows.find(x=>["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType))?.loadType||"";setDrafts=draftsFromExisting(exerciseId,editingWorkoutId);setPickerDisabled(true);
+      editingExerciseId=exerciseId;currentExerciseId=exerciseId;const existingRows=rowsForEdit(exerciseId,editingWorkoutId);editingLoadType=existingRows.find(x=>["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType))?.loadType||"";currentEquipmentName=equipmentName===null?(equipmentNameOf(existingRows[0]||{})):(String(equipmentName||"").trim().replace(/\s+/g," "));setDrafts=draftsFromExisting(exerciseId,editingWorkoutId);setPickerDisabled(true);
       const title=$("trainingModal")?.querySelector(".section h2"),ex=currentExercise();if(title)title.textContent=workoutContext()?ex?.name||"编辑训练":"编辑力量训练";
       hideOriginalStrengthInputs();applyWorkoutEntryUI();const editor=ensureEditor();if(editor)editor.style.display="block";renderEditor();
     },60);
@@ -172,12 +175,16 @@
     const ctx=workoutContext(),targetWorkoutId=editingWorkoutId||ctx?.workoutId||"",db=getDB(),date=ctx?.date||activeDate();
     db.days=db.days||{};if(!db.days[date])db.days[date]={date,weight:null,cardio:0,note:"",planExerciseIds:[],planName:"",training:[],foods:[]};
     const day=db.days[date];day.training=day.training||[];
-    if(editingExerciseId)day.training=day.training.filter(x=>!(x.exerciseId===editingExerciseId&&(!editingWorkoutId||x.workoutId===editingWorkoutId)));
-    const groupId=uid("setgroup"),time=timeString();
-    valid.forEach((s,i)=>day.training.push({id:uid("tr"),setGroupId:groupId,setIndex:i+1,exerciseId:ex.id,exerciseName:ex.name,loadType:type,weight:(type==="weight"||type==="bodyweight_extra")?(+s.weight||0):0,...(type==="band"?{resistanceLabel:String(s.resistanceLabel||"").trim()}:{ }),reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===""?"":+s.rir,time,...(targetWorkoutId?{workoutId:targetWorkoutId}:{})}));
+    if(editingExerciseId)day.training=day.training.filter(x=>{
+      if(x.exerciseId!==editingExerciseId|| (editingWorkoutId&&x.workoutId!==editingWorkoutId))return true;
+      if(editingEquipmentFilterKey===null)return false;
+      return equipmentKey(equipmentNameOf(x))!==editingEquipmentFilterKey;
+    });
+    const groupId=uid("setgroup"),time=timeString(),equipmentName=String(currentEquipmentName||"").trim().replace(/\s+/g," ");
+    valid.forEach((s,i)=>day.training.push({id:uid("tr"),setGroupId:groupId,setIndex:i+1,exerciseId:ex.id,exerciseName:ex.name,loadType:type,...(equipmentName?{equipmentName}:{ }),weight:(type==="weight"||type==="bodyweight_extra")?(+s.weight||0):0,...(type==="band"?{resistanceLabel:String(s.resistanceLabel||"").trim()}:{ }),reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===""?"":+s.rir,time,...(targetWorkoutId?{workoutId:targetWorkoutId}:{})}));
     db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
     const wasEdit=!!editingExerciseId;
-    editingExerciseId="";editingWorkoutId="";editingLoadType="";setPickerDisabled(false);
+    editingExerciseId="";editingWorkoutId="";editingLoadType="";editingEquipmentFilterKey=null;currentEquipmentName="";setPickerDisabled(false);
 
     // Close the input surface before broadcasting the expensive global refresh.
     // On iOS this keeps keyboard dismissal and application rerender out of the same frame.
@@ -217,9 +224,14 @@
     },220);
   }
 
-  function deleteExerciseRecord(exerciseId){
-    const db=getDB(),day=db.days?.[activeDate()];if(!day)return;const ex=(db.exercises||[]).find(x=>x.id===exerciseId);if(!confirm(`删除${ex?.name?`「${ex.name}」`:"这个动作"}当天的全部组记录？`))return;
-    day.training=(day.training||[]).filter(x=>x.exerciseId!==exerciseId);db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;putDB(db);toast("训练记录已删除");
+  function deleteExerciseRecord(exerciseId,equipmentName=null){
+    const db=getDB(),day=db.days?.[activeDate()];if(!day)return;const ex=(db.exercises||[]).find(x=>x.id===exerciseId);
+    const eq=equipmentName===null?null:String(equipmentName||"").trim().replace(/\s+/g," ");
+    const label=eq?`「${ex?.name||"动作"} · ${eq}」`:(ex?.name?`「${ex.name}」`:"这个动作");
+    if(!confirm(`删除${label}当天的全部组记录？`))return;
+    const key=eq===null?null:equipmentKey(eq);
+    day.training=(day.training||[]).filter(x=>x.exerciseId!==exerciseId||(key!==null&&equipmentKey(equipmentNameOf(x))!==key));
+    db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;putDB(db);toast("训练记录已删除");
   }
 
   function lineForSet(x,ex,index,total){const type=["weight","bodyweight","bodyweight_extra","band"].includes(x?.loadType)?x.loadType:loadTypeOf(ex),load=type==="band"?(x.resistanceLabel||"弹力带未填"):type==="bodyweight"?"BW":type==="bodyweight_extra"?((+x.weight||0)>0?`BW + ${fmt(x.weight)}kg`:"BW"):((+x.weight||0)>0?`${fmt(x.weight)}kg`:"重量未填"),prefix=total>1?`第${index+1}组 · `:"",rir=x.rir!==""&&x.rir!=null?` · RIR ${x.rir}`:"";return `${prefix}${load} × ${x.reps||"-"}${rir}`}
