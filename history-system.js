@@ -210,6 +210,7 @@
     {id:"legs",label:"腿 / 臀"},
     {id:"calves",label:"小腿"},
     {id:"core",label:"腹 / 核心"},
+    {id:"fullbody",label:"全身"},
     {id:"other",label:"其他"}
   ];
   let activeLibraryCategory="all";
@@ -221,13 +222,14 @@
   const categoryOfGroup=group=>{
     const g=String(group||"");
     if(g.startsWith("胸"))return "chest";
-    if(g.startsWith("背"))return "back";
+    if(/^(背|斜方|肩胛)/.test(g))return "back";
     if(g.startsWith("肩"))return "shoulder";
     if(g.startsWith("二头"))return "biceps";
     if(g.startsWith("三头"))return "triceps";
     if(/^(股四头|腘绳肌|臀|大腿内侧)/.test(g))return "legs";
-    if(g.startsWith("小腿"))return "calves";
+    if(/^(小腿|胫骨)/.test(g))return "calves";
     if(/腹|核心/.test(g))return "core";
+    if(g.startsWith("全身"))return "fullbody";
     return "other";
   };
   const categoryOfExercise=ex=>categoryOfGroup(ex?.group);
@@ -236,6 +238,14 @@
     return CATEGORIES.filter(x=>present.has(x.id));
   };
   const labelOf=id=>CATEGORIES.find(x=>x.id===id)?.label||"其他";
+  const sceneDefs=()=>window.EXERCISE_SCENES||{};
+  const sceneOf=ex=>ex?.scenes?.[0]||"other";
+  const sceneLabel=id=>sceneDefs()[id]?.label||"其他";
+  const availableScenes=()=>{
+    const present=new Set();
+    (getDB().exercises||[]).forEach(ex=>(ex.scenes?.length?ex.scenes:["other"]).forEach(id=>present.add(id)));
+    return [...present].map(id=>({id,label:sceneLabel(id),order:sceneDefs()[id]?.order??999})).sort((a,b)=>a.order-b.order||a.label.localeCompare(b.label,"zh-CN"));
+  };
 
   function setupStyles(){
     if($("exerciseCategoryStyle"))return;
