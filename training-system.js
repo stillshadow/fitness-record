@@ -18,7 +18,7 @@
     {id:"band_y_raise",name:"弹力带Y举",group:"肩",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS}
   ];
 
-  const LIBRARY = [
+  const LEGACY_LIBRARY = [
     {id:"bench",name:"杠铃卧推",group:"胸"},
     {id:"incline_db_press",name:"哑铃上斜卧推",group:"胸"},
     {id:"incline_barbell_press",name:"上斜杠铃卧推",group:"胸"},
@@ -91,6 +91,14 @@
     ...BAND_LIBRARY
   ];
 
+  const CATALOG_LIBRARY=Array.isArray(window.EXERCISE_CATALOG)?window.EXERCISE_CATALOG:[];
+  const LIBRARY=(()=>{
+    const map=new Map();
+    LEGACY_LIBRARY.forEach(ex=>map.set(ex.id,clone(ex)));
+    CATALOG_LIBRARY.forEach(ex=>map.set(ex.id,{...(map.get(ex.id)||{}),...clone(ex)}));
+    return [...map.values()];
+  })();
+
   const VIDEO_PLANS = [
     {
       id:"push",name:"胸 + 中束 + 三头",
@@ -128,7 +136,7 @@
   ];
 
   const libraryById = new Map(LIBRARY.map(x => [x.id,x]));
-  const groupOrder = ["胸","胸/三头","背","背/二头","背/后束","肩","肩/后束","二头","三头","三头/胸","股四头","股四头/臀","腘绳肌","腘绳肌/臀","臀","臀/腘绳肌","臀/腘绳肌/背","大腿内侧","小腿","腹/核心","其他"];
+  const groupOrder = ["胸","胸/三头","胸/背","背","背/二头","背/后束","肩","肩/后束","肩/胸","肩/核心","斜方","二头","二头/肱肌","三头","三头/胸","股四头","股四头/臀","臀/股四头","臀/大腿内侧","腘绳肌","腘绳肌/臀","臀","臀/腘绳肌","臀/腘绳肌/背","大腿内侧","小腿","胫骨前肌","腹/核心","全身/核心","全身","其他"];
 
   const inferBodyweightFactor = name => {
     const n = String(name || "");
