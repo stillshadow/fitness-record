@@ -63,7 +63,7 @@
   const blankSet=(weight="",resistanceLabel="")=>({weight:String(weight??""),resistanceLabel:String(resistanceLabel??""),reps:"",rir:""});
   function resetDrafts(exerciseId){
     currentExerciseId=exerciseId||"";
-    const ex=(db.exercises||[]).find(x=>x.id===exerciseId),opts=exerciseId&&supportsSpecificMachine(ex)?equipmentOptionsForExercise(exerciseId):[];
+    const db=getDB(),ex=(db.exercises||[]).find(x=>x.id===exerciseId),opts=exerciseId&&supportsSpecificMachine(ex)?equipmentOptionsForExercise(exerciseId):[];
     currentEquipmentName=opts.length===1?opts[0]:"";
     editingEquipmentFilterKey=null;
     setDrafts=Array.from({length:exerciseId?prescribedSetCount(exerciseId):1},()=>blankSet());
