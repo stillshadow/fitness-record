@@ -151,6 +151,15 @@
   const equipmentKey = name => String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
   const exerciseEquipmentKey = (exerciseId,equipmentName="") => `${exerciseId||""}::${equipmentKey(equipmentName)}`;
 
+  const copyCatalogMeta=(source={})=>{
+    const out={};
+    if(Array.isArray(source.scenes)&&source.scenes.length)out.scenes=[...source.scenes];
+    ["equipment","movement","illustration"].forEach(k=>{if(source[k])out[k]=source[k]});
+    if(Array.isArray(source.aliases)&&source.aliases.length)out.aliases=[...source.aliases];
+    if(Array.isArray(source.targets)&&source.targets.length)out.targets=[...source.targets];
+    return out;
+  };
+
   function normalizeCustomExercise(ex){
     const factor=+ex?.bodyweightFactor || inferBodyweightFactor(ex?.name);
     const loadType=loadTypeOf({...ex,bodyweightFactor:factor});
@@ -159,6 +168,7 @@
       name:String(ex?.name || "未命名动作"),
       group:String(ex?.group || "其他"),
       loadType,
+      ...copyCatalogMeta(ex),
       ...(Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?{resistanceOptions:[...ex.resistanceOptions]}:{}),
       ...(factor?{bodyweightFactor:factor}:{})
     };
@@ -174,6 +184,7 @@
       name:String(ex?.name || preset?.name || "未命名动作"),
       group:String(ex?.group || preset?.group || "其他"),
       loadType,
+      ...copyCatalogMeta({...preset,...ex}),
       ...(Array.isArray(resistanceOptions)&&resistanceOptions.length?{resistanceOptions:[...resistanceOptions]}:{}),
       ...(factor?{bodyweightFactor:factor}:{})
     };
@@ -197,10 +208,17 @@
       next.exercises = next.exercises.map(normalizeExistingExercise);
     }
 
-    // Band exercises are additive presets. Append only missing ids so existing
-    // names, groups and user edits are never overwritten.
+    // Rich catalog is additive. Missing presets are appended without touching
+    // user-edited names/groups. Deleted presets stay hidden through meta.
     const existingIds=new Set(next.exercises.map(x=>x.id));
-    BAND_LIBRARY.forEach(ex=>{if(!existingIds.has(ex.id))next.exercises.push(clone(ex))});
+    const hiddenPresetIds=new Set(Array.isArray(next.meta.hiddenPresetExerciseIds)?next.meta.hiddenPresetExerciseIds:[]);
+    LIBRARY.forEach(ex=>{
+      if(!existingIds.has(ex.id)&&!hiddenPresetIds.has(ex.id)){
+        next.exercises.push(clone(ex));
+        existingIds.add(ex.id);
+      }
+    });
+    next.meta.exerciseCatalogVersion=1;
     return next;
   }
 
