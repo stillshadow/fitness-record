@@ -210,22 +210,26 @@
     {id:"legs",label:"腿 / 臀"},
     {id:"calves",label:"小腿"},
     {id:"core",label:"腹 / 核心"},
+    {id:"fullbody",label:"全身"},
     {id:"other",label:"其他"}
   ];
   let activeLibraryCategory="all";
+  let activeLibraryScene="all";
+  let librarySearch="";
   let changingPicker=false;
 
   const getDB=()=>window.fitnessApp?.getDB?.()||{exercises:[]};
   const categoryOfGroup=group=>{
     const g=String(group||"");
     if(g.startsWith("胸"))return "chest";
-    if(g.startsWith("背"))return "back";
+    if(/^(背|斜方|肩胛)/.test(g))return "back";
     if(g.startsWith("肩"))return "shoulder";
     if(g.startsWith("二头"))return "biceps";
     if(g.startsWith("三头"))return "triceps";
     if(/^(股四头|腘绳肌|臀|大腿内侧)/.test(g))return "legs";
-    if(g.startsWith("小腿"))return "calves";
+    if(/^(小腿|胫骨)/.test(g))return "calves";
     if(/腹|核心/.test(g))return "core";
+    if(g.startsWith("全身"))return "fullbody";
     return "other";
   };
   const categoryOfExercise=ex=>categoryOfGroup(ex?.group);
@@ -234,19 +238,38 @@
     return CATEGORIES.filter(x=>present.has(x.id));
   };
   const labelOf=id=>CATEGORIES.find(x=>x.id===id)?.label||"其他";
+  const sceneDefs=()=>window.EXERCISE_SCENES||{};
+  const sceneOf=ex=>ex?.scenes?.[0]||"other";
+  const sceneLabel=id=>sceneDefs()[id]?.label||"其他";
+  const availableScenes=()=>{
+    const present=new Set();
+    (getDB().exercises||[]).forEach(ex=>(ex.scenes?.length?ex.scenes:["other"]).forEach(id=>present.add(id)));
+    return [...present].map(id=>({id,label:sceneLabel(id),order:sceneDefs()[id]?.order??999})).sort((a,b)=>a.order-b.order||a.label.localeCompare(b.label,"zh-CN"));
+  };
 
   function setupStyles(){
     if($("exerciseCategoryStyle"))return;
     const style=document.createElement("style");
     style.id="exerciseCategoryStyle";
     style.textContent=`
-      .exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0 9px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-      .exercise-category-bar::-webkit-scrollbar{display:none}
-      .exercise-category-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:12px}
-      .exercise-category-chip.active{background:var(--accent);border-color:var(--accent);color:#09101b;font-weight:800}
-      .exercise-library-heading{font-size:12px;font-weight:850;color:var(--accent2);padding:8px 2px 1px}
+      .exercise-library-tools{display:grid;gap:8px;margin-bottom:9px}
+      .exercise-library-search{width:100%;min-height:42px;box-sizing:border-box}
+      .exercise-scene-bar,.exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+      .exercise-scene-bar::-webkit-scrollbar,.exercise-category-bar::-webkit-scrollbar{display:none}
+      .exercise-scene-chip,.exercise-category-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:11px;white-space:nowrap}
+      .exercise-scene-chip.active,.exercise-category-chip.active{background:var(--accent);border-color:var(--accent);color:#09101b;font-weight:800}
+      .exercise-library-heading{font-size:12px;font-weight:850;color:var(--accent2);padding:11px 2px 2px}
+      .exercise-library-item{align-items:center}
+      .exercise-library-main{display:flex;align-items:center;gap:10px;min-width:0}
+      .exercise-library-copy{min-width:0}
+      .exercise-illustration{width:50px;height:50px;flex:0 0 50px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025);display:grid;place-items:center;color:#9eacf7}
+      .exercise-illustration svg{width:34px;height:34px}
+      .exercise-illustration-small{width:48px;height:48px;flex-basis:48px}
+      .exercise-library-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+      .exercise-library-tags span{display:inline-flex;align-items:center;min-height:21px;padding:2px 7px;border:1px solid rgba(255,255,255,.06);border-radius:999px;color:#758196;font-size:9px;background:rgba(255,255,255,.018)}
+      .exercise-library-count{font-size:10px;color:var(--muted);padding:0 2px}
       #trainingGroupWrap{min-width:0}
-      @media(max-width:700px){#trainingGroupWrap{grid-column:span 12!important}}
+      @media(max-width:700px){#trainingGroupWrap{grid-column:span 12!important}.exercise-illustration{width:44px;height:44px;flex-basis:44px}.exercise-illustration svg{width:31px;height:31px}.exercise-library-item .item-actions{gap:4px}.exercise-library-item .item-actions .btn{padding:7px 8px!important}}
     `;
     document.head.appendChild(style);
   }
@@ -344,16 +367,40 @@
     syncPickerFromCurrent();
   }
 
-  function renderLibraryBar(){
-    const box=$("exerciseList");if(!box)return;
-    let bar=$("exerciseCategoryBar");
-    if(!bar){
-      bar=document.createElement("div");bar.id="exerciseCategoryBar";bar.className="exercise-category-bar";
-      box.parentElement?.insertBefore(bar,box);
+  function ensureLibraryTools(){
+    const box=$("exerciseList");if(!box)return null;
+    let tools=$("exerciseLibraryTools");
+    if(!tools){
+      tools=document.createElement("div");
+      tools.id="exerciseLibraryTools";
+      tools.className="exercise-library-tools";
+      tools.innerHTML='<input id="exerciseLibrarySearch" class="exercise-library-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><div id="exerciseSceneBar" class="exercise-scene-bar"></div><div id="exerciseCategoryBar" class="exercise-category-bar"></div><div id="exerciseLibraryCount" class="exercise-library-count"></div>';
+      box.parentElement?.insertBefore(tools,box);
+      $("exerciseLibrarySearch")?.addEventListener("input",e=>{librarySearch=String(e.target.value||"").trim().toLocaleLowerCase();organizeLibrary()});
     }
+    return tools;
+  }
+
+  function renderSceneBar(){
+    ensureLibraryTools();
+    const bar=$("exerciseSceneBar");if(!bar)return;
+    const scenes=availableScenes();
+    if(activeLibraryScene!=="all"&&!scenes.some(x=>x.id===activeLibraryScene))activeLibraryScene="all";
+    bar.innerHTML=`<button class="exercise-scene-chip ${activeLibraryScene==="all"?"active":""}" data-ex-scene="all">全部场景</button>`+
+      scenes.map(x=>`<button class="exercise-scene-chip ${activeLibraryScene===x.id?"active":""}" data-ex-scene="${esc(x.id)}">${esc(x.label)}</button>`).join("");
+    bar.querySelectorAll("[data-ex-scene]").forEach(btn=>btn.addEventListener("click",()=>{
+      activeLibraryScene=btn.dataset.exScene;
+      renderSceneBar();
+      organizeLibrary();
+    }));
+  }
+
+  function renderLibraryBar(){
+    ensureLibraryTools();
+    const bar=$("exerciseCategoryBar");if(!bar)return;
     const cats=availableCategories();
     if(activeLibraryCategory!=="all"&&!cats.some(x=>x.id===activeLibraryCategory))activeLibraryCategory="all";
-    bar.innerHTML=`<button class="exercise-category-chip ${activeLibraryCategory==="all"?"active":""}" data-ex-cat="all">全部</button>`+
+    bar.innerHTML=`<button class="exercise-category-chip ${activeLibraryCategory==="all"?"active":""}" data-ex-cat="all">全部肌群</button>`+
       cats.map(x=>`<button class="exercise-category-chip ${activeLibraryCategory===x.id?"active":""}" data-ex-cat="${x.id}">${esc(x.label)}</button>`).join("");
     bar.querySelectorAll("[data-ex-cat]").forEach(btn=>btn.addEventListener("click",()=>{
       activeLibraryCategory=btn.dataset.exCat;
@@ -364,26 +411,49 @@
 
   function organizeLibrary(){
     const box=$("exerciseList");if(!box)return;
+    ensureLibraryTools();
     box.querySelectorAll(".exercise-library-heading").forEach(x=>x.remove());
+    const db=getDB(),byId=new Map((db.exercises||[]).map(ex=>[ex.id,ex]));
     const items=[...box.children].filter(x=>x.classList?.contains("item"));
-    let lastCategory="";
+    let lastHeading="",visibleCount=0;
+    const groupMode=activeLibraryScene==="all"?"scene":(activeLibraryCategory==="all"?"category":"none");
+
     items.forEach(item=>{
-      const group=item.querySelector(".item-sub")?.textContent.trim()||"其他";
-      const category=categoryOfGroup(group);
-      const visible=activeLibraryCategory==="all"||activeLibraryCategory===category;
+      const ex=byId.get(item.dataset.exerciseId)||{};
+      const category=categoryOfExercise(ex);
+      const scenes=ex.scenes?.length?ex.scenes:["other"];
+      const sceneMatch=activeLibraryScene==="all"||scenes.includes(activeLibraryScene);
+      const categoryMatch=activeLibraryCategory==="all"||activeLibraryCategory===category;
+      const searchText=String(item.dataset.exerciseSearch||[ex.name,ex.group,ex.equipment,...(ex.aliases||[])].filter(Boolean).join(" ")).toLocaleLowerCase();
+      const searchMatch=!librarySearch||searchText.includes(librarySearch);
+      const visible=sceneMatch&&categoryMatch&&searchMatch;
       item.style.display=visible?"grid":"none";
-      if(visible&&activeLibraryCategory==="all"&&category!==lastCategory){
+      if(!visible)return;
+      visibleCount++;
+
+      let headingKey="",headingText="";
+      if(groupMode==="scene"){
+        headingKey=sceneOf(ex);headingText=sceneLabel(headingKey);
+      }else if(groupMode==="category"){
+        headingKey=category;headingText=labelOf(category);
+      }
+      if(headingKey&&headingKey!==lastHeading){
         const heading=document.createElement("div");
         heading.className="exercise-library-heading";
-        heading.textContent=labelOf(category);
+        heading.textContent=headingText;
         box.insertBefore(heading,item);
-        lastCategory=category;
+        lastHeading=headingKey;
       }
     });
+
+    const count=$("exerciseLibraryCount");
+    if(count)count.textContent=`显示 ${visibleCount} / ${items.length} 个动作`;
   }
 
   function refreshCategories(){
     setupTrainingPicker();
+    ensureLibraryTools();
+    renderSceneBar();
     renderLibraryBar();
     organizeLibrary();
   }

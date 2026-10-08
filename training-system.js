@@ -18,7 +18,7 @@
     {id:"band_y_raise",name:"弹力带Y举",group:"肩",loadType:"band",resistanceOptions:BAND_RESISTANCE_OPTIONS}
   ];
 
-  const LIBRARY = [
+  const LEGACY_LIBRARY = [
     {id:"bench",name:"杠铃卧推",group:"胸"},
     {id:"incline_db_press",name:"哑铃上斜卧推",group:"胸"},
     {id:"incline_barbell_press",name:"上斜杠铃卧推",group:"胸"},
@@ -91,6 +91,14 @@
     ...BAND_LIBRARY
   ];
 
+  const CATALOG_LIBRARY=Array.isArray(window.EXERCISE_CATALOG)?window.EXERCISE_CATALOG:[];
+  const LIBRARY=(()=>{
+    const map=new Map();
+    LEGACY_LIBRARY.forEach(ex=>map.set(ex.id,clone(ex)));
+    CATALOG_LIBRARY.forEach(ex=>map.set(ex.id,{...(map.get(ex.id)||{}),...clone(ex)}));
+    return [...map.values()];
+  })();
+
   const VIDEO_PLANS = [
     {
       id:"push",name:"胸 + 中束 + 三头",
@@ -128,7 +136,7 @@
   ];
 
   const libraryById = new Map(LIBRARY.map(x => [x.id,x]));
-  const groupOrder = ["胸","胸/三头","背","背/二头","背/后束","肩","肩/后束","二头","三头","三头/胸","股四头","股四头/臀","腘绳肌","腘绳肌/臀","臀","臀/腘绳肌","臀/腘绳肌/背","大腿内侧","小腿","腹/核心","其他"];
+  const groupOrder = ["胸","胸/三头","胸/背","背","背/二头","背/后束","肩","肩/后束","肩/胸","肩/核心","斜方","二头","二头/肱肌","三头","三头/胸","股四头","股四头/臀","臀/股四头","臀/大腿内侧","腘绳肌","腘绳肌/臀","臀","臀/腘绳肌","臀/腘绳肌/背","大腿内侧","小腿","胫骨前肌","腹/核心","全身/核心","全身","其他"];
 
   const inferBodyweightFactor = name => {
     const n = String(name || "");
@@ -143,6 +151,15 @@
   const equipmentKey = name => String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
   const exerciseEquipmentKey = (exerciseId,equipmentName="") => `${exerciseId||""}::${equipmentKey(equipmentName)}`;
 
+  const copyCatalogMeta=(source={})=>{
+    const out={};
+    if(Array.isArray(source.scenes)&&source.scenes.length)out.scenes=[...source.scenes];
+    ["equipment","movement","illustration"].forEach(k=>{if(source[k])out[k]=source[k]});
+    if(Array.isArray(source.aliases)&&source.aliases.length)out.aliases=[...source.aliases];
+    if(Array.isArray(source.targets)&&source.targets.length)out.targets=[...source.targets];
+    return out;
+  };
+
   function normalizeCustomExercise(ex){
     const factor=+ex?.bodyweightFactor || inferBodyweightFactor(ex?.name);
     const loadType=loadTypeOf({...ex,bodyweightFactor:factor});
@@ -151,6 +168,7 @@
       name:String(ex?.name || "未命名动作"),
       group:String(ex?.group || "其他"),
       loadType,
+      ...copyCatalogMeta(ex),
       ...(Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?{resistanceOptions:[...ex.resistanceOptions]}:{}),
       ...(factor?{bodyweightFactor:factor}:{})
     };
@@ -166,6 +184,7 @@
       name:String(ex?.name || preset?.name || "未命名动作"),
       group:String(ex?.group || preset?.group || "其他"),
       loadType,
+      ...copyCatalogMeta({...preset,...ex}),
       ...(Array.isArray(resistanceOptions)&&resistanceOptions.length?{resistanceOptions:[...resistanceOptions]}:{}),
       ...(factor?{bodyweightFactor:factor}:{})
     };
@@ -189,10 +208,17 @@
       next.exercises = next.exercises.map(normalizeExistingExercise);
     }
 
-    // Band exercises are additive presets. Append only missing ids so existing
-    // names, groups and user edits are never overwritten.
+    // Rich catalog is additive. Missing presets are appended without touching
+    // user-edited names/groups. Deleted presets stay hidden through meta.
     const existingIds=new Set(next.exercises.map(x=>x.id));
-    BAND_LIBRARY.forEach(ex=>{if(!existingIds.has(ex.id))next.exercises.push(clone(ex))});
+    const hiddenPresetIds=new Set(Array.isArray(next.meta.hiddenPresetExerciseIds)?next.meta.hiddenPresetExerciseIds:[]);
+    LIBRARY.forEach(ex=>{
+      if(!existingIds.has(ex.id)&&!hiddenPresetIds.has(ex.id)){
+        next.exercises.push(clone(ex));
+        existingIds.add(ex.id);
+      }
+    });
+    next.meta.exerciseCatalogVersion=1;
     return next;
   }
 
@@ -281,16 +307,26 @@
 
   function renderExercises(){
     const box=$("exerciseList");if(!box)return;
-    const db=getDB();box.innerHTML="";
+    const db=getDB(),sceneDefs=window.EXERCISE_SCENES||{};
+    box.innerHTML="";
+    const sceneOrder=ex=>sceneDefs[ex?.scenes?.[0]]?.order??999;
     const items=[...(db.exercises||[])].sort((a,b)=>{
+      const so=sceneOrder(a)-sceneOrder(b);if(so)return so;
       const ai=groupOrder.indexOf(a.group),bi=groupOrder.indexOf(b.group);
       const ag=ai<0?999:ai,bg=bi<0?999:bi;
       return ag-bg || String(a.name).localeCompare(String(b.name),"zh-CN");
     });
     if(!items.length){box.innerHTML='<div class="empty">暂无动作。</div>';return}
     items.forEach(ex=>{
-      const d=document.createElement("div");d.className="item";
-      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")} · ${esc(loadTypeLabel(loadTypeOf(ex)))}</div></div><div class="item-actions"><button class="btn ghost" data-edit-ex="${esc(ex.id)}">编辑</button><button class="btn danger" data-del-ex="${esc(ex.id)}">删</button></div>`;
+      const d=document.createElement("div");d.className="item exercise-library-item";
+      d.dataset.exerciseId=ex.id;
+      d.dataset.exerciseScenes=(ex.scenes||[]).join(",");
+      const art=window.renderExerciseIllustration?.(ex,"small")||"";
+      const scene=window.exerciseSceneLabel?.(ex.scenes?.[0])||"自定义";
+      const equipment=ex.equipment||"自定义器械";
+      const aliases=Array.isArray(ex.aliases)?ex.aliases.join(" "):"";
+      d.dataset.exerciseSearch=[ex.name,ex.group,equipment,scene,aliases].filter(Boolean).join(" ").toLocaleLowerCase();
+      d.innerHTML=`<div class="item-main exercise-library-main">${art}<div class="exercise-library-copy"><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(ex.group||"其他")} · ${esc(scene)}</div><div class="exercise-library-tags"><span>${esc(equipment)}</span><span>${esc(loadTypeLabel(loadTypeOf(ex)))}</span></div></div></div><div class="item-actions"><button class="btn ghost" data-edit-ex="${esc(ex.id)}">编辑</button><button class="btn danger" data-del-ex="${esc(ex.id)}">删</button></div>`;
       box.appendChild(d);
     });
     box.querySelectorAll("[data-edit-ex]").forEach(b=>b.addEventListener("click",()=>openExerciseModal(b.dataset.editEx)));
@@ -301,6 +337,11 @@
     if(!confirm("删除这个动作？历史训练不会删除，模板中的该动作会被移除。"))return;
     const db=getDB();
     db.exercises=(db.exercises||[]).filter(x=>x.id!==id);
+    if(libraryById.has(id)){
+      db.meta=db.meta||{};
+      const hidden=new Set(Array.isArray(db.meta.hiddenPresetExerciseIds)?db.meta.hiddenPresetExerciseIds:[]);
+      hidden.add(id);db.meta.hiddenPresetExerciseIds=[...hidden];
+    }
     (db.plans||[]).forEach(p=>{
       p.exerciseIds=(p.exerciseIds||[]).filter(x=>x!==id);
       if(p.prescriptions)delete p.prescriptions[id];
@@ -361,8 +402,9 @@
     const loadType=validLoadType($("exerciseLoadType")?.value)?$("exerciseLoadType").value:loadTypeOf(old||{name});
     const inferredFactor=+old?.bodyweightFactor || inferBodyweightFactor(name);
     const factor=(loadType==="bodyweight"||loadType==="bodyweight_extra")?inferredFactor:0;
-    const resistanceOptions=loadType==="band"?(Array.isArray(old?.resistanceOptions)&&old.resistanceOptions.length?old.resistanceOptions:BAND_RESISTANCE_OPTIONS):null;
-    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...(resistanceOptions?{resistanceOptions:[...resistanceOptions]}:{}),...(factor?{bodyweightFactor:factor}:{})};
+    const preset=libraryById.get(id);
+    const resistanceOptions=loadType==="band"?(Array.isArray(old?.resistanceOptions)&&old.resistanceOptions.length?old.resistanceOptions:(preset?.resistanceOptions||BAND_RESISTANCE_OPTIONS)):null;
+    const obj={id:id||uid("ex"),name,group:$("exerciseGroup")?.value||"其他",loadType,...copyCatalogMeta({...preset,...old}),...(resistanceOptions?{resistanceOptions:[...resistanceOptions]}:{}),...(factor?{bodyweightFactor:factor}:{})};
     db.exercises=db.exercises||[];
     const i=db.exercises.findIndex(x=>x.id===id);
     if(i>=0)db.exercises[i]=obj;else db.exercises.push(obj);
@@ -696,7 +738,7 @@
   const load = () => {
     if (document.querySelector('script[data-history-system]')) return;
     const s = document.createElement('script');
-    s.src = 'history-system.js?v=24';
+    s.src = 'history-system.js?v=25';
     s.dataset.historySystem = '1';
     document.head.appendChild(s);
   };

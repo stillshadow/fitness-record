@@ -175,18 +175,19 @@
       .batch-planbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:11px}.batch-planbar select{min-height:42px}.batch-planbar .btn{min-width:86px}
       .batch-list{display:grid;gap:10px}.batch-ex{border:1px solid var(--line);background:var(--panel2);border-radius:16px;padding:11px}.batch-ex-head{display:flex;align-items:start;justify-content:space-between;gap:10px;margin-bottom:9px}.batch-ex-head b{font-size:14px}.batch-ex-head small{display:block;color:var(--muted);font-size:10px;margin-top:2px}.batch-ex-actions{display:flex;gap:4px;align-items:center}.batch-move,.batch-remove{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;min-width:32px;height:30px;padding:0 7px}.batch-remove{color:var(--bad)}
       .batch-equipment{margin:0 0 9px}.batch-equipment label{display:block;margin-bottom:5px;font-size:10px;color:var(--muted)}.batch-equipment input{width:100%;box-sizing:border-box;min-height:40px}.batch-set-head,.batch-set{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,.8fr) minmax(0,.65fr) 28px;gap:6px;align-items:center}.batch-set-head{font-size:10px;color:var(--muted);padding:0 2px 5px}.batch-set{margin-bottom:6px}.batch-set-index{text-align:center;color:var(--muted);font-size:11px}.batch-set input{padding:8px 7px;text-align:center}.batch-load-static{height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;color:#aab4c3;background:rgba(255,255,255,.025);font-size:11px}.batch-band-presets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 34px}.batch-band-preset{border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);border-radius:999px;min-height:30px;padding:0 10px;font-size:10px}.batch-band-preset:active{transform:translateY(1px)}.batch-set-del{height:34px;border:0;background:transparent;color:var(--muted);font-size:18px}.batch-add-set{width:100%;margin-top:2px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:7px}
-      .batch-add-ex{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:10px}.batch-cardio-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.batch-cardio-fields input{min-height:42px}.batch-empty{border:1px dashed var(--line);border-radius:14px;padding:22px 12px;text-align:center;color:var(--muted);font-size:12px}.batch-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px;position:sticky;bottom:-14px;background:linear-gradient(180deg,transparent,var(--panel) 28%);padding:18px 0 14px}
+      .batch-add-ex{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:10px}.batch-ex-search{grid-column:1/-1;min-height:40px}.batch-cardio-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.batch-cardio-fields input{min-height:42px}.batch-empty{border:1px dashed var(--line);border-radius:14px;padding:22px 12px;text-align:center;color:var(--muted);font-size:12px}.batch-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px;position:sticky;bottom:-14px;background:linear-gradient(180deg,transparent,var(--panel) 28%);padding:18px 0 14px}
       @media(max-width:430px){#batchTrainingModal{padding:8px}.batch-set-head,.batch-set{grid-template-columns:24px minmax(0,1fr) minmax(56px,.72fr) minmax(48px,.58fr) 24px;gap:4px}.batch-ex{padding:9px}.batch-set input{padding:8px 4px}.batch-add-ex{grid-template-columns:1fr 1fr}.batch-add-ex select{grid-column:1/-1}.batch-add-ex .btn{width:100%}.batch-ex-head{align-items:flex-start}.batch-ex-actions{flex-wrap:wrap;justify-content:flex-end}.batch-actions{bottom:-14px}}
     `; document.head.appendChild(style);
 
     const modal=document.createElement('div'); modal.className='modal'; modal.id='batchTrainingModal';
-    modal.innerHTML=`<div class="modal-panel"><div class="batch-head"><div><h2>记录训练</h2><small id="batchDateText">训练结束后一次录完整场</small></div><button type="button" class="btn ghost" id="batchClose">关闭</button></div><div class="batch-planbar"><select id="batchPlan"></select><button type="button" class="btn soft" id="batchLoadPlan">载入模板</button></div><div id="batchTrainingList" class="batch-list"></div><div class="batch-add-ex"><select id="batchExercise"></select><button type="button" class="btn soft" id="batchAddExercise">＋ 动作</button><button type="button" class="btn soft" id="batchAddCardio">＋ 有氧</button></div><div class="batch-actions"><button type="button" class="btn ghost" id="batchClear">清空训练</button><button type="button" class="btn" id="batchSave">保存训练</button></div></div>`;
+    modal.innerHTML=`<div class="modal-panel"><div class="batch-head"><div><h2>记录训练</h2><small id="batchDateText">训练结束后一次录完整场</small></div><button type="button" class="btn ghost" id="batchClose">关闭</button></div><div class="batch-planbar"><select id="batchPlan"></select><button type="button" class="btn soft" id="batchLoadPlan">载入模板</button></div><div id="batchTrainingList" class="batch-list"></div><div class="batch-add-ex"><input id="batchExerciseSearch" class="batch-ex-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><select id="batchExercise"></select><button type="button" class="btn soft" id="batchAddExercise">＋ 动作</button><button type="button" class="btn soft" id="batchAddCardio">＋ 有氧</button></div><div class="batch-actions"><button type="button" class="btn ghost" id="batchClear">清空训练</button><button type="button" class="btn" id="batchSave">保存训练</button></div></div>`;
     document.body.appendChild(modal);
     $('batchClose').onclick=()=>modal.classList.remove('open');
     modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
     $('batchLoadPlan').onclick=()=>{const id=$('batchPlan').value;if(id)loadPlan(id)};
     $('batchAddExercise').onclick=addSelectedExercise;
     $('batchAddCardio').onclick=addCardio;
+    $('batchExerciseSearch').addEventListener('input',fillSelectors);
     $('batchClear').onclick=()=>{if(drafts.length&&!confirm('清空当前编辑内容？'))return;drafts=[];render()};
     $('batchSave').onclick=save;
     $('batchTrainingList').addEventListener('input',onInput);
@@ -199,8 +200,15 @@
     const plans=$('batchPlan');
     plans.innerHTML='<option value="">选择训练模板…</option>'+(db.plans||[]).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
     const used=new Set(drafts.filter(x=>x.kind!=="cardio").map(x=>x.exerciseId));
-    const exs=[...(db.exercises||[])].filter(x=>!used.has(x.id)).sort((a,b)=>categoryOrder(a.group)-categoryOrder(b.group)||String(a.name).localeCompare(String(b.name),'zh-CN'));
-    $('batchExercise').innerHTML=exs.length?exs.map(x=>`<option value="${esc(x.id)}">${esc(x.group||'其他')} · ${esc(x.name)}</option>`).join(''):'<option value="">没有更多动作</option>';
+    const q=String($('batchExerciseSearch')?.value||"").trim().toLocaleLowerCase();
+    const exs=[...(db.exercises||[])].filter(x=>{
+      if(used.has(x.id))return false;
+      if(!q)return true;
+      const scene=(x.scenes||[]).map(id=>window.exerciseSceneLabel?.(id)||id).join(" ");
+      const text=[x.name,x.group,x.equipment,scene,...(x.aliases||[])].filter(Boolean).join(" ").toLocaleLowerCase();
+      return text.includes(q);
+    }).sort((a,b)=>categoryOrder(a.group)-categoryOrder(b.group)||String(a.name).localeCompare(String(b.name),'zh-CN'));
+    $('batchExercise').innerHTML=exs.length?exs.map(x=>`<option value="${esc(x.id)}">${esc(x.group||'其他')} · ${esc(x.name)}${x.equipment?` · ${esc(x.equipment)}`:""}</option>`).join(''):'<option value="">没有匹配动作</option>';
     $('batchAddExercise').disabled=!exs.length;
     $('batchAddCardio').disabled=drafts.some(x=>x.kind==="cardio");
   }

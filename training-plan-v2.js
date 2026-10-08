@@ -8,11 +8,11 @@
   let editingPlanId="",editingPlanRows=[];
 
   const DEFAULT_PLANS=[
-    {id:"push",name:"推｜胸 + 中束 + 三头",exerciseIds:["bench","incline_machine_press","dip","cable_lateral_raise","overhead_triceps_extension","legraise"],finisherIds:[],prescriptions:{bench:"4 × 6–10",incline_machine_press:"3 × 8–12",dip:"3 × 8–12 · 前倾",cable_lateral_raise:"4 × 12–20",overhead_triceps_extension:"3 × 10–15",legraise:"3 × 8"}},
+    {id:"push",name:"推｜胸 + 中束 + 三头",exerciseIds:["bench","incline_chest_press_machine","dip","cable_lateral_raise","overhead_triceps_extension","legraise"],finisherIds:[],prescriptions:{bench:"4 × 6–10",incline_chest_press_machine:"3 × 8–12",dip:"3 × 8–12 · 前倾",cable_lateral_raise:"4 × 12–20",overhead_triceps_extension:"3 × 10–15",legraise:"3 × 8"}},
     {id:"pull",name:"拉｜背 + 后束 + 二头",exerciseIds:["cable_single_pulldown","neutral_pulldown","machine_single_row","seated_row_high_elbow","cable_curl","legraise"],finisherIds:[],prescriptions:{cable_single_pulldown:"3 × 10–12",neutral_pulldown:"3 × 8–12",machine_single_row:"3 × 8–12",seated_row_high_elbow:"3 × 12–15",cable_curl:"3 × 10–15",legraise:"3 × 8"}},
-    {id:"legs",name:"腿｜股四头 + 臀 + 腘绳肌 + 小腿",exerciseIds:["barbell_squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise","legraise"],finisherIds:[],prescriptions:{barbell_squat:"4 × 6–10",bulgarian_split_squat:"3 × 8–12",rdl:"3 × 8–12",seated_leg_curl:"3 × 10–15",standing_calf_raise:"4 × 10–15",legraise:"3 × 8"}}
+    {id:"legs",name:"腿｜股四头 + 臀 + 腘绳肌 + 小腿",exerciseIds:["squat","bulgarian_split_squat","rdl","seated_leg_curl","standing_calf_raise","legraise"],finisherIds:[],prescriptions:{squat:"4 × 6–10",bulgarian_split_squat:"3 × 8–12",rdl:"3 × 8–12",seated_leg_curl:"3 × 10–15",standing_calf_raise:"4 × 10–15",legraise:"3 × 8"}}
   ];
-  const EXTRA_EXERCISES=[{id:"incline_machine_press",name:"上斜器械推胸",group:"胸"},{id:"barbell_squat",name:"杠铃深蹲",group:"股四头/臀"}];
+  const EXTRA_EXERCISES=[];
   const getDB=()=>window.fitnessApp?.getDB?.()||{exercises:[],plans:[]};
   const putDB=db=>{window.fitnessApp.replaceDB(db);window.dispatchEvent(new CustomEvent("fitness:changed"))};
   const toast=msg=>{const t=$("toast");if(!t)return;t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),1800)};
@@ -30,7 +30,7 @@
 
   function ensureStyles(){
     if($("personalPlanStyle"))return;const style=document.createElement("style");style.id="personalPlanStyle";
-    style.textContent=`#page-training #planList [data-load-plan]{display:none!important}.template-plan-row{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}.template-plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.template-plan-fields{margin-top:9px}.template-plan-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.template-plan-actions .btn{padding:6px 9px;min-height:34px}.template-plan-order{font-size:10px;color:var(--muted);margin-bottom:2px}`;document.head.appendChild(style);
+    style.textContent=`#page-training #planList [data-load-plan]{display:none!important}.template-plan-row{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}.template-plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.template-plan-fields{margin-top:9px}.template-plan-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.template-plan-actions .btn{padding:6px 9px;min-height:34px}.template-plan-order{font-size:10px;color:var(--muted);margin-bottom:2px}.template-exercise-search{width:100%;min-height:40px;margin-bottom:7px;box-sizing:border-box}`;document.head.appendChild(style);
   }
 
   function decoratePlanCards(){
@@ -44,8 +44,8 @@
 
   function ensurePlanItemsModal(){
     if($("planItemsModal"))return;const modal=document.createElement("div");modal.className="modal";modal.id="planItemsModal";
-    modal.innerHTML=`<div class="modal-panel wide"><div class="section"><h2 id="planItemsTitle">编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div><label for="planItemsName">模板名称</label><input id="planItemsName"><div class="meta" style="margin:8px 0 10px">这里只定义常用起始方案。实际训练时可以自由调整。</div><div id="planItemsList" class="list"></div><div class="row" style="margin-top:12px;align-items:end"><div class="c8"><label for="planItemsAddSelect">添加训练项目</label><select id="planItemsAddSelect"></select></div><div class="c4"><button class="btn soft" id="planItemsAddBtn" style="width:100%">＋ 添加</button></div></div><div class="modal-actions"><button class="btn" id="savePlanItemsBtn">保存模板</button></div></div>`;
-    document.body.appendChild(modal);$("closePlanItemsModal").addEventListener("click",()=>modal.classList.remove("open"));modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});$("planItemsAddBtn").addEventListener("click",addPlanItem);$("savePlanItemsBtn").addEventListener("click",savePlanItems);$("planItemsList").addEventListener("click",handleRowAction);
+    modal.innerHTML=`<div class="modal-panel wide"><div class="section"><h2 id="planItemsTitle">编辑训练模板</h2><button class="btn ghost" id="closePlanItemsModal">关闭</button></div><label for="planItemsName">模板名称</label><input id="planItemsName"><div class="meta" style="margin:8px 0 10px">这里只定义常用起始方案。实际训练时可以自由调整。</div><div id="planItemsList" class="list"></div><div class="row" style="margin-top:12px;align-items:end"><div class="c8"><label for="planItemsAddSelect">添加训练项目</label><input id="planItemsExerciseSearch" class="template-exercise-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><select id="planItemsAddSelect"></select></div><div class="c4"><button class="btn soft" id="planItemsAddBtn" style="width:100%">＋ 添加</button></div></div><div class="modal-actions"><button class="btn" id="savePlanItemsBtn">保存模板</button></div></div>`;
+    document.body.appendChild(modal);$("closePlanItemsModal").addEventListener("click",()=>modal.classList.remove("open"));modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});$("planItemsAddBtn").addEventListener("click",addPlanItem);$("savePlanItemsBtn").addEventListener("click",savePlanItems);$("planItemsList").addEventListener("click",handleRowAction);$("planItemsExerciseSearch").addEventListener("input",refreshPlanAddSelect);
   }
 
   function openPlanItemsEditor(planId=""){
@@ -72,11 +72,17 @@
 
   function refreshPlanAddSelect(){
     const select=$("planItemsAddSelect");if(!select)return;
-    const db=getDB(),used=new Set(editingPlanRows.map(x=>x.id));
-    const available=(db.exercises||[]).filter(x=>!used.has(x.id)).sort((a,b)=>String(a.group).localeCompare(String(b.group),"zh-CN")||String(a.name).localeCompare(String(b.name),"zh-CN"));
+    const db=getDB(),used=new Set(editingPlanRows.map(x=>x.id)),q=String($("planItemsExerciseSearch")?.value||"").trim().toLocaleLowerCase();
+    const available=(db.exercises||[]).filter(x=>{
+      if(used.has(x.id))return false;
+      if(!q)return true;
+      const scene=(x.scenes||[]).map(id=>window.exerciseSceneLabel?.(id)||id).join(" ");
+      const text=[x.name,x.group,x.equipment,scene,...(x.aliases||[])].filter(Boolean).join(" ").toLocaleLowerCase();
+      return text.includes(q);
+    }).sort((a,b)=>String(a.group).localeCompare(String(b.group),"zh-CN")||String(a.name).localeCompare(String(b.name),"zh-CN"));
     const opts=[];
     if(!used.has(CARDIO_ID))opts.push(`<option value="${CARDIO_ID}">有氧｜训练流程</option>`);
-    opts.push(...available.map(x=>`<option value="${esc(x.id)}">${esc(x.group||"其他")}｜${esc(x.name)}</option>`));
+    opts.push(...available.map(x=>`<option value="${esc(x.id)}">${esc(x.group||"其他")}｜${esc(x.name)}${x.equipment?`｜${esc(x.equipment)}`:""}</option>`));
     select.innerHTML=opts.length?opts.join(""):'<option value="">没有可添加项目</option>';
     $("planItemsAddBtn").disabled=!opts.length;
   }
