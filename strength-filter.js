@@ -21,9 +21,9 @@
     load('ui-v3.js?v=66','ui-v3');
     load('training-plan-v2.js?v=55','training-plan-v2');
     load('ui-v2.js?v=54','ui-v2');
-    load('training-batch.js?v=59','training-batch');
-    load('ai-system.js?v=13','ai-system');
-    load('last-performance.js?v=55','last-performance');
+    load('training-batch.js?v=60','training-batch');
+    load('ai-system.js?v=14','ai-system');
+    load('last-performance.js?v=56','last-performance');
     load('ui-final.js?v=64','ui-final');
     load('ui-keyboard.js?v=54','ui-keyboard');
   };
