@@ -215,6 +215,7 @@
   ];
   let activeLibraryCategory="all";
   let activeLibraryScene="all";
+  let activeLibrarySource="all";
   let librarySearch="";
   let changingPicker=false;
 
@@ -374,11 +375,23 @@
       tools=document.createElement("div");
       tools.id="exerciseLibraryTools";
       tools.className="exercise-library-tools";
-      tools.innerHTML='<input id="exerciseLibrarySearch" class="exercise-library-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><div id="exerciseSceneBar" class="exercise-scene-bar"></div><div id="exerciseCategoryBar" class="exercise-category-bar"></div><div id="exerciseLibraryCount" class="exercise-library-count"></div>';
+      tools.innerHTML='<div id="exerciseSourceBar" class="exercise-source-bar"></div><input id="exerciseLibrarySearch" class="exercise-library-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><div id="exerciseSceneBar" class="exercise-scene-bar"></div><div id="exerciseCategoryBar" class="exercise-category-bar"></div><div id="exerciseLibraryCount" class="exercise-library-count"></div>';
       box.parentElement?.insertBefore(tools,box);
       $("exerciseLibrarySearch")?.addEventListener("input",e=>{librarySearch=String(e.target.value||"").trim().toLocaleLowerCase();organizeLibrary()});
     }
     return tools;
+  }
+
+  function renderSourceBar(){
+    ensureLibraryTools();
+    const bar=$("exerciseSourceBar");if(!bar)return;
+    const defs=[["all","全部"],["builtin","内置动作"],["custom","我的动作"]];
+    bar.innerHTML=defs.map(([id,label])=>`<button class="exercise-source-chip ${activeLibrarySource===id?"active":""}" data-ex-source="${id}">${label}</button>`).join("");
+    bar.querySelectorAll("[data-ex-source]").forEach(btn=>btn.addEventListener("click",()=>{
+      activeLibrarySource=btn.dataset.exSource;
+      renderSourceBar();
+      organizeLibrary();
+    }));
   }
 
   function renderSceneBar(){
@@ -426,7 +439,9 @@
       const categoryMatch=activeLibraryCategory==="all"||activeLibraryCategory===category;
       const searchText=String(item.dataset.exerciseSearch||[ex.name,ex.group,ex.equipment,...(ex.aliases||[])].filter(Boolean).join(" ")).toLocaleLowerCase();
       const searchMatch=!librarySearch||searchText.includes(librarySearch);
-      const visible=sceneMatch&&categoryMatch&&searchMatch;
+      const source=item.dataset.exerciseSource||"custom";
+      const sourceMatch=activeLibrarySource==="all"||activeLibrarySource===source;
+      const visible=sceneMatch&&categoryMatch&&searchMatch&&sourceMatch;
       item.style.display=visible?"grid":"none";
       if(!visible)return;
       visibleCount++;
@@ -453,6 +468,7 @@
   function refreshCategories(){
     setupTrainingPicker();
     ensureLibraryTools();
+    renderSourceBar();
     renderSceneBar();
     renderLibraryBar();
     organizeLibrary();
