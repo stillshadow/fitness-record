@@ -27,6 +27,13 @@
   function loadTypeOf(ex){return window.fitnessLoadTypeOf?.(ex)||(["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"))}
   const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
   const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
+  function supportsSpecificMachine(ex){
+    const scenes=Array.isArray(ex?.scenes)?ex.scenes:[];
+    if(scenes[0]==="gym_machine")return true;
+    if(scenes.length)return false;
+    const text=`${ex?.name||""} ${ex?.equipment||""}`;
+    return /器械|机器|史密斯机|推胸机|划船机|下拉机|腿举机|哈克|钟摆|屈伸机|弯举机|臀推机|外展机|内收机|提踵机/i.test(text);
+  }
   function equipmentOptionsForExercise(exerciseId){
     const db=getDB(),seen=new Set(),out=[];
     Object.keys(db.days||{}).sort().reverse().forEach(date=>{
@@ -56,7 +63,7 @@
   const blankSet=(weight="",resistanceLabel="")=>({weight:String(weight??""),resistanceLabel:String(resistanceLabel??""),reps:"",rir:""});
   function resetDrafts(exerciseId){
     currentExerciseId=exerciseId||"";
-    const opts=exerciseId?equipmentOptionsForExercise(exerciseId):[];
+    const ex=(db.exercises||[]).find(x=>x.id===exerciseId),opts=exerciseId&&supportsSpecificMachine(ex)?equipmentOptionsForExercise(exerciseId):[];
     currentEquipmentName=opts.length===1?opts[0]:"";
     editingEquipmentFilterKey=null;
     setDrafts=Array.from({length:exerciseId?prescribedSetCount(exerciseId):1},()=>blankSet());
@@ -121,8 +128,9 @@
     const editor=ensureEditor();if(!editor)return;
     const ex=currentExercise(),type=editingLoadType||loadTypeOf(ex),rx=planPrescription(ex?.id||"");
     const loadLabel=type==="band"?"阻力 / 弹力带":type==="bodyweight"?"自重":type==="bodyweight_extra"?"额外负重":"重量 kg";
-    const equipmentOptions=ex?.id?equipmentOptionsForExercise(ex.id):[];
-    const equipmentField=(type==="band"||type==="bodyweight")?"":`<div class="set-equipment"><label for="setEquipmentInput">器械 / 设备（可选）</label><input id="setEquipmentInput" data-set-equipment type="text" list="setEquipmentList" value="${esc(currentEquipmentName||"")}" placeholder="例如 Hammer Strength 推胸机"><datalist id="setEquipmentList">${equipmentOptions.map(name=>`<option value="${esc(name)}"></option>`).join("")}</datalist></div>`;
+    const machineSpecific=supportsSpecificMachine(ex),equipmentOptions=machineSpecific&&ex?.id?equipmentOptionsForExercise(ex.id):[];
+    if(!machineSpecific)currentEquipmentName="";
+    const equipmentField=(type==="band"||type==="bodyweight"||!machineSpecific)?"":`<div class="set-equipment"><label for="setEquipmentInput">具体机器（可选）</label><input id="setEquipmentInput" data-set-equipment type="text" list="setEquipmentList" value="${esc(currentEquipmentName||"")}" placeholder="例如 二楼 1 号推胸机"><datalist id="setEquipmentList">${equipmentOptions.map(name=>`<option value="${esc(name)}"></option>`).join("")}</datalist></div>`;
     const bandOptions=Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?ex.resistanceOptions:(window.fitnessBandResistanceOptions||["30-50lb","50-70lb"]);
     const bandPresets=type==="band"?`<div class="set-band-presets">${bandOptions.map(opt=>`<button type="button" class="set-band-preset" data-set-band-preset="${esc(opt)}">${esc(opt)}</button>`).join("")}</div>`:"";
     const loadField=(set,i)=>{
@@ -181,7 +189,7 @@
       if(editingEquipmentFilterKey===null)return false;
       return equipmentKey(equipmentNameOf(x))!==editingEquipmentFilterKey;
     });
-    const groupId=uid("setgroup"),time=timeString(),equipmentName=String(currentEquipmentName||"").trim().replace(/\s+/g," ");
+    const groupId=uid("setgroup"),time=timeString(),equipmentName=supportsSpecificMachine(ex)?String(currentEquipmentName||"").trim().replace(/\s+/g," "):"";
     valid.forEach((s,i)=>day.training.push({id:uid("tr"),setGroupId:groupId,setIndex:i+1,exerciseId:ex.id,exerciseName:ex.name,loadType:type,...(equipmentName?{equipmentName}:{ }),weight:(type==="weight"||type==="bodyweight_extra")?(+s.weight||0):0,...(type==="band"?{resistanceLabel:String(s.resistanceLabel||"").trim()}:{ }),reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===""?"":+s.rir,time,...(targetWorkoutId?{workoutId:targetWorkoutId}:{})}));
     db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
     const wasEdit=!!editingExerciseId;
