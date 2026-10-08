@@ -320,6 +320,7 @@
     items.forEach(ex=>{
       const d=document.createElement("div");d.className="item exercise-library-item";
       d.dataset.exerciseId=ex.id;
+      d.dataset.exerciseSource=libraryById.has(ex.id)?"builtin":"custom";
       d.dataset.exerciseScenes=(ex.scenes||[]).join(",");
       const art=window.renderExerciseIllustration?.(ex,"small")||"";
       const scene=window.exerciseSceneLabel?.(ex.scenes?.[0])||"自定义";
