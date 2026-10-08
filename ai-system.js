@@ -596,7 +596,7 @@
       '<div class="ai-observation"><div class="ai-observation-head"><b>'+escapeHtml(x.title||"建议")+'</b><span class="ai-tag">建议</span></div><p>'+escapeHtml(x.detail||"")+'</p></div>'
     ).join("");
     $("aiInsightTitle").textContent=data.title||("AI "+insightLabel(meta.mode));
-    $("aiInsightSubtitle").textContent=meta.mode==="exercise"?"基于最近训练记录":"基于你的本机记录";
+    $("aiInsightSubtitle").textContent=meta.mode==="exercise"?(meta.equipmentName?`基于「${meta.equipmentName}」最近训练记录`:"基于最近训练记录"):"基于你的本机记录";
     const pills=[];
     if(meta.generatedAt)pills.push('<span class="ai-report-pill '+(meta.cached?"cached":"")+'">'+(meta.cached?"本机缓存 · ":"刚刚生成 · ")+escapeHtml(formatGeneratedTime(meta.generatedAt))+'</span>');
     if(meta.stale)pills.push('<span class="ai-report-pill stale">生成后记录有更新</span>');
@@ -613,34 +613,34 @@
     openInsightModal();
   }
   async function runInsight(mode,exerciseId,options={}){
-    const force=!!options.force,title="AI "+insightLabel(mode);
+    const force=!!options.force,equipmentName=String(options.equipmentName||"").trim(),title="AI "+insightLabel(mode);
     let payload,fingerprint,entry,valid,stale;
     try{
-      payload=insightPayload(mode,exerciseId);
+      payload=insightPayload(mode,exerciseId,equipmentName);
       fingerprint=payloadFingerprint(payload);
-      entry=cacheEntryFor(mode,exerciseId);
+      entry=cacheEntryFor(mode,exerciseId,equipmentName);
       valid=validCacheEntry(mode,exerciseId,entry,fingerprint);
       stale=valid&&entry.fingerprint!==fingerprint;
     }catch(err){
       ensureModals();$("aiInsightTitle").textContent=title;$("aiInsightMeta").innerHTML="";$("aiInsightContent").innerHTML='<div class="empty ai-report-error">'+escapeHtml(err.message||"没有足够的数据")+'</div>';$("aiInsightRefresh").style.display="none";openInsightModal();return;
     }
 
-    currentInsight={mode,exerciseId:exerciseId||null,payload,fingerprint,entry};
+    currentInsight={mode,exerciseId:exerciseId||null,equipmentName,payload,fingerprint,entry};
     if(!force&&valid){
-      renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale,exerciseId});
+      renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale,exerciseId,equipmentName});
       return;
     }
 
     showInsightLoading(title);
     try{
       const data=await callAI(mode,payload,null);
-      entry=saveInsightEntry(mode,exerciseId,data,fingerprint);
+      entry=saveInsightEntry(mode,exerciseId,data,fingerprint,equipmentName);
       currentInsight.entry=entry;
-      renderInsight(data,{mode,cached:false,generatedAt:entry.generatedAt,stale:false,exerciseId});
+      renderInsight(data,{mode,cached:false,generatedAt:entry.generatedAt,stale:false,exerciseId,equipmentName});
       refreshHomeAIStatus();
     }catch(err){
       if(entry?.data){
-        renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale:true,exerciseId});
+        renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale:true,exerciseId,equipmentName});
         toast("重新分析失败，已保留上一次报告");
       }else{
         $("aiInsightMeta").innerHTML="";
@@ -746,9 +746,10 @@
     const db=getDB();
     box.querySelectorAll(".item").forEach(item=>{
       if(item.querySelector(".ai-exercise-btn"))return;
-      const name=item.querySelector(".item-title")?.textContent.trim(),ex=(db.exercises||[]).find(x=>x.name===name);if(!ex)return;
+      const datasetId=item.dataset.exerciseId||"",name=item.querySelector(".item-title")?.textContent.trim(),ex=(db.exercises||[]).find(x=>x.id===datasetId)||(db.exercises||[]).find(x=>x.name===name);if(!ex)return;
+      const equipmentName=item.dataset.equipmentName||"";
       const target=item.children[1]||item;
-      const btn=document.createElement("button");btn.type="button";btn.className="ai-exercise-btn";btn.textContent="✦ AI 分析";btn.onclick=e=>{e.stopPropagation();runInsight("exercise",ex.id)};
+      const btn=document.createElement("button");btn.type="button";btn.className="ai-exercise-btn";btn.textContent=equipmentName?"✦ AI 分析此器械":"✦ AI 分析";btn.onclick=e=>{e.stopPropagation();runInsight("exercise",ex.id,{equipmentName})};
       target.appendChild(btn);
     });
   }
