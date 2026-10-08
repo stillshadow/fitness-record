@@ -367,16 +367,40 @@
     syncPickerFromCurrent();
   }
 
-  function renderLibraryBar(){
-    const box=$("exerciseList");if(!box)return;
-    let bar=$("exerciseCategoryBar");
-    if(!bar){
-      bar=document.createElement("div");bar.id="exerciseCategoryBar";bar.className="exercise-category-bar";
-      box.parentElement?.insertBefore(bar,box);
+  function ensureLibraryTools(){
+    const box=$("exerciseList");if(!box)return null;
+    let tools=$("exerciseLibraryTools");
+    if(!tools){
+      tools=document.createElement("div");
+      tools.id="exerciseLibraryTools";
+      tools.className="exercise-library-tools";
+      tools.innerHTML='<input id="exerciseLibrarySearch" class="exercise-library-search" type="search" placeholder="搜索动作 / 器械 / 别名…"><div id="exerciseSceneBar" class="exercise-scene-bar"></div><div id="exerciseCategoryBar" class="exercise-category-bar"></div><div id="exerciseLibraryCount" class="exercise-library-count"></div>';
+      box.parentElement?.insertBefore(tools,box);
+      $("exerciseLibrarySearch")?.addEventListener("input",e=>{librarySearch=String(e.target.value||"").trim().toLocaleLowerCase();organizeLibrary()});
     }
+    return tools;
+  }
+
+  function renderSceneBar(){
+    ensureLibraryTools();
+    const bar=$("exerciseSceneBar");if(!bar)return;
+    const scenes=availableScenes();
+    if(activeLibraryScene!=="all"&&!scenes.some(x=>x.id===activeLibraryScene))activeLibraryScene="all";
+    bar.innerHTML=`<button class="exercise-scene-chip ${activeLibraryScene==="all"?"active":""}" data-ex-scene="all">全部场景</button>`+
+      scenes.map(x=>`<button class="exercise-scene-chip ${activeLibraryScene===x.id?"active":""}" data-ex-scene="${esc(x.id)}">${esc(x.label)}</button>`).join("");
+    bar.querySelectorAll("[data-ex-scene]").forEach(btn=>btn.addEventListener("click",()=>{
+      activeLibraryScene=btn.dataset.exScene;
+      renderSceneBar();
+      organizeLibrary();
+    }));
+  }
+
+  function renderLibraryBar(){
+    ensureLibraryTools();
+    const bar=$("exerciseCategoryBar");if(!bar)return;
     const cats=availableCategories();
     if(activeLibraryCategory!=="all"&&!cats.some(x=>x.id===activeLibraryCategory))activeLibraryCategory="all";
-    bar.innerHTML=`<button class="exercise-category-chip ${activeLibraryCategory==="all"?"active":""}" data-ex-cat="all">全部</button>`+
+    bar.innerHTML=`<button class="exercise-category-chip ${activeLibraryCategory==="all"?"active":""}" data-ex-cat="all">全部肌群</button>`+
       cats.map(x=>`<button class="exercise-category-chip ${activeLibraryCategory===x.id?"active":""}" data-ex-cat="${x.id}">${esc(x.label)}</button>`).join("");
     bar.querySelectorAll("[data-ex-cat]").forEach(btn=>btn.addEventListener("click",()=>{
       activeLibraryCategory=btn.dataset.exCat;
@@ -387,26 +411,49 @@
 
   function organizeLibrary(){
     const box=$("exerciseList");if(!box)return;
+    ensureLibraryTools();
     box.querySelectorAll(".exercise-library-heading").forEach(x=>x.remove());
+    const db=getDB(),byId=new Map((db.exercises||[]).map(ex=>[ex.id,ex]));
     const items=[...box.children].filter(x=>x.classList?.contains("item"));
-    let lastCategory="";
+    let lastHeading="",visibleCount=0;
+    const groupMode=activeLibraryScene==="all"?"scene":(activeLibraryCategory==="all"?"category":"none");
+
     items.forEach(item=>{
-      const group=item.querySelector(".item-sub")?.textContent.trim()||"其他";
-      const category=categoryOfGroup(group);
-      const visible=activeLibraryCategory==="all"||activeLibraryCategory===category;
+      const ex=byId.get(item.dataset.exerciseId)||{};
+      const category=categoryOfExercise(ex);
+      const scenes=ex.scenes?.length?ex.scenes:["other"];
+      const sceneMatch=activeLibraryScene==="all"||scenes.includes(activeLibraryScene);
+      const categoryMatch=activeLibraryCategory==="all"||activeLibraryCategory===category;
+      const searchText=String(item.dataset.exerciseSearch||[ex.name,ex.group,ex.equipment,...(ex.aliases||[])].filter(Boolean).join(" ")).toLocaleLowerCase();
+      const searchMatch=!librarySearch||searchText.includes(librarySearch);
+      const visible=sceneMatch&&categoryMatch&&searchMatch;
       item.style.display=visible?"grid":"none";
-      if(visible&&activeLibraryCategory==="all"&&category!==lastCategory){
+      if(!visible)return;
+      visibleCount++;
+
+      let headingKey="",headingText="";
+      if(groupMode==="scene"){
+        headingKey=sceneOf(ex);headingText=sceneLabel(headingKey);
+      }else if(groupMode==="category"){
+        headingKey=category;headingText=labelOf(category);
+      }
+      if(headingKey&&headingKey!==lastHeading){
         const heading=document.createElement("div");
         heading.className="exercise-library-heading";
-        heading.textContent=labelOf(category);
+        heading.textContent=headingText;
         box.insertBefore(heading,item);
-        lastCategory=category;
+        lastHeading=headingKey;
       }
     });
+
+    const count=$("exerciseLibraryCount");
+    if(count)count.textContent=`显示 ${visibleCount} / ${items.length} 个动作`;
   }
 
   function refreshCategories(){
     setupTrainingPicker();
+    ensureLibraryTools();
+    renderSceneBar();
     renderLibraryBar();
     organizeLibrary();
   }
