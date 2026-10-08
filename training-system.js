@@ -139,6 +139,9 @@
   const validLoadType = x => ["weight","bodyweight","bodyweight_extra","band"].includes(x);
   const loadTypeOf = ex => validLoadType(ex?.loadType) ? ex.loadType : ((+ex?.bodyweightFactor||inferBodyweightFactor(ex?.name))>0 ? "bodyweight_extra" : "weight");
   const loadTypeLabel = type => ({weight:"固定重量",bodyweight:"纯自重",bodyweight_extra:"自重 + 额外负重",band:"弹力带"}[type]||"固定重量");
+  const equipmentNameOf = x => String(x?.equipmentName||"").trim().replace(/\s+/g," ");
+  const equipmentKey = name => String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
+  const exerciseEquipmentKey = (exerciseId,equipmentName="") => `${exerciseId||""}::${equipmentKey(equipmentName)}`;
 
   function normalizeCustomExercise(ex){
     const factor=+ex?.bodyweightFactor || inferBodyweightFactor(ex?.name);
@@ -627,6 +630,9 @@
   function hookTraining(){
     window.fitnessLoadTypeOf=loadTypeOf;
     window.fitnessLoadTypeLabel=loadTypeLabel;
+    window.fitnessEquipmentNameOf=equipmentNameOf;
+    window.fitnessEquipmentKey=equipmentKey;
+    window.fitnessExerciseEquipmentKey=exerciseEquipmentKey;
     window.fitnessBandResistanceOptions=[...BAND_RESISTANCE_OPTIONS];
     window.renderPlans=renderPlans;
     window.renderExercises=renderExercises;
