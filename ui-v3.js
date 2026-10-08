@@ -44,7 +44,7 @@
     .diary-date-nav{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;align-items:center;gap:7px;min-width:0;flex:1}
     .diary-date-step{width:36px;height:36px;border:1px solid var(--v3-line);border-radius:11px;background:#10151c;color:var(--v3-text);font-size:20px}
     .diary-date-step:disabled{opacity:.28}
-    .diary-date-main{border:0;background:transparent;color:var(--v3-text);text-align:left;padding:0 4px;min-width:0}
+    .diary-date-main{border:0;background:transparent;color:var(--v3-text);text-align:left;padding:0 4px;min-width:0}.diary-date-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;inset:auto!important;padding:0!important;border:0!important}
     .diary-date-main small{display:block;color:var(--v3-muted);font-size:10px;font-weight:600}.diary-date-main b{display:block;font-size:18px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .diary-home{display:grid;gap:10px;margin-top:17px}
     .diary-card{background:linear-gradient(180deg,#10151d,#0c1117);border:1px solid var(--v3-line);border-radius:18px;padding:15px}
@@ -129,7 +129,7 @@
           <button type="button" class="diary-date-step" id="diaryPrevDate" aria-label="前一天">‹</button>
           <button type="button" class="diary-date-main" id="diaryDateBtn"><small id="diaryDateKicker">今天</small><b id="diaryDateLabel"></b></button>
           <button type="button" class="diary-date-step" id="diaryNextDate" aria-label="后一天">›</button>
-          <input id="diaryDateInput" type="date" hidden>
+          <input id="diaryDateInput" class="diary-date-input" type="date" aria-hidden="true">
         </div>
         <button class="v3-icon-btn" id="v3SettingsBtn" aria-label="设置">${icon('gear')}</button>
       </div>
@@ -400,7 +400,7 @@
     const isToday=date===today(),d=dateObj(date),future=date>today();
     if($('diaryDateKicker'))$('diaryDateKicker').textContent=isToday?'今天':'记录';
     if($('diaryDateLabel'))$('diaryDateLabel').textContent=prettyDateValue(date);
-    if($('diaryDateInput'))$('diaryDateInput').value=date;
+    if($('diaryDateInput')){$('diaryDateInput').value=date;$('diaryDateInput').max=today();}
     if($('diaryNextDate'))$('diaryNextDate').disabled=future||isToday;
 
     const wi=$('diaryWeightInput');if(wi&&document.activeElement!==wi)wi.value=weight??'';
@@ -426,7 +426,7 @@
     document.querySelectorAll('[data-diary-home]').forEach(b=>b.onclick=showHome);
     $('diaryPrevDate').onclick=()=>setDiaryDate(shiftDate(activeDate(),-1));
     $('diaryNextDate').onclick=()=>{if(activeDate()<today())setDiaryDate(shiftDate(activeDate(),1))};
-    $('diaryDateBtn').onclick=()=>{const input=$('diaryDateInput');if(input?.showPicker)input.showPicker();else input?.click()};
+    $('diaryDateBtn').onclick=()=>{const input=$('diaryDateInput');if(!input)return;try{if(input.showPicker)input.showPicker();else input.click()}catch{input.click()}};
     $('diaryDateInput').onchange=e=>{if(e.target.value&&e.target.value<=today())setDiaryDate(e.target.value)};
     $('diaryWeightSave').onclick=()=>{
       const v=+$('diaryWeightInput').value;if(!(v>0))return;
@@ -434,6 +434,7 @@
     };
     $('diaryTrainingDetailBtn').onclick=()=>showDiaryDetail('training');
     $('diaryFoodDetailBtn').onclick=()=>showDiaryDetail('food');
+    $('v3Food').onclick=()=>$('quickFood')?.click();
     $('v3Progress').onclick=()=>showLegacy('progress','我的进度','体重、力量与执行趋势');
     $('v3StartTraining').onclick=()=>{
       let n=0; const go=()=>{ if(typeof window.openBatchTraining==='function') return window.openBatchTraining(activeDate()); if(++n<12) return setTimeout(go,100); const t=$('toast'); if(t){t.textContent='训练记录模块还在加载';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);} }; go();
