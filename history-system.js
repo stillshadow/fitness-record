@@ -255,10 +255,10 @@
     style.textContent=`
       .exercise-library-tools{display:grid;gap:8px;margin-bottom:9px}
       .exercise-library-search{width:100%;min-height:42px;box-sizing:border-box}
-      .exercise-scene-bar,.exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-      .exercise-scene-bar::-webkit-scrollbar,.exercise-category-bar::-webkit-scrollbar{display:none}
-      .exercise-scene-chip,.exercise-category-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:11px;white-space:nowrap}
-      .exercise-scene-chip.active,.exercise-category-chip.active{background:var(--accent);border-color:var(--accent);color:#09101b;font-weight:800}
+      .exercise-source-bar,.exercise-scene-bar,.exercise-category-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+      .exercise-source-bar::-webkit-scrollbar,.exercise-scene-bar::-webkit-scrollbar,.exercise-category-bar::-webkit-scrollbar{display:none}
+      .exercise-source-chip,.exercise-scene-chip,.exercise-category-chip{flex:0 0 auto;border:1px solid rgba(255,255,255,.09);background:#111821;color:#8793a4;border-radius:999px;padding:6px 10px;font-size:11px;white-space:nowrap}
+      .exercise-source-chip.active,.exercise-scene-chip.active,.exercise-category-chip.active{background:#26314a;border-color:#536789;color:#dce4ff;font-weight:800}
       .exercise-library-heading{font-size:12px;font-weight:850;color:var(--accent2);padding:11px 2px 2px}
       .exercise-library-item{align-items:center}
       .exercise-library-main{display:flex;align-items:center;gap:10px;min-width:0}
@@ -491,7 +491,7 @@
   const load = () => {
     if (document.querySelector('script[data-set-logger]')) return;
     const s = document.createElement('script');
-    s.src = 'set-logger.js?v=53';
+    s.src = 'set-logger.js?v=54';
     s.dataset.setLogger = '1';
     document.head.appendChild(s);
   };
