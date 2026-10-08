@@ -2,6 +2,9 @@
   if(window.__FITNESS_MINIMAL_LIGHT__)return;
   window.__FITNESS_MINIMAL_LIGHT__=true;
   const $=id=>document.getElementById(id);
+  if(!document.querySelector('link[data-minimal-light]')){
+    const link=document.createElement("link");link.rel="stylesheet";link.href="ui-minimal-light.css?v=1";link.dataset.minimalLight="1";document.head.appendChild(link);
+  }
   const pad=n=>String(n).padStart(2,"0");
   const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
   const clone=x=>JSON.parse(JSON.stringify(x));
