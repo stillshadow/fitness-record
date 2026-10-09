@@ -6,8 +6,6 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt = n => Number(n || 0).toFixed(1).replace(/\.0$/,'');
   const getDB = () => window.fitnessApp?.getDB?.() || {days:{},exercises:[]};
-  const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
-  const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
 
   function currentExerciseContext(){
     const s = window.getActiveWorkoutSession?.();
