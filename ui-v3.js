@@ -217,8 +217,6 @@
   const dateObj = date => new Date(String(date)+"T12:00:00");
   const shiftDate = (date,delta) => { const d=dateObj(date);d.setDate(d.getDate()+delta);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const prettyDateValue = date => { const d=dateObj(date),w=['周日','周一','周二','周三','周四','周五','周六'];return `${d.getMonth()+1}月${d.getDate()}日 · ${w[d.getDay()]}`; };
-  const equipmentNameOf = row => window.fitnessEquipmentNameOf?.(row) || String(row?.equipmentName||'').trim().replace(/\s+/g,' ');
-  const equipmentKey = name => window.fitnessEquipmentKey?.(name) || String(name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase();
   const setText = (row,ex={}) => {
     const type=['weight','bodyweight','bodyweight_extra','band'].includes(row?.loadType)?row.loadType:(window.fitnessLoadTypeOf?.(ex)||ex.loadType||((+ex.bodyweightFactor||0)>0?'bodyweight_extra':'weight'));
     const weight=+row?.weight||0,reps=+row?.reps||0;
@@ -247,24 +245,28 @@
   function trainingGroups(day,db){
     const groups=[];
     (day?.training||[]).forEach((row,idx)=>{
-      const id=row.exerciseId||row.exerciseName||('legacy_'+idx),eq=equipmentNameOf(row),key=`${id}::${equipmentKey(eq)}`;
-      let g=groups.find(x=>x.key===key);
-      if(!g){const ex=(db.exercises||[]).find(x=>x.id===row.exerciseId)||{id,name:row.exerciseName||'动作'};g={key,exerciseId:row.exerciseId||'',name:ex.name||row.exerciseName||'动作',ex,equipmentName:eq,items:[],order:Number.isFinite(+row.orderIndex)?+row.orderIndex:groups.length};groups.push(g);}
+      const id=row.exerciseId||row.exerciseName||('legacy_'+idx);
+      let g=groups.find(x=>x.key===id);
+      if(!g){
+        const ex=(db.exercises||[]).find(x=>x.id===row.exerciseId)||{id,name:row.exerciseName||'动作'};
+        g={key:id,exerciseId:row.exerciseId||'',name:ex.name||row.exerciseName||'动作',ex,items:[],order:Number.isFinite(+row.orderIndex)?+row.orderIndex:groups.length};
+        groups.push(g);
+      }
       g.items.push(row);if(Number.isFinite(+row.orderIndex))g.order=Math.min(g.order,+row.orderIndex);
     });
     groups.forEach(g=>g.items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)));groups.sort((a,b)=>a.order-b.order);return groups;
   }
   function previousTrainingGroup(group,date,db){
-    const dates=Object.keys(db.days||{}).filter(d=>d<date).sort().reverse(),wantedEq=equipmentKey(group.equipmentName);
+    const dates=Object.keys(db.days||{}).filter(d=>d<date).sort().reverse();
     for(const d of dates){
       const rows=(db.days?.[d]?.training||[]).filter(r=>{
-        const same=group.exerciseId?r.exerciseId===group.exerciseId:(!r.exerciseId&&r.exerciseName===group.name);
-        return same&&equipmentKey(equipmentNameOf(r))===wantedEq;
+        return group.exerciseId?r.exerciseId===group.exerciseId:(!r.exerciseId&&r.exerciseName===group.name);
       }).sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0));
       if(rows.length)return {date:d,rows};
     }
     return null;
   }
+
   function renderTrainingDetail(){
     const db=getDB(),date=activeDate(),day=db.days?.[date]||{},groups=trainingGroups(day,db),list=$('diaryTrainingDetailList');
     if($('diaryTrainingDetailDate'))$('diaryTrainingDetailDate').textContent=prettyDateValue(date);
@@ -273,9 +275,9 @@
     if(!list)return;
     if(!groups.length&&!cardio){list.innerHTML='<div class="diary-empty">这一天还没有训练记录。</div>';return;}
     list.innerHTML=groups.map(g=>{
-      const prev=previousTrainingGroup(g,date,db),equipment=g.equipmentName||g.ex?.equipment||'';
-      const prevHtml=prev?`<div class="diary-previous"><b>上次 · ${prev.date.slice(5).replace('-','/')}</b><br>${prev.rows.map((r,i)=>`${i+1}. ${esc(setText(r,g.ex))}`).join('　')}</div>`:'<div class="diary-previous">此前暂无同动作、同器械记录</div>';
-      return `<article class="diary-detail-card"><div class="diary-detail-head"><div><b>${esc(g.name)}</b>${equipment?`<small>${esc(equipment)}</small>`:''}</div></div><div class="diary-set-list">${g.items.map((r,i)=>`<div class="diary-set"><i>${i+1}</i><span>${esc(setText(r,g.ex))}</span></div>`).join('')}</div>${prevHtml}</article>`;
+      const prev=previousTrainingGroup(g,date,db);
+      const prevHtml=prev?`<div class="diary-previous"><b>上次 · ${prev.date.slice(5).replace('-','/')}</b><br>${prev.rows.map((r,i)=>`${i+1}. ${esc(setText(r,g.ex))}`).join('　')}</div>`:'<div class="diary-previous">此前暂无这个动作的记录</div>';
+      return `<article class="diary-detail-card"><div class="diary-detail-head"><div><b>${esc(g.name)}</b></div></div><div class="diary-set-list">${g.items.map((r,i)=>`<div class="diary-set"><i>${i+1}</i><span>${esc(setText(r,g.ex))}</span></div>`).join('')}</div>${prevHtml}</article>`;
     }).join('')+(cardio?`<article class="diary-detail-card"><div class="diary-detail-head"><div><b>有氧</b><small>${cardio} min</small></div></div></article>`:'');
   }
   function renderFoodDetail(){

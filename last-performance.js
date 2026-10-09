@@ -6,8 +6,6 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt = n => Number(n || 0).toFixed(1).replace(/\.0$/,'');
   const getDB = () => window.fitnessApp?.getDB?.() || {days:{},exercises:[]};
-  const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
-  const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
 
   function currentExerciseContext(){
     const s = window.getActiveWorkoutSession?.();
@@ -17,45 +15,29 @@
     const db = getDB();
     const exercise = (db.exercises||[]).find(x=>x.id===exerciseId);
     if(!exercise) return null;
-    const equipmentName=String($("setEquipmentInput")?.value||"").trim().replace(/\s+/g," ");
-    return {session:s,exercise,exerciseId,equipmentName,db};
+    return {session:s,exercise,exerciseId,db};
   }
 
-  function previousPerformance(exerciseId,session,exercise,db=getDB(),equipmentName=""){
-    if(!exerciseId||!session?.date) return null;
-    const wantedKey=equipmentKey(equipmentName);
-    const groups = new Map();
-    let ordinal = 0;
-    Object.entries(db.days||{}).forEach(([date,day])=>{
-      if(date>session.date) return;
-      (day?.training||[]).forEach(row=>{
-        ordinal++;
-        const same = row.exerciseId===exerciseId || (!row.exerciseId && row.exerciseName===exercise?.name);
-        const rowEquipment=equipmentNameOf(row),rowKey=equipmentKey(rowEquipment);
-        if(!same || row.workoutId===session.workoutId || (wantedKey&&rowKey!==wantedKey)) return;
-        const baseKey = row.workoutId ? `wk:${row.workoutId}` : row.setGroupId ? `sg:${row.setGroupId}` : `legacy:${date}`;
-        const key=`${baseKey}::${rowKey}`;
-        let g = groups.get(key);
-        if(!g){g={date,time:'00:00',rows:[],ordinal:0,equipmentName:rowEquipment};groups.set(key,g)}
-        g.date=date;
-        if(String(row.time||'')>g.time) g.time=String(row.time||'');
-        g.ordinal=Math.max(g.ordinal,ordinal);
-        g.rows.push(row);
+  function previousPerformance(exerciseId,session,exercise,db=getDB()){
+    if(!exerciseId||!session?.date)return null;
+    const groups=[];
+    Object.keys(db.days||{}).filter(d=>d<session.date).sort().reverse().some(date=>{
+      const rows=(db.days?.[date]?.training||[]).filter(row=>{
+        const same=row.exerciseId===exerciseId||(!row.exerciseId&&row.exerciseName===exercise?.name);
+        return same&&row.workoutId!==session.workoutId;
       });
+      if(!rows.length)return false;
+      const byGroup=new Map();
+      rows.forEach(row=>{
+        const key=row.workoutId?`wk:${row.workoutId}`:row.setGroupId?`sg:${row.setGroupId}`:`legacy:${date}`;
+        if(!byGroup.has(key))byGroup.set(key,{date,time:'00:00',rows:[],ordinal:0});
+        const g=byGroup.get(key);g.rows.push(row);if(String(row.time||"")>g.time)g.time=String(row.time||"");
+      });
+      groups.push(...byGroup.values());return true;
     });
-    const list=[...groups.values()];
-    if(!list.length) return null;
-    list.sort((a,b)=>`${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`)||b.ordinal-a.ordinal);
-    const result=list[0];
-    result.rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0));
-    return result;
-  }
-
-  function displayDate(date){
-    const p=String(date||'').split('-');
-    if(p.length!==3)return date||'';
-    const now=new Date(),year=String(now.getFullYear());
-    return p[0]===year?`${+p[1]}/${+p[2]}`:`${p[0]}/${+p[1]}/${+p[2]}`;
+    if(!groups.length)return null;
+    groups.sort((a,b)=>String(b.date+b.time).localeCompare(String(a.date+a.time)));
+    return groups[0];
   }
 
   function expandedSets(rows){
@@ -111,10 +93,10 @@
     if(!panel)return;
     const ctx=currentExerciseContext();
     if(!ctx){panel.hidden=true;return}
-    const prev=previousPerformance(ctx.exerciseId,ctx.session,ctx.exercise,ctx.db,ctx.equipmentName);
+    const prev=previousPerformance(ctx.exerciseId,ctx.session,ctx.exercise,ctx.db);
     if(!prev){panel.hidden=true;panel.innerHTML='';return}
-    const sets=expandedSets(prev.rows),equipment=prev.equipmentName?` · ${prev.equipmentName}`:"";
-    panel.innerHTML=`<div class="last-performance-head"><span>上次成绩${esc(equipment)}</span><b>${esc(displayDate(prev.date))}</b></div><div class="last-performance-sets">${sets.map((row,i)=>`<span class="last-performance-set"><i>${i+1}</i>${esc(setText(row,ctx.exercise))}</span>`).join('')}</div>`;
+    const sets=expandedSets(prev.rows);
+    panel.innerHTML=`<div class="last-performance-head"><span>上次成绩</span><b>${esc(displayDate(prev.date))}</b></div><div class="last-performance-sets">${sets.map((row,i)=>`<span class="last-performance-set"><i>${i+1}</i>${esc(setText(row,ctx.exercise))}</span>`).join('')}</div>`;
     panel.hidden=false;
   }
 
@@ -126,12 +108,11 @@
     const shell=$('trainingSessionShell');
     if(shell)new MutationObserver(()=>requestAnimationFrame(render)).observe(shell,{attributes:true,attributeFilter:['class']});
     window.addEventListener('fitness:changed',()=>requestAnimationFrame(render));
-    window.addEventListener('fitness:equipment-draft-changed',()=>requestAnimationFrame(render));
     window.addEventListener('focus',()=>requestAnimationFrame(render));
-    window.getPreviousExercisePerformance=(exerciseId,equipmentName="")=>{
+    window.getPreviousExercisePerformance=(exerciseId)=>{
       const s=window.getActiveWorkoutSession?.();
       const db=getDB(),ex=(db.exercises||[]).find(x=>x.id===exerciseId);
-      return s&&ex?previousPerformance(exerciseId,s,ex,db,equipmentName):null;
+      return s&&ex?previousPerformance(exerciseId,s,ex,db):null;
     };
   }
 

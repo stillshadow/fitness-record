@@ -20,8 +20,8 @@ try{
     document.head.appendChild(s);
   };
 
-  loadEarly("ui-v3.js?v=67","ui-v3");
-  loadEarly("ai-system.js?v=16","ai-system");
+  loadEarly("ui-v3.js?v=68","ui-v3");
+  loadEarly("ai-system.js?v=17","ai-system");
 
   let tries = 0;
   const reveal = setInterval(() => {
@@ -315,7 +315,7 @@ try{
   const load = () => {
     if (document.querySelector('script[data-training-system]')) return;
     const s = document.createElement('script');
-    s.src = 'training-system.js?v=25';
+    s.src = 'training-system.js?v=26';
     s.dataset.trainingSystem = '1';
     document.head.appendChild(s);
   };
