@@ -274,6 +274,7 @@
     for(const item of result?.exercises||[]){
       const ex=(db.exercises||[]).find(x=>x.id===item.exercise_id);
       if(!ex){skipped.push(item.exercise_name||item.exercise_id||"未知动作");continue}
+      if(item.confidence==="low"){skipped.push((ex.name||item.exercise_name||"动作")+"（匹配不确定）");continue}
       const parsedSets=(item.sets||[]).filter(x=>+x.reps>0).map(x=>({
         weight:+x.weight>0?String(+x.weight):"",
         resistanceLabel:String(x.resistance_label||"").trim(),
