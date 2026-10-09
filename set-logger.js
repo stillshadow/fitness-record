@@ -3,10 +3,10 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const uid = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
   const fmt = n => Number(n || 0).toFixed(1).replace(/\.0$/,"");
-  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",editingLoadType="",currentEquipmentName="",editingEquipmentFilterKey=null,setDrafts=[],savingSets=false;
+  let currentExerciseId="",editingExerciseId="",editingWorkoutId="",editingLoadType="",setDrafts=[],savingSets=false;
 
   const todayString=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
-  const activeDate=()=>{const t=$("activeDateLabel")?.textContent.trim()||"";return /^\d{4}-\d{2}-\d{2}$/.test(t)?t:todayString()};
+  const activeDate=()=>window.fitnessApp?.getActiveDate?.()||todayString();
   const timeString=()=>{const d=new Date();return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
   const getDB=()=>window.fitnessApp?.getDB?.()||{exercises:[],plans:[],days:{}};
   const putDB=(db,{workout=false}={})=>{
@@ -25,27 +25,6 @@
   function currentExercise(){const id=$("trainingExercise")?.value||"";return (getDB().exercises||[]).find(x=>x.id===id)||null}
   function isStrengthMode(){return !!$("trainingExercise")?.value}
   function loadTypeOf(ex){return window.fitnessLoadTypeOf?.(ex)||(["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"))}
-  const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
-  const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
-  function supportsSpecificMachine(ex){
-    const scenes=Array.isArray(ex?.scenes)?ex.scenes:[];
-    if(scenes[0]==="gym_machine")return true;
-    if(scenes.length)return false;
-    const text=`${ex?.name||""} ${ex?.equipment||""}`;
-    return /器械|机器|史密斯机|推胸机|划船机|下拉机|腿举机|哈克|钟摆|屈伸机|弯举机|臀推机|外展机|内收机|提踵机/i.test(text);
-  }
-  function equipmentOptionsForExercise(exerciseId){
-    const db=getDB(),seen=new Set(),out=[];
-    Object.keys(db.days||{}).sort().reverse().forEach(date=>{
-      [...(db.days?.[date]?.training||[])].reverse().forEach(row=>{
-        if(row.exerciseId!==exerciseId)return;
-        const name=equipmentNameOf(row),key=equipmentKey(name);
-        if(name&&!seen.has(key)){seen.add(key);out.push(name)}
-      });
-    });
-    return out.slice(0,8);
-  }
-
   function planPrescription(exerciseId){
     const ctx=workoutContext();
     if(ctx?.prescriptions?.[exerciseId])return ctx.prescriptions[exerciseId];
@@ -63,17 +42,11 @@
   const blankSet=(weight="",resistanceLabel="")=>({weight:String(weight??""),resistanceLabel:String(resistanceLabel??""),reps:"",rir:""});
   function resetDrafts(exerciseId){
     currentExerciseId=exerciseId||"";
-    const db=getDB(),ex=(db.exercises||[]).find(x=>x.id===exerciseId),opts=exerciseId&&supportsSpecificMachine(ex)?equipmentOptionsForExercise(exerciseId):[];
-    currentEquipmentName=opts.length===1?opts[0]:"";
-    editingEquipmentFilterKey=null;
     setDrafts=Array.from({length:exerciseId?prescribedSetCount(exerciseId):1},()=>blankSet());
   }
   function rowsForEdit(exerciseId,workoutId=""){
     const day=getDB().days?.[activeDate()];
-    return (day?.training||[]).filter(x=>{
-      if(x.exerciseId!==exerciseId|| (workoutId&&x.workoutId!==workoutId))return false;
-      return editingEquipmentFilterKey===null||equipmentKey(equipmentNameOf(x))===editingEquipmentFilterKey;
-    });
+    return (day?.training||[]).filter(x=>x.exerciseId===exerciseId&&(!workoutId||x.workoutId===workoutId));
   }
   function draftsFromExisting(exerciseId,workoutId=""){
     const out=[];rowsForEdit(exerciseId,workoutId).forEach(x=>{for(let i=0;i<Math.max(1,+x.sets||1);i++)out.push({weight:(+x.weight||0)>0?String(+x.weight):"",resistanceLabel:x.resistanceLabel||"",reps:(+x.reps||0)>0?String(+x.reps):"",rir:x.rir===""||x.rir==null?"":String(x.rir)})});
@@ -84,7 +57,7 @@
     if($("setLoggerStyle"))return;
     const style=document.createElement("style");style.id="setLoggerStyle";
     style.textContent=`
-      #strengthSetEditor{margin-top:10px}.set-plan-hint{font-size:12px;color:var(--muted);margin:0 0 8px}.set-equipment{margin:0 0 9px}.set-equipment label{display:block;margin-bottom:5px;font-size:10px;color:var(--muted)}.set-equipment input{width:100%;box-sizing:border-box;min-height:40px}
+      #strengthSetEditor{margin-top:10px}.set-plan-hint{font-size:12px;color:var(--muted);margin:0 0 8px}
       .set-grid-head,.set-row{display:grid;grid-template-columns:28px minmax(0,1.2fr) minmax(62px,.75fr) minmax(58px,.65fr) 34px;gap:6px;align-items:center}.set-grid-head{font-size:11px;color:var(--muted);padding:0 2px 5px}.set-row{margin-bottom:7px}.set-index{font-size:12px;color:var(--muted);text-align:center}.set-row input{width:100%;min-width:0;box-sizing:border-box;padding:9px 8px}.set-band-presets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 28px}.set-band-preset{border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);border-radius:999px;min-height:30px;padding:0 10px;font-size:10px}.set-load-static{height:39px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;color:#aab4c3;background:rgba(255,255,255,.025);font-size:11px}.set-delete{height:38px;width:34px;padding:0;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--bad);font-size:17px}.set-toolbar{display:flex;gap:8px;margin-top:3px}.set-toolbar .btn{flex:1}
       .training-card-actions{display:flex!important;gap:7px!important;align-items:center!important;flex-wrap:nowrap!important}.training-card-actions .btn{white-space:nowrap;padding:8px 11px!important;min-width:auto!important}.training-set-lines{line-height:1.7}
       #trainingModal.workout-entry .training-session-hidden-field{display:none!important}
@@ -98,18 +71,7 @@
     let editor=$("strengthSetEditor");if(editor)return editor;
     editor=document.createElement("div");editor.id="strengthSetEditor";row.insertAdjacentElement("afterend",editor);
     editor.addEventListener("input",e=>{
-      if(e.target.matches("[data-set-equipment]")){
-        currentEquipmentName=e.target.value;
-        window.dispatchEvent(new CustomEvent("fitness:equipment-draft-changed",{detail:{exerciseId:currentExerciseId,equipmentName:currentEquipmentName}}));
-        return;
-      }
       const r=e.target.closest?.(".set-row");if(!r)return;const i=+r.dataset.index;if(!setDrafts[i])return;if(e.target.matches("[data-set-weight]"))setDrafts[i].weight=e.target.value;if(e.target.matches("[data-set-resistance]"))setDrafts[i].resistanceLabel=e.target.value;if(e.target.matches("[data-set-reps]"))setDrafts[i].reps=e.target.value;if(e.target.matches("[data-set-rir]"))setDrafts[i].rir=e.target.value;updateSaveText()
-    });
-    editor.addEventListener("change",e=>{
-      if(!e.target.matches("[data-set-equipment]"))return;
-      currentEquipmentName=String(e.target.value||"").trim().replace(/\s+/g," ");
-      e.target.value=currentEquipmentName;
-      window.dispatchEvent(new CustomEvent("fitness:equipment-draft-changed",{detail:{exerciseId:currentExerciseId,equipmentName:currentEquipmentName}}));
     });
     editor.addEventListener("click",e=>{
       const preset=e.target.closest?.("[data-set-band-preset]");
@@ -128,9 +90,6 @@
     const editor=ensureEditor();if(!editor)return;
     const ex=currentExercise(),type=editingLoadType||loadTypeOf(ex),rx=planPrescription(ex?.id||"");
     const loadLabel=type==="band"?"阻力 / 弹力带":type==="bodyweight"?"自重":type==="bodyweight_extra"?"额外负重":"重量 kg";
-    const machineSpecific=supportsSpecificMachine(ex),equipmentOptions=machineSpecific&&ex?.id?equipmentOptionsForExercise(ex.id):[];
-    if(!machineSpecific)currentEquipmentName="";
-    const equipmentField=(type==="band"||type==="bodyweight"||!machineSpecific)?"":`<div class="set-equipment"><label for="setEquipmentInput">具体机器（可选）</label><input id="setEquipmentInput" data-set-equipment type="text" list="setEquipmentList" value="${esc(currentEquipmentName||"")}" placeholder="例如 二楼 1 号推胸机"><datalist id="setEquipmentList">${equipmentOptions.map(name=>`<option value="${esc(name)}"></option>`).join("")}</datalist></div>`;
     const bandOptions=Array.isArray(ex?.resistanceOptions)&&ex.resistanceOptions.length?ex.resistanceOptions:(window.fitnessBandResistanceOptions||["30-50lb","50-70lb"]);
     const bandPresets=type==="band"?`<div class="set-band-presets">${bandOptions.map(opt=>`<button type="button" class="set-band-preset" data-set-band-preset="${esc(opt)}">${esc(opt)}</button>`).join("")}</div>`:"";
     const loadField=(set,i)=>{
@@ -138,7 +97,7 @@
       if(type==="band")return `<input data-set-resistance type="text" value="${esc(set.resistanceLabel||"")}" placeholder="黄色 / 红色">`;
       return `<input data-set-weight type="number" step="0.5" inputmode="decimal" value="${esc(set.weight)}" placeholder="${type==="bodyweight_extra"?"0":"kg"}">`;
     };
-    editor.innerHTML=`${rx?`<div class="set-plan-hint">计划：${esc(rx)}</div>`:""}${equipmentField}${bandPresets}<div class="set-grid-head"><span></span><span>${loadLabel}</span><span>次数</span><span>RIR</span><span></span></div><div id="setRows">${setDrafts.map((set,i)=>`<div class="set-row" data-index="${i}"><div class="set-index">${i+1}</div>${loadField(set,i)}<input data-set-reps type="number" step="1" min="0" inputmode="numeric" value="${esc(set.reps)}" placeholder="次"><input data-set-rir type="number" step="1" min="0" max="10" inputmode="numeric" value="${esc(set.rir)}" placeholder="-"><button type="button" class="set-delete" data-delete-set="${i}" aria-label="删除第${i+1}组">×</button></div>`).join("")}</div><div class="set-toolbar"><button type="button" class="btn ghost" id="addSetRowBtn">＋ 添加一组</button></div>`;updateSaveText();
+    editor.innerHTML=`${rx?`<div class="set-plan-hint">计划：${esc(rx)}</div>`:""}${bandPresets}<div class="set-grid-head"><span></span><span>${loadLabel}</span><span>次数</span><span>RIR</span><span></span></div><div id="setRows">${setDrafts.map((set,i)=>`<div class="set-row" data-index="${i}"><div class="set-index">${i+1}</div>${loadField(set,i)}<input data-set-reps type="number" step="1" min="0" inputmode="numeric" value="${esc(set.reps)}" placeholder="次"><input data-set-rir type="number" step="1" min="0" max="10" inputmode="numeric" value="${esc(set.rir)}" placeholder="-"><button type="button" class="set-delete" data-delete-set="${i}" aria-label="删除第${i+1}组">×</button></div>`).join("")}</div><div class="set-toolbar"><button type="button" class="btn ghost" id="addSetRowBtn">＋ 添加一组</button></div>`;updateSaveText();
   }
 
   function hideOriginalStrengthInputs(){["trainingWeight","trainingReps","trainingSets","trainingRir"].forEach(id=>{const input=$(id);if(input?.parentElement)input.parentElement.style.display="none"})}
@@ -157,15 +116,16 @@
     if(!editingExerciseId&&(forceReset||currentExerciseId!==id))resetDrafts(id);if(hint)hint.style.display="none";editor.style.display="block";setPickerDisabled(!!workoutContext()||!!editingExerciseId);renderEditor();
   }
 
-  function openEditTrainingSets(exerciseId,workoutId="",equipmentName=null){
+  function openEditTrainingSets(exerciseId,workoutId=""){
     if(!exerciseId)return;
     editingWorkoutId=workoutId||"";
-    editingEquipmentFilterKey=equipmentName===null?null:equipmentKey(equipmentName);
     window.openTrainingModal?.(exerciseId);
     setTimeout(()=>{
       const select=$("trainingExercise");if(select&&select.value!==exerciseId){const opt=[...select.options].find(o=>o.value===exerciseId);if(opt)select.value=exerciseId}
-      editingEquipmentFilterKey=equipmentName===null?null:equipmentKey(equipmentName);
-      editingExerciseId=exerciseId;currentExerciseId=exerciseId;const existingRows=rowsForEdit(exerciseId,editingWorkoutId);editingLoadType=existingRows.find(x=>["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType))?.loadType||"";currentEquipmentName=equipmentName===null?(equipmentNameOf(existingRows[0]||{})):(String(equipmentName||"").trim().replace(/\s+/g," "));setDrafts=draftsFromExisting(exerciseId,editingWorkoutId);setPickerDisabled(true);
+      editingExerciseId=exerciseId;currentExerciseId=exerciseId;
+      const existingRows=rowsForEdit(exerciseId,editingWorkoutId);
+      editingLoadType=existingRows.find(x=>["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType))?.loadType||"";
+      setDrafts=draftsFromExisting(exerciseId,editingWorkoutId);setPickerDisabled(true);
       const title=$("trainingModal")?.querySelector(".section h2"),ex=currentExercise();if(title)title.textContent=workoutContext()?ex?.name||"编辑训练":"编辑力量训练";
       hideOriginalStrengthInputs();applyWorkoutEntryUI();const editor=ensureEditor();if(editor)editor.style.display="block";renderEditor();
     },60);
@@ -184,16 +144,12 @@
     const ctx=workoutContext(),targetWorkoutId=editingWorkoutId||ctx?.workoutId||"",db=getDB(),date=ctx?.date||activeDate();
     db.days=db.days||{};if(!db.days[date])db.days[date]={date,weight:null,cardio:0,note:"",planExerciseIds:[],planName:"",training:[],foods:[]};
     const day=db.days[date];day.training=day.training||[];
-    if(editingExerciseId)day.training=day.training.filter(x=>{
-      if(x.exerciseId!==editingExerciseId|| (editingWorkoutId&&x.workoutId!==editingWorkoutId))return true;
-      if(editingEquipmentFilterKey===null)return false;
-      return equipmentKey(equipmentNameOf(x))!==editingEquipmentFilterKey;
-    });
-    const groupId=uid("setgroup"),time=timeString(),equipmentName=supportsSpecificMachine(ex)?String(currentEquipmentName||"").trim().replace(/\s+/g," "):"";
-    valid.forEach((s,i)=>day.training.push({id:uid("tr"),setGroupId:groupId,setIndex:i+1,exerciseId:ex.id,exerciseName:ex.name,loadType:type,...(equipmentName?{equipmentName}:{ }),weight:(type==="weight"||type==="bodyweight_extra")?(+s.weight||0):0,...(type==="band"?{resistanceLabel:String(s.resistanceLabel||"").trim()}:{ }),reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===""?"":+s.rir,time,...(targetWorkoutId?{workoutId:targetWorkoutId}:{})}));
+    if(editingExerciseId)day.training=day.training.filter(x=>!(x.exerciseId===editingExerciseId&&(!editingWorkoutId||x.workoutId===editingWorkoutId)));
+    const groupId=uid("setgroup"),time=timeString();
+    valid.forEach((s,i)=>day.training.push({id:uid("tr"),setGroupId:groupId,setIndex:i+1,exerciseId:ex.id,exerciseName:ex.name,loadType:type,weight:(type==="weight"||type==="bodyweight_extra")?(+s.weight||0):0,...(type==="band"?{resistanceLabel:String(s.resistanceLabel||"").trim()}:{ }),reps:+s.reps||0,sets:1,rir:String(s.rir).trim()===""?"":+s.rir,time,...(targetWorkoutId?{workoutId:targetWorkoutId}:{})}));
     db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;
     const wasEdit=!!editingExerciseId;
-    editingExerciseId="";editingWorkoutId="";editingLoadType="";editingEquipmentFilterKey=null;currentEquipmentName="";setPickerDisabled(false);
+    editingExerciseId="";editingWorkoutId="";editingLoadType="";setPickerDisabled(false);
 
     // Close the input surface before broadcasting the expensive global refresh.
     // On iOS this keeps keyboard dismissal and application rerender out of the same frame.
@@ -233,13 +189,10 @@
     },220);
   }
 
-  function deleteExerciseRecord(exerciseId,equipmentName=null){
+  function deleteExerciseRecord(exerciseId){
     const db=getDB(),day=db.days?.[activeDate()];if(!day)return;const ex=(db.exercises||[]).find(x=>x.id===exerciseId);
-    const eq=equipmentName===null?null:String(equipmentName||"").trim().replace(/\s+/g," ");
-    const label=eq?`「${ex?.name||"动作"} · ${eq}」`:(ex?.name?`「${ex.name}」`:"这个动作");
-    if(!confirm(`删除${label}当天的全部组记录？`))return;
-    const key=eq===null?null:equipmentKey(eq);
-    day.training=(day.training||[]).filter(x=>x.exerciseId!==exerciseId||(key!==null&&equipmentKey(equipmentNameOf(x))!==key));
+    if(!confirm(`删除${ex?.name?`「${ex.name}」`:"这个动作"}当天的全部组记录？`))return;
+    day.training=(day.training||[]).filter(x=>x.exerciseId!==exerciseId);
     db.meta=db.meta||{};db.meta.updatedAt=new Date().toISOString();db.meta.userTouched=true;putDB(db);toast("训练记录已删除");
   }
 
@@ -250,15 +203,12 @@
     [...box.querySelectorAll(".item")].forEach(card=>{
       const actions=card.querySelector(".item-actions"),oldButtons=actions?.querySelectorAll?.("[data-del-training]");if(!actions||!oldButtons?.length||card.dataset.compactTrainingActions)return;
       const firstId=oldButtons[0].dataset.delTraining,first=(day.training||[]).find(x=>x.id===firstId),exerciseId=first?.exerciseId;if(!exerciseId)return;
-      const equipmentName=card.dataset.equipmentName||equipmentNameOf(first),eqKey=equipmentKey(equipmentName);
-      const ex=(db.exercises||[]).find(x=>x.id===exerciseId)||{id:exerciseId,name:first.exerciseName||"动作"},rows=(day.training||[]).filter(x=>x.exerciseId===exerciseId&&equipmentKey(equipmentNameOf(x))===eqKey),sub=card.querySelector(".item-sub");
-      if(sub){
-        sub.classList.add("training-set-lines");
-        const equipmentLine=equipmentName?`<div class="training-equipment-line">器械：${esc(equipmentName)}</div>`:"";
-        sub.innerHTML=equipmentLine+rows.map((x,i)=>esc(lineForSet(x,ex,i,rows.length))).join("<br>");
-      }
+      const ex=(db.exercises||[]).find(x=>x.id===exerciseId)||{id:exerciseId,name:first.exerciseName||"动作"},rows=(day.training||[]).filter(x=>x.exerciseId===exerciseId),sub=card.querySelector(".item-sub");
+      if(sub){sub.classList.add("training-set-lines");sub.innerHTML=rows.map((x,i)=>esc(lineForSet(x,ex,i,rows.length))).join("<br>")}
       actions.classList.add("training-card-actions");actions.innerHTML=`<button type="button" class="btn ghost" data-edit-exercise-sets="${esc(exerciseId)}">编辑</button><button type="button" class="btn danger" data-delete-exercise-sets="${esc(exerciseId)}">删</button>`;
-      actions.querySelector("[data-edit-exercise-sets]")?.addEventListener("click",()=>openEditTrainingSets(exerciseId,"",equipmentName));actions.querySelector("[data-delete-exercise-sets]")?.addEventListener("click",()=>deleteExerciseRecord(exerciseId,equipmentName));card.dataset.compactTrainingActions="1";
+      actions.querySelector("[data-edit-exercise-sets]")?.addEventListener("click",()=>openEditTrainingSets(exerciseId));
+      actions.querySelector("[data-delete-exercise-sets]")?.addEventListener("click",()=>deleteExerciseRecord(exerciseId));
+      card.dataset.compactTrainingActions="1";
     });
   }
 
@@ -283,8 +233,6 @@
         editingExerciseId="";
         editingWorkoutId="";
         editingLoadType="";
-        editingEquipmentFilterKey=null;
-        currentEquipmentName="";
         setPickerDisabled(false);
         if(modal.classList.contains("workout-entry"))modal.classList.remove("workout-entry");
         ["trainingExercise","trainingGroupFilter"].forEach(id=>{
