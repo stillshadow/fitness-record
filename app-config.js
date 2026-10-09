@@ -6,8 +6,10 @@ try{
   localStorage.removeItem("chibianyingGithubBackupLast");
 }catch{}
 
-// V3 和 AI 首屏一起提前加载，同时先遮住旧首页，避免“无 AI 首页”先闪出来。
+// 极简暗色首页和 AI 首屏一起提前加载，避免旧界面闪现。
 (() => {
+  document.querySelector('link[data-minimal-light]')?.remove();
+  document.getElementById("minimalLightStyle")?.remove();
   const app = document.querySelector(".app");
   if (app) app.style.visibility = "hidden";
 
@@ -20,8 +22,8 @@ try{
     document.head.appendChild(s);
   };
 
-  loadEarly("ui-v3.js?v=68","ui-v3");
-  loadEarly("ai-system.js?v=16","ai-system");
+  loadEarly("ui-v3.js?v=69","ui-v3");
+  loadEarly("ai-system.js?v=17","ai-system");
 
   let tries = 0;
   const reveal = setInterval(() => {
@@ -315,7 +317,7 @@ try{
   const load = () => {
     if (document.querySelector('script[data-training-system]')) return;
     const s = document.createElement('script');
-    s.src = 'training-system.js?v=25';
+    s.src = 'training-system.js?v=26';
     s.dataset.trainingSystem = '1';
     document.head.appendChild(s);
   };
