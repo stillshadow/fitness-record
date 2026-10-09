@@ -147,10 +147,6 @@
   const validLoadType = x => ["weight","bodyweight","bodyweight_extra","band"].includes(x);
   const loadTypeOf = ex => validLoadType(ex?.loadType) ? ex.loadType : ((+ex?.bodyweightFactor||inferBodyweightFactor(ex?.name))>0 ? "bodyweight_extra" : "weight");
   const loadTypeLabel = type => ({weight:"固定重量",bodyweight:"纯自重",bodyweight_extra:"自重 + 额外负重",band:"弹力带"}[type]||"固定重量");
-  const equipmentNameOf = x => String(x?.equipmentName||"").trim().replace(/\s+/g," ");
-  const equipmentKey = name => String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
-  const exerciseEquipmentKey = (exerciseId,equipmentName="") => `${exerciseId||""}::${equipmentKey(equipmentName)}`;
-
   const copyCatalogMeta=(source={})=>{
     const out={};
     if(Array.isArray(source.scenes)&&source.scenes.length)out.scenes=[...source.scenes];
@@ -490,32 +486,29 @@
   }
 
   function strengthMap(){
-    const db=getDB(), map={};
+    const db=getDB(),map={};
     Object.values(db.days||{}).forEach(day=>(day.training||[]).forEach(x=>{
       if(!x.exerciseId||!x.reps)return;
-      const ex=exerciseForEntry(x,db),loadType=validLoadType(x.loadType)?x.loadType:loadTypeOf(ex),factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name),external=+x.weight||0,reps=+x.reps||0;
-      const equipmentName=equipmentNameOf(x),mapKey=exerciseEquipmentKey(x.exerciseId,equipmentName);
+      const ex=exerciseForEntry(x,db),loadType=validLoadType(x.loadType)?x.loadType:loadTypeOf(ex),factor=+ex.bodyweightFactor||inferBodyweightFactor(ex.name),external=+x.weight||0,reps=+x.reps||0,mapKey=x.exerciseId;
 
       if(loadType==="band"){
         const current=map[mapKey],score=String(day.date||"")+"T"+String(x.time||"");
         if(!current||score>current.score||(score===current.score&&reps>current.reps)){
-          map[mapKey]={exercise:ex,equipmentName,kind:"band",score,date:day.date,reps,resistanceLabel:x.resistanceLabel||"弹力带",bestSet:`${x.resistanceLabel||"弹力带"} × ${reps}`,value:x.resistanceLabel||"弹力带",label:"最近阻力"};
+          map[mapKey]={exercise:ex,kind:"band",score,date:day.date,reps,resistanceLabel:x.resistanceLabel||"弹力带",bestSet:`${x.resistanceLabel||"弹力带"} × ${reps}`,value:x.resistanceLabel||"弹力带",label:"最近阻力"};
         }
         return;
       }
-
       if(loadType==="bodyweight"){
         const current=map[mapKey],rir=x.rir===""||x.rir==null?99:+x.rir;
         if(!current||reps>current.reps||(reps===current.reps&&rir<current.rir)){
-          map[mapKey]={exercise:ex,equipmentName,kind:"bodyweight_reps",date:day.date,reps,rir,bestSet:`BW × ${reps}`,value:`${reps}次`,label:"最佳次数"};
+          map[mapKey]={exercise:ex,kind:"bodyweight_reps",date:day.date,reps,rir,bestSet:`BW × ${reps}`,value:`${reps}次`,label:"最佳次数"};
         }
         return;
       }
-
       if(loadType==="bodyweight_extra"&&factor<=0){
         const current=map[mapKey];
         if(!current||external>current.external||(external===current.external&&reps>current.reps)){
-          map[mapKey]={exercise:ex,equipmentName,kind:"bodyweight_extra_raw",date:day.date,external,reps,bestSet:external>0?`BW + ${fmt(external)}kg × ${reps}`:`BW × ${reps}`,value:external>0?`${fmt(external)}kg`:`${reps}次`,label:external>0?"最佳额外负重":"最佳次数"};
+          map[mapKey]={exercise:ex,kind:"bodyweight_extra_raw",date:day.date,external,reps,bestSet:external>0?`BW + ${fmt(external)}kg × ${reps}`:`BW × ${reps}`,value:external>0?`${fmt(external)}kg`:`${reps}次`,label:external>0?"最佳额外负重":"最佳次数"};
         }
         return;
       }
@@ -524,14 +517,13 @@
       if(loadType==="bodyweight_extra"&&factor>0){
         bw=bodyweightForDate(day.date,db);
         if(!bw){
-          const m=map[mapKey]||{exercise:ex,equipmentName,e1rm:0,bestSet:"",date:"",missingBodyweight:true,lastDate:"",kind:"bodyweight"};
+          const m=map[mapKey]||{exercise:ex,e1rm:0,bestSet:"",date:"",missingBodyweight:true,lastDate:"",kind:"bodyweight"};
           m.missingBodyweight=true;if(!m.lastDate||day.date>m.lastDate)m.lastDate=day.date;map[mapKey]=m;return;
         }
         load=bw*factor+external;kind="bodyweight";
       }
       if(load<=0)return;
-      const rm=load*(1+reps/30);
-      const m=map[mapKey]||{exercise:ex,equipmentName,e1rm:0,bestSet:"",date:"",missingBodyweight:false,lastDate:"",kind};
+      const rm=load*(1+reps/30),m=map[mapKey]||{exercise:ex,e1rm:0,bestSet:"",date:"",missingBodyweight:false,lastDate:"",kind};
       if(rm>m.e1rm){
         m.e1rm=rm;m.date=day.date;m.kind=kind;m.bw=bw;m.external=external;
         m.bestSet=kind==="bodyweight"?(external>0?`自重 ${fmt(bw)}kg + ${fmt(external)}kg × ${reps}`:`自重 ${fmt(bw)}kg × ${reps}`):`${fmt(external)}kg × ${reps}`;
@@ -544,15 +536,13 @@
 
   function renderStrength(){
     const box=$("strengthList");if(!box)return;
-    const map=strengthMap(),items=Object.values(map).sort((a,b)=>(b.e1rm||0)-(a.e1rm||0)||String(a.exercise?.name||"").localeCompare(String(b.exercise?.name||""),"zh-CN")||String(a.equipmentName||"").localeCompare(String(b.equipmentName||""),"zh-CN"));box.innerHTML="";
+    const items=Object.values(strengthMap()).sort((a,b)=>(b.e1rm||0)-(a.e1rm||0)||String(a.exercise?.name||"").localeCompare(String(b.exercise?.name||""),"zh-CN"));
+    box.innerHTML="";
     if(!items.length){box.innerHTML='<div class="empty">暂无力量记录。</div>';return}
     items.forEach(x=>{
-      const d=document.createElement("div");d.className="item";
-      d.dataset.exerciseId=x.exercise.id;
-      d.dataset.equipmentName=x.equipmentName||"";
+      const d=document.createElement("div");d.className="item";d.dataset.exerciseId=x.exercise.id;
       const value=x.e1rm?`${fmt(x.e1rm)}kg`:(x.value||"-");
-      const equipment=x.equipmentName?`器械：${esc(x.equipmentName)} · `:"";
-      const sub=x.bestSet?`${equipment}最佳/最近 ${esc(x.bestSet)} · ${esc(x.date)}`:(x.missingBodyweight?`${equipment}记录晨重后可估算自重动作RM`:`${equipment}暂无可计算组`);
+      const sub=x.bestSet?`最佳/最近 ${esc(x.bestSet)} · ${esc(x.date)}`:(x.missingBodyweight?"记录晨重后可估算自重动作RM":"暂无可计算组");
       const label=x.label||(x.kind==="bodyweight"?"估算总负重1RM":"估算1RM");
       d.innerHTML=`<div class="item-main"><div class="item-title">${esc(x.exercise.name)}</div><div class="item-sub">${sub}</div></div><div><div class="value">${value}</div><div class="item-sub">${esc(label)}</div></div>`;
       box.appendChild(d);
@@ -567,12 +557,11 @@
     const box=$("todayTrainingList");if(!box)return;
     const db=getDB(),groups=[];
     for(const [ri,t] of (day.training||[]).entries()){
-      const exerciseId=t.exerciseId||t.exerciseName||("legacy_"+ri),equipmentName=equipmentNameOf(t);
-      const key=exerciseEquipmentKey(exerciseId,equipmentName);
-      let g=groups.find(x=>x.key===key);
+      const exerciseId=t.exerciseId||t.exerciseName||("legacy_"+ri);
+      let g=groups.find(x=>x.exerciseId===exerciseId);
       if(!g){
         const ex=exerciseForEntry(t,db);
-        g={key,exerciseId:t.exerciseId,name:ex.name,equipmentName,items:[],orderIndex:Number.isFinite(+t.orderIndex)?+t.orderIndex:groups.length};
+        g={exerciseId:t.exerciseId||exerciseId,name:ex.name,items:[],orderIndex:Number.isFinite(+t.orderIndex)?+t.orderIndex:groups.length};
         groups.push(g);
       }
       g.items.push(t);
@@ -580,22 +569,18 @@
     }
     groups.forEach(g=>g.items.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)));
 
-    const byKey=new Map(groups.map(g=>[g.key,g])),byExercise=new Map();
-    groups.forEach(g=>{if(!byExercise.has(g.exerciseId||g.key))byExercise.set(g.exerciseId||g.key,g)});
-    const ordered=[],used=new Set();
+    const byExercise=new Map(groups.map(g=>[g.exerciseId,g])),ordered=[],used=new Set();
     const sequence=Array.isArray(day.trainingSequence)?day.trainingSequence:[];
     sequence.forEach(step=>{
       if(step?.type==="cardio"){
         if((+day.cardio||0)>0&&!used.has(CARDIO_ID)){ordered.push({type:"cardio"});used.add(CARDIO_ID)}
         return;
       }
-      const id=step?.exerciseId||step?.id,equipmentName=String(step?.equipmentName||"").trim();
-      const exact=equipmentName?byKey.get(exerciseEquipmentKey(id,equipmentName)):null;
-      const g=exact||byExercise.get(id);
-      if(g&&!used.has(g.key)){ordered.push({type:"exercise",group:g});used.add(g.key)}
+      const id=step?.exerciseId||step?.id,g=byExercise.get(id);
+      if(g&&!used.has(id)){ordered.push({type:"exercise",group:g});used.add(id)}
     });
     groups.sort((a,b)=>a.orderIndex-b.orderIndex).forEach(g=>{
-      if(!used.has(g.key)){ordered.push({type:"exercise",group:g});used.add(g.key)}
+      if(!used.has(g.exerciseId)){ordered.push({type:"exercise",group:g});used.add(g.exerciseId)}
     });
     if((+day.cardio||0)>0&&!used.has(CARDIO_ID))ordered.push({type:"cardio"});
 
@@ -605,8 +590,7 @@
       if(step.type==="cardio"){
         const d=document.createElement("div");d.className="item";
         d.innerHTML=`<div class="item-main"><div class="item-title">有氧</div><div class="item-sub">${fmt(day.cardio,0)} min</div></div>`;
-        box.appendChild(d);
-        return;
+        box.appendChild(d);return;
       }
       const g=step.group,ex=db.exercises.find(e=>e.id===g.exerciseId)||{};
       const lines=g.items.map(x=>{
@@ -618,11 +602,8 @@
         else load=(+x.weight||0)>0?`${fmt(x.weight)}kg`:"重量未填";
         return `${load} × ${x.reps||"-"} × ${x.sets||1}组${x.rir!==""&&x.rir!=null?` · RIR ${x.rir}`:""}`;
       });
-      const equipmentLine=g.equipmentName?`<div class="training-equipment-line">器械：${esc(g.equipmentName)}</div>`:"";
-      const d=document.createElement("div");d.className="item";
-      d.dataset.exerciseId=g.exerciseId||"";
-      d.dataset.equipmentName=g.equipmentName||"";
-      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(g.name)}</div><div class="item-sub">${equipmentLine}${lines.join("<br>")}</div></div><div class="item-actions">${g.items.map(x=>`<button class="btn danger" data-del-training="${esc(x.id)}">删</button>`).join("")}</div>`;
+      const d=document.createElement("div");d.className="item";d.dataset.exerciseId=g.exerciseId||"";
+      d.innerHTML=`<div class="item-main"><div class="item-title">${esc(g.name)}</div><div class="item-sub">${lines.join("<br>")}</div></div><div class="item-actions">${g.items.map(x=>`<button class="btn danger" data-del-training="${esc(x.id)}">删</button>`).join("")}</div>`;
       box.appendChild(d);
     });
 
@@ -639,7 +620,6 @@
       d.innerHTML=`<div class="item-main"><div class="item-title">${esc(ex.name)}</div><div class="item-sub">${esc(rx)}</div></div><button class="btn soft" data-record-ex="${esc(ex.id)}">记录</button>`;
       box.appendChild(d);
     });
-
     if(!ordered.length&&!(day.planExerciseIds||[]).length)box.innerHTML='<div class="empty">暂无训练记录。</div>';
     box.querySelectorAll("[data-record-ex]").forEach(b=>b.addEventListener("click",()=>openTrainingModalPatched(b.dataset.recordEx)));
     box.querySelectorAll("[data-record-cardio]").forEach(b=>b.addEventListener("click",()=>window.openBatchTraining?.(activeDate())));
@@ -682,9 +662,6 @@
   function hookTraining(){
     window.fitnessLoadTypeOf=loadTypeOf;
     window.fitnessLoadTypeLabel=loadTypeLabel;
-    window.fitnessEquipmentNameOf=equipmentNameOf;
-    window.fitnessEquipmentKey=equipmentKey;
-    window.fitnessExerciseEquipmentKey=exerciseEquipmentKey;
     window.fitnessBandResistanceOptions=[...BAND_RESISTANCE_OPTIONS];
     window.renderPlans=renderPlans;
     window.renderExercises=renderExercises;
@@ -713,11 +690,6 @@
 
   function setup(){
     if(!window.fitnessApp)return setTimeout(setup,60);
-    if(!$("trainingEquipmentStyle")){
-      const style=document.createElement("style");style.id="trainingEquipmentStyle";
-      style.textContent=".training-equipment-line{color:var(--muted);font-size:10px;margin-bottom:2px}";
-      document.head.appendChild(style);
-    }
     wrapReplaceDB();
     migrateCurrent();
     hookTraining();
