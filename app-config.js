@@ -24,13 +24,15 @@ try{
 
   loadEarly("ui-v3.js?v=69","ui-v3");
   loadEarly("ai-system.js?v=17","ai-system");
+  loadEarly("training-ai.js?v=1","training-ai");
 
   let tries = 0;
   const reveal = setInterval(() => {
     tries++;
     const homeReady = !!document.getElementById("v3Home");
     const aiReady = !!document.getElementById("aiHomeCard");
-    if ((homeReady && aiReady) || tries > 100) {
+    const trainingAiReady = !!document.getElementById("aiTrainingAssistant");
+    if ((homeReady && aiReady && trainingAiReady) || tries > 120) {
       clearInterval(reveal);
       if (app) app.style.visibility = "";
     }
