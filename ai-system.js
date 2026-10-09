@@ -32,36 +32,20 @@
       const q=foodMacros(x);s.C+=q.C;s.P+=q.P;s.F+=q.F;s.K+=q.K;return s;
     },{C:0,P:0,F:0,K:0});
   }
-  const equipmentNameOf=x=>window.fitnessEquipmentNameOf?.(x)||String(x?.equipmentName||"").trim().replace(/\s+/g," ");
-  const equipmentKey=name=>window.fitnessEquipmentKey?.(name)||String(name||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
   function groupedTraining(day){
     const groups=[];
     for(const row of day?.training||[]){
-      const exerciseId=row.exerciseId||row.exerciseName,equipmentName=equipmentNameOf(row),key=`${exerciseId}::${equipmentKey(equipmentName)}`;
-      let g=groups.find(x=>x.key===key);
+      const exerciseId=row.exerciseId||row.exerciseName;
+      let g=groups.find(x=>x.exerciseId===exerciseId);
       if(!g){
-        g={key,exerciseId,name:row.exerciseName||row.exerciseId||"未知动作",equipment_name:equipmentName,sets:[]};
+        g={exerciseId,name:row.exerciseName||row.exerciseId||"未知动作",sets:[]};
         groups.push(g);
       }
       g.sets.push({weight:+row.weight||0,resistance_label:row.resistanceLabel||"",reps:+row.reps||0,rir:row.rir===""||row.rir==null?null:+row.rir});
     }
-    return groups.map(({key,...x})=>x);
+    return groups;
   }
-  function daySummary(date,day){
-    const m=dayMacros(day);
-    return {
-      date,
-      weight:day?.weight==null?null:+day.weight,
-      macros:{carbs:+m.C.toFixed(1),protein:+m.P.toFixed(1),fat:+m.F.toFixed(1),kcal:Math.round(m.K)},
-      food_entries:(day?.foods||[]).map(x=>{
-        const q=foodMacros(x);
-        return {name:x.name||"食物",amount:+x.grams||0,unit:x.unit||"g",carbs:+q.C.toFixed(1),protein:+q.P.toFixed(1),fat:+q.F.toFixed(1)};
-      }),
-      training:groupedTraining(day),
-      cardio_minutes:+day?.cardio||0,
-      training_sequence:Array.isArray(day?.trainingSequence)?day.trainingSequence:[]
-    };
-  }
+
   function recentWeightContext(db,endDate=today()){
     const dates=Object.keys(db.days||{}).filter(d=>d<=endDate).sort();
     const rows=dates.map(d=>({date:d,weight:db.days[d]?.weight})).filter(x=>x.weight!=null);
@@ -124,34 +108,26 @@
   function exerciseLoadType(ex){
     return window.fitnessLoadTypeOf?.(ex)||(["weight","bodyweight","bodyweight_extra","band"].includes(ex?.loadType)?ex.loadType:((+ex?.bodyweightFactor||0)>0?"bodyweight_extra":"weight"));
   }
-  function buildExercisePayload(exerciseId,equipmentName=""){
+  function buildExercisePayload(exerciseId){
     const db=getDB(),ex=(db.exercises||[]).find(x=>x.id===exerciseId);
     if(!ex)throw new Error("找不到这个动作");
-    const loadType=exerciseLoadType(ex),sessions=[],wantedKey=equipmentKey(equipmentName);
+    const loadType=exerciseLoadType(ex),sessions=[];
     const dates=Object.keys(db.days||{}).sort();
     for(const date of dates){
-      const rows=(db.days[date]?.training||[]).filter(x=>x.exerciseId===exerciseId&&(wantedKey?equipmentKey(equipmentNameOf(x))===wantedKey:true));
+      const rows=(db.days[date]?.training||[]).filter(x=>x.exerciseId===exerciseId);
       if(!rows.length)continue;
-      const groups=new Map();
-      rows.forEach(row=>{
-        const eq=equipmentNameOf(row),key=equipmentKey(eq);
-        if(!groups.has(key))groups.set(key,{equipment_name:eq,rows:[]});
-        groups.get(key).rows.push(row);
-      });
-      for(const g of groups.values()){
-        const sets=g.rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)).map(x=>({
-          load_type:["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType)?x.loadType:loadType,
-          weight:+x.weight||0,
-          resistance_label:x.resistanceLabel||"",
-          reps:+x.reps||0,
-          rir:x.rir===""||x.rir==null?null:+x.rir
-        }));
-        const rms=loadType==="weight"?sets.map(x=>e1rm(x.weight,x.reps)).filter(x=>x!=null):[];
-        sessions.push({date,equipment_name:g.equipment_name,sets,best_e1rm:rms.length?+Math.max(...rms).toFixed(1):null});
-      }
+      const sets=rows.sort((a,b)=>(+a.setIndex||0)-(+b.setIndex||0)).map(x=>({
+        load_type:["weight","bodyweight","bodyweight_extra","band"].includes(x.loadType)?x.loadType:loadType,
+        weight:+x.weight||0,
+        resistance_label:x.resistanceLabel||"",
+        reps:+x.reps||0,
+        rir:x.rir===""||x.rir==null?null:+x.rir
+      }));
+      const rms=loadType==="weight"?sets.map(x=>e1rm(x.weight,x.reps)).filter(x=>x!=null):[];
+      sessions.push({date,sets,best_e1rm:rms.length?+Math.max(...rms).toFixed(1):null});
     }
     return {
-      exercise:{id:ex.id,name:ex.name,group:ex.group||"",load_type:loadType,equipment_filter:String(equipmentName||"").trim(),bodyweight_factor:+ex.bodyweightFactor||null,rep_min:+ex.repMin||null,rep_max:+ex.repMax||null,target_sets:+ex.sets||null},
+      exercise:{id:ex.id,name:ex.name,group:ex.group||"",load_type:loadType,bodyweight_factor:+ex.bodyweightFactor||null,rep_min:+ex.repMin||null,rep_max:+ex.repMax||null,target_sets:+ex.sets||null},
       current_bodyweight:recentWeightContext(db,today()).latest?.weight??null,
       sessions:sessions.slice(-12)
     };
@@ -247,9 +223,8 @@
     ].join("\n");
     if(mode==="exercise")return [
       "你是力量训练记录分析助手。",
-      "基于用户传入的某个动作最近训练记录，结合 load_type、equipment_name 分析负重/阻力、重复次数、RIR、最佳组和训练间隔变化。",
-      "不同 equipment_name 的机器阻力标定不可直接比较；绝对不要因为更换器械后重量数字变小就判断力量下降。应分别分析每台器械内的趋势；如果提供了 equipment_filter，只分析该器械。",
-      "load_type=weight 时可以在同一器械内参考估算1RM；load_type=band 时绝对不要计算或讨论e1RM，而要比较弹力带阻力/颜色/档位、次数和RIR；load_type=bodyweight 时比较次数和RIR；load_type=bodyweight_extra 时主要比较额外负重、次数和RIR，不要把额外负重单独当作总负重1RM。",
+      "基于用户传入的某个动作最近训练记录，结合 load_type 分析负重/阻力、重复次数、RIR、最佳组和训练间隔变化。",
+      "load_type=weight 时可以参考估算1RM；load_type=band 时绝对不要计算或讨论e1RM，而要比较弹力带阻力/颜色/档位、次数和RIR；load_type=bodyweight 时比较次数和RIR；load_type=bodyweight_extra 时主要比较额外负重、次数和RIR，不要把额外负重单独当作总负重1RM。",
       "优先判断：是否持续进步、基本持平、出现连续退步，还是数据不足。单次状态波动不能定义为停滞。",
       "固定重量动作中重量不变但次数或RIR改善，也应识别为进步。弹力带动作中同一阻力下次数增加/RIR改善，或在相近次数与RIR下换更强阻力，也应识别为进步。",
       "建议最多给2到3条，必须具体可执行，例如维持重量争取次数、达到某条件后小幅加重。不要替用户自动修改计划。",
@@ -329,7 +304,7 @@
   }
 
   const INSIGHT_CACHE_STORAGE="chibianyingAiInsightCacheV2";
-  let currentInsight={mode:null,exerciseId:null,equipmentName:"",payload:null,fingerprint:"",entry:null};
+  let currentInsight={mode:null,exerciseId:null,payload:null,fingerprint:"",entry:null};
   let insightReturnScroll=0;
 
   function payloadFingerprint(payload){
@@ -350,27 +325,24 @@
   function writeInsightCache(cache){
     try{localStorage.setItem(INSIGHT_CACHE_STORAGE,JSON.stringify(cache))}catch{}
   }
-  const exerciseCacheKey=(exerciseId,equipmentName="")=>equipmentName?`${exerciseId}::${equipmentKey(equipmentName)}`:exerciseId;
-  function insightPayload(mode,exerciseId,equipmentName=""){
-    return mode==="today"?buildTodayPayload():mode==="weekly"?buildWeeklyPayload():buildExercisePayload(exerciseId,equipmentName);
+  function insightPayload(mode,exerciseId){
+    return mode==="today"?buildTodayPayload():mode==="weekly"?buildWeeklyPayload():buildExercisePayload(exerciseId);
   }
-  function cacheEntryFor(mode,exerciseId,equipmentName=""){
+  function cacheEntryFor(mode,exerciseId){
     const cache=readInsightCache();
-    return mode==="exercise"?cache.exercises?.[exerciseCacheKey(exerciseId,equipmentName)]||null:cache[mode]||null;
+    return mode==="exercise"?cache.exercises?.[exerciseId]||null:cache[mode]||null;
   }
   function validCacheEntry(mode,exerciseId,entry,fingerprint){
     if(!entry?.data)return false;
     if(mode==="today"||mode==="weekly")return entry.date===today();
     return !!exerciseId&&entry.fingerprint===fingerprint;
   }
-  function saveInsightEntry(mode,exerciseId,data,fingerprint,equipmentName=""){
-    const cache=readInsightCache();
-    const entry={date:today(),generatedAt:new Date().toISOString(),fingerprint,data};
-    if(mode==="exercise")cache.exercises[exerciseCacheKey(exerciseId,equipmentName)]=entry;
-    else cache[mode]=entry;
-    writeInsightCache(cache);
-    return entry;
+  function saveInsightEntry(mode,exerciseId,data,fingerprint){
+    const cache=readInsightCache(),entry={date:today(),generatedAt:new Date().toISOString(),fingerprint,data};
+    if(mode==="exercise")cache.exercises[exerciseId]=entry;else cache[mode]=entry;
+    writeInsightCache(cache);return entry;
   }
+
   function formatGeneratedTime(iso){
     if(!iso)return "";
     const d=new Date(iso);
@@ -379,9 +351,9 @@
   function insightLabel(mode){
     return mode==="today"?"今日简报":mode==="weekly"?"最近 7 天":"动作分析";
   }
-  function currentCacheState(mode,exerciseId,equipmentName=""){
+  function currentCacheState(mode,exerciseId){
     try{
-      const payload=insightPayload(mode,exerciseId,equipmentName),fingerprint=payloadFingerprint(payload),entry=cacheEntryFor(mode,exerciseId,equipmentName);
+      const payload=insightPayload(mode,exerciseId),fingerprint=payloadFingerprint(payload),entry=cacheEntryFor(mode,exerciseId);
       const valid=validCacheEntry(mode,exerciseId,entry,fingerprint);
       const stale=valid&&entry.fingerprint!==fingerprint;
       return {payload,fingerprint,entry,valid,stale};
@@ -473,7 +445,7 @@
     if(!$("aiInsightModal")){
       const modal=document.createElement("div");modal.className="modal";modal.id="aiInsightModal";
       modal.innerHTML='<div class="modal-panel ai-report-panel"><div class="ai-report-head"><div><h2 id="aiInsightTitle">AI 分析</h2><small id="aiInsightSubtitle">DeepSeek 健身报告</small></div><button type="button" class="ai-report-close" id="aiInsightClose" aria-label="关闭">×</button></div><div class="ai-report-body"><div class="ai-report-meta" id="aiInsightMeta"></div><div id="aiInsightContent"></div></div><div class="ai-report-actions"><button type="button" class="btn soft" id="aiInsightRefresh">重新分析</button></div></div>';
-      document.body.appendChild(modal);$("aiInsightClose").onclick=closeInsightModal;$("aiInsightRefresh").onclick=()=>{if(currentInsight.mode)runInsight(currentInsight.mode,currentInsight.exerciseId,{force:true,equipmentName:currentInsight.equipmentName||""})};
+      document.body.appendChild(modal);$("aiInsightClose").onclick=closeInsightModal;$("aiInsightRefresh").onclick=()=>{if(currentInsight.mode)runInsight(currentInsight.mode,currentInsight.exerciseId,{force:true})};
       modal.addEventListener("click",e=>{if(e.target===modal)closeInsightModal()});
     }
   }
@@ -608,7 +580,7 @@
       '<div class="ai-observation"><div class="ai-observation-head"><b>'+escapeHtml(x.title||"建议")+'</b><span class="ai-tag">建议</span></div><p>'+escapeHtml(x.detail||"")+'</p></div>'
     ).join("");
     $("aiInsightTitle").textContent=data.title||("AI "+insightLabel(meta.mode));
-    $("aiInsightSubtitle").textContent=meta.mode==="exercise"?(meta.equipmentName?`基于「${meta.equipmentName}」最近训练记录`:"基于最近训练记录"):"基于你的本机记录";
+    $("aiInsightSubtitle").textContent=meta.mode==="exercise"?"基于最近训练记录":"基于你的本机记录";
     const pills=[];
     if(meta.generatedAt)pills.push('<span class="ai-report-pill '+(meta.cached?"cached":"")+'">'+(meta.cached?"本机缓存 · ":"刚刚生成 · ")+escapeHtml(formatGeneratedTime(meta.generatedAt))+'</span>');
     if(meta.stale)pills.push('<span class="ai-report-pill stale">生成后记录有更新</span>');
@@ -625,34 +597,34 @@
     openInsightModal();
   }
   async function runInsight(mode,exerciseId,options={}){
-    const force=!!options.force,equipmentName=String(options.equipmentName||"").trim(),title="AI "+insightLabel(mode);
+    const force=!!options.force,title="AI "+insightLabel(mode);
     let payload,fingerprint,entry,valid,stale;
     try{
-      payload=insightPayload(mode,exerciseId,equipmentName);
+      payload=insightPayload(mode,exerciseId);
       fingerprint=payloadFingerprint(payload);
-      entry=cacheEntryFor(mode,exerciseId,equipmentName);
+      entry=cacheEntryFor(mode,exerciseId);
       valid=validCacheEntry(mode,exerciseId,entry,fingerprint);
       stale=valid&&entry.fingerprint!==fingerprint;
     }catch(err){
       ensureModals();$("aiInsightTitle").textContent=title;$("aiInsightMeta").innerHTML="";$("aiInsightContent").innerHTML='<div class="empty ai-report-error">'+escapeHtml(err.message||"没有足够的数据")+'</div>';$("aiInsightRefresh").style.display="none";openInsightModal();return;
     }
 
-    currentInsight={mode,exerciseId:exerciseId||null,equipmentName,payload,fingerprint,entry};
+    currentInsight={mode,exerciseId:exerciseId||null,payload,fingerprint,entry};
     if(!force&&valid){
-      renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale,exerciseId,equipmentName});
+      renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale,exerciseId});
       return;
     }
 
     showInsightLoading(title);
     try{
       const data=await callAI(mode,payload,null);
-      entry=saveInsightEntry(mode,exerciseId,data,fingerprint,equipmentName);
+      entry=saveInsightEntry(mode,exerciseId,data,fingerprint);
       currentInsight.entry=entry;
-      renderInsight(data,{mode,cached:false,generatedAt:entry.generatedAt,stale:false,exerciseId,equipmentName});
+      renderInsight(data,{mode,cached:false,generatedAt:entry.generatedAt,stale:false,exerciseId});
       refreshHomeAIStatus();
     }catch(err){
       if(entry?.data){
-        renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale:true,exerciseId,equipmentName});
+        renderInsight(entry.data,{mode,cached:true,generatedAt:entry.generatedAt,stale:true,exerciseId});
         toast("重新分析失败，已保留上一次报告");
       }else{
         $("aiInsightMeta").innerHTML="";
@@ -753,9 +725,8 @@
     box.querySelectorAll(".item").forEach(item=>{
       if(item.querySelector(".ai-exercise-btn"))return;
       const datasetId=item.dataset.exerciseId||"",name=item.querySelector(".item-title")?.textContent.trim(),ex=(db.exercises||[]).find(x=>x.id===datasetId)||(db.exercises||[]).find(x=>x.name===name);if(!ex)return;
-      const equipmentName=item.dataset.equipmentName||"";
       const target=item.children[1]||item;
-      const btn=document.createElement("button");btn.type="button";btn.className="ai-exercise-btn";btn.textContent=equipmentName?"✦ AI 分析此器械":"✦ AI 分析";btn.onclick=e=>{e.stopPropagation();runInsight("exercise",ex.id,{equipmentName})};
+      const btn=document.createElement("button");btn.type="button";btn.className="ai-exercise-btn";btn.textContent="✦ AI 分析";btn.onclick=e=>{e.stopPropagation();runInsight("exercise",ex.id)};
       target.appendChild(btn);
     });
   }
