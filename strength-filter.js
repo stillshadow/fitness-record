@@ -21,8 +21,9 @@
     load('ui-v3.js?v=68','ui-v3');
     load('training-plan-v2.js?v=56','training-plan-v2');
     load('ui-v2.js?v=54','ui-v2');
-    load('training-batch.js?v=65','training-batch');
+    load('training-batch.js?v=66','training-batch');
     load('ai-system.js?v=17','ai-system');
+    load('training-ai.js?v=1','training-ai');
     load('last-performance.js?v=57','last-performance');
     load('ui-final.js?v=64','ui-final');
     load('ui-keyboard.js?v=54','ui-keyboard');
