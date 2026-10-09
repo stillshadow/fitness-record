@@ -270,6 +270,39 @@
     if(rem){const ex=rem.closest('[data-ex-index]'),d=drafts[+ex.dataset.exIndex];if(d){d.sets.splice(+rem.dataset.removeSet,1);if(!d.sets.length)d.sets=[blankSet(d.exerciseId,0)];render()}}
   }
 
+  function addParsedTraining(result){
+    const db=getDB(),added=[],skipped=[];
+    for(const item of result?.exercises||[]){
+      const ex=(db.exercises||[]).find(x=>x.id===item.exercise_id);
+      if(!ex){skipped.push(item.exercise_name||item.exercise_id||"未知动作");continue}
+      const parsedSets=(item.sets||[]).filter(x=>+x.reps>0).map(x=>({
+        weight:+x.weight>0?String(+x.weight):"",
+        resistanceLabel:String(x.resistance_label||"").trim(),
+        reps:String(+x.reps||""),
+        rir:+x.rir>=0?String(+x.rir):"",
+        hintWeight:"",hintResistance:"",hintReps:""
+      }));
+      if(!parsedSets.length){skipped.push(ex.name);continue}
+      let d=drafts.find(x=>x.kind==="exercise"&&x.exerciseId===ex.id);
+      if(d){
+        const hasEntered=d.sets.some(set=>+set.reps>0||String(set.weight).trim()||String(set.resistanceLabel||"").trim());
+        d.sets=hasEntered?[...d.sets,...parsedSets]:parsedSets;
+      }else{
+        d=draftForExercise(ex,parsedSets.length,[]);
+        d.sets=parsedSets;
+        drafts.push(d);
+      }
+      added.push({id:ex.id,name:ex.name,sets:parsedSets.length,confidence:item.confidence||"medium"});
+    }
+    const cardio=Math.max(0,+result?.cardio_minutes||0);
+    if(cardio>0){
+      let d=drafts.find(x=>x.kind==="cardio");
+      if(!d){d=cardioDraft(cardio);drafts.push(d)}else d.minutes=String(cardio);
+    }
+    render();
+    return {added,skipped,cardio};
+  }
+
   function addSelectedExercise(){
     const id=$('batchExercise').value, db=getDB(), ex=(db.exercises||[]).find(x=>x.id===id); if(!ex) return;
     drafts.push(draftForExercise(ex,Math.max(1,+ex.sets||3))); render();
@@ -353,4 +386,9 @@
 
   window.openBatchTraining=open;
   window.openTrainingModal=(exerciseId='')=>open(window.fitnessHistoryDate?.()||today(),exerciseId);
+  window.fitnessBatchTraining={
+    addParsedTraining,
+    getEditDate:()=>editDate,
+    isOpen:()=>!!$('batchTrainingModal')?.classList.contains('open')
+  };
 })();
