@@ -221,7 +221,7 @@
     const style=document.createElement("style");style.id="trainingAiStyle";
     style.textContent=`
       .training-ai-quick{border:1px solid rgba(155,173,255,.15);background:linear-gradient(180deg,rgba(20,26,37,.96),rgba(14,19,27,.98));border-radius:15px;padding:11px;margin:0 0 11px}
-      .training-ai-quick-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.training-ai-quick-head b{font-size:13px}.training-ai-quick-head small{color:var(--muted);font-size:9px}
+      .training-ai-quick-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.training-ai-quick-head b{font-size:13px}.training-ai-quick-head small{color:var(--muted);font-size:9px}.training-ai-ask{border:0;background:transparent;color:#9badff;font-size:10px;padding:3px 0}
       .training-ai-input{width:100%;box-sizing:border-box;min-height:76px;resize:vertical;padding:10px 11px;line-height:1.5}
       .training-ai-actions{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px;margin-top:8px}.training-ai-actions.one{grid-template-columns:1fr}.training-ai-actions .btn{min-height:39px}
       .training-ai-mic.listening{border-color:#ff7887!important;color:#ff98a4!important}
@@ -262,9 +262,10 @@
     const modal=$("batchTrainingModal"),panel=modal?.querySelector(".modal-panel"),plan=modal?.querySelector(".batch-planbar");
     if(!panel||!plan||$("trainingAiQuick"))return;
     const box=document.createElement("section");box.id="trainingAiQuick";box.className="training-ai-quick";
-    box.innerHTML='<div class="training-ai-quick-head"><b>✦ AI 快速记录</b><small>直接说 / 写整场训练</small></div><textarea id="trainingAiInput" class="training-ai-input" placeholder="例如：哑铃地板卧推 22.5kg，10、9、8次，RIR2；侧平举 7.5kg 15次三组"></textarea><div class="training-ai-actions" id="trainingAiActions"><button type="button" class="btn ghost training-ai-mic" id="trainingAiMic">🎙 语音</button><button type="button" class="btn" id="trainingAiParse">解析并加入</button></div><div id="trainingAiResult" class="training-ai-result"></div>';
+    box.innerHTML='<div class="training-ai-quick-head"><div><b>✦ AI 快速记录</b><small>直接说 / 写整场训练</small></div><button type="button" class="training-ai-ask" id="trainingAiAsk">问上次重量</button></div><textarea id="trainingAiInput" class="training-ai-input" placeholder="例如：哑铃地板卧推 22.5kg，10、9、8次，RIR2；侧平举 7.5kg 15次三组"></textarea><div class="training-ai-actions" id="trainingAiActions"><button type="button" class="btn ghost training-ai-mic" id="trainingAiMic">🎙 语音</button><button type="button" class="btn" id="trainingAiParse">解析并加入</button></div><div id="trainingAiResult" class="training-ai-result"></div>';
     panel.insertBefore(box,plan);
     const mic=$("trainingAiMic"),input=$("trainingAiInput"),parse=$("trainingAiParse"),result=$("trainingAiResult");
+    $("trainingAiAsk").onclick=()=>{ensureAssistantModal();$("trainingAssistantModal").classList.add("open");setTimeout(()=>$("trainingAssistantInput")?.focus(),60)};
     if(!speechSupported()){mic.style.display="none";$("trainingAiActions").classList.add("one")}
     else createSpeech(mic,(text,done)=>{input.value=text;if(done)input.focus()});
     parse.onclick=async()=>{
