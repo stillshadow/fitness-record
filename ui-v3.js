@@ -427,7 +427,7 @@
     $('diaryDateInput').onchange=e=>{if(e.target.value&&e.target.value<=today())setDiaryDate(e.target.value)};
     $('diaryWeightSave').onclick=()=>{
       const v=+$('diaryWeightInput').value;if(!(v>0))return;
-      const db=getDB(),day=ensureDiaryDay(db,activeDate());day.weight=v;window.fitnessApp?.replaceDB?.(db);$('diaryWeightInput').blur();
+      const db=getDB(),day=ensureDiaryDay(db,activeDate());day.weight=v;window.fitnessApp?.replaceDB?.(db);$('diaryWeightInput').blur();refreshHome();
     };
     $('diaryTrainingDetailBtn').onclick=()=>showDiaryDetail('training');
     $('diaryFoodDetailBtn').onclick=()=>showDiaryDetail('food');
