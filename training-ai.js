@@ -237,39 +237,18 @@
     document.head.appendChild(style);
   }
 
-  function speechSupported(){return !!(window.SpeechRecognition||window.webkitSpeechRecognition)}
-  function createSpeech(button,onText){
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){button.style.display="none";return null}
-    const r=new SR();r.lang="zh-CN";r.interimResults=true;r.continuous=false;
-    let finalText="";
-    r.onstart=()=>{button.classList.add("listening");button.textContent="正在听…"};
-    r.onresult=e=>{
-      let interim="";
-      for(let i=e.resultIndex;i<e.results.length;i++){
-        const text=e.results[i][0]?.transcript||"";
-        if(e.results[i].isFinal)finalText+=text;else interim+=text;
-      }
-      onText(finalText+interim,false);
-    };
-    r.onend=()=>{button.classList.remove("listening");button.textContent="🎙 语音";if(finalText)onText(finalText,true)};
-    r.onerror=()=>{button.classList.remove("listening");button.textContent="🎙 语音"};
-    button.onclick=()=>{finalText="";try{r.start()}catch{}};
-    return r;
-  }
-
   function injectBatchQuick(){
     const modal=$("batchTrainingModal"),panel=modal?.querySelector(".modal-panel"),plan=modal?.querySelector(".batch-planbar");
     if(!panel||!plan||$("trainingAiQuick"))return;
     const box=document.createElement("section");box.id="trainingAiQuick";box.className="training-ai-quick";
-    box.innerHTML='<div class="training-ai-quick-head"><div><b>✦ AI 快速记录</b><small>直接说 / 写整场训练</small></div><button type="button" class="training-ai-ask" id="trainingAiAsk">问上次重量</button></div><textarea id="trainingAiInput" class="training-ai-input" placeholder="例如：哑铃地板卧推 22.5kg，10、9、8次，RIR2；侧平举 7.5kg 15次三组"></textarea><div class="training-ai-actions" id="trainingAiActions"><button type="button" class="btn ghost training-ai-mic" id="trainingAiMic">🎙 语音</button><button type="button" class="btn" id="trainingAiParse">解析并加入</button></div><div id="trainingAiResult" class="training-ai-result"></div>';
+    box.innerHTML='<div class="training-ai-quick-head"><div><b>✦ AI 快速记录</b><small>直接输入整场训练</small></div><button type="button" class="training-ai-ask" id="trainingAiAsk">问上次重量</button></div><textarea id="trainingAiInput" class="training-ai-input" placeholder="例如：哑铃地板卧推 22.5kg，10、9、8次，RIR2；侧平举 7.5kg 15次三组"></textarea><div class="training-ai-actions" id="trainingAiActions"><button type="button" class="btn" id="trainingAiParse">解析并加入</button></div><div id="trainingAiResult" class="training-ai-result"></div>';
     panel.insertBefore(box,plan);
-    const mic=$("trainingAiMic"),input=$("trainingAiInput"),parse=$("trainingAiParse"),result=$("trainingAiResult");
+    const input=$("trainingAiInput"),parse=$("trainingAiParse"),result=$("trainingAiResult");
     $("trainingAiAsk").onclick=()=>{ensureAssistantModal();$("trainingAssistantModal").classList.add("open");setTimeout(()=>$("trainingAssistantInput")?.focus(),60)};
     if(!speechSupported()){mic.style.display="none";$("trainingAiActions").classList.add("one")}
     else createSpeech(mic,(text,done)=>{input.value=text;if(done)input.focus()});
     parse.onclick=async()=>{
-      const text=input.value.trim();if(!text)return toast("先说或写一下今天练了什么");
+      const text=input.value.trim();if(!text)return toast("先输入一下今天练了什么");
       parse.disabled=true;parse.textContent="解析中…";result.className="training-ai-result";result.textContent="AI 正在匹配动作库并拆分训练组…";
       try{
         const parsed=await parseTrainingText(text),applied=window.fitnessBatchTraining?.addParsedTraining?.(parsed);
@@ -286,11 +265,11 @@
   function ensureAssistantModal(){
     if($("trainingAssistantModal"))return;
     const modal=document.createElement("div");modal.id="trainingAssistantModal";modal.className="modal";
-    modal.innerHTML='<div class="modal-panel"><div class="ai-modal-head"><div><b>训练助手</b><small>直接查你的真实训练历史</small></div><button type="button" class="ai-modal-close" id="trainingAssistantClose" aria-label="关闭">×</button></div><div class="training-assistant-body"><div id="trainingAssistantAnswer" class="training-assistant-answer">可以直接问：“哑铃卧推我上次多重？”</div><div class="training-assistant-examples"><button type="button" class="training-assistant-example">哑铃卧推我上次多重？</button><button type="button" class="training-assistant-example">引体向上上次做了几组？</button><button type="button" class="training-assistant-example">侧平举这次从多少开始？</button></div><div class="training-assistant-input-row"><input id="trainingAssistantInput" type="text" placeholder="问上次重量、次数、RIR…"><button type="button" class="btn training-assistant-send" id="trainingAssistantSend">发送</button></div><button type="button" class="btn ghost training-assistant-mic" id="trainingAssistantMic">🎙 语音</button></div></div>';
+    modal.innerHTML='<div class="modal-panel"><div class="ai-modal-head"><div><b>训练助手</b><small>直接查你的真实训练历史</small></div><button type="button" class="ai-modal-close" id="trainingAssistantClose" aria-label="关闭">×</button></div><div class="training-assistant-body"><div id="trainingAssistantAnswer" class="training-assistant-answer">可以直接问：“哑铃卧推我上次多重？”</div><div class="training-assistant-examples"><button type="button" class="training-assistant-example">哑铃卧推我上次多重？</button><button type="button" class="training-assistant-example">引体向上上次做了几组？</button><button type="button" class="training-assistant-example">侧平举这次从多少开始？</button></div><div class="training-assistant-input-row"><input id="trainingAssistantInput" type="text" placeholder="问上次重量、次数、RIR…"><button type="button" class="btn training-assistant-send" id="trainingAssistantSend">发送</button></div></div></div>';
     document.body.appendChild(modal);
     $("trainingAssistantClose").onclick=()=>modal.classList.remove("open");
     modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});
-    const input=$("trainingAssistantInput"),send=$("trainingAssistantSend"),answer=$("trainingAssistantAnswer"),mic=$("trainingAssistantMic");
+    const input=$("trainingAssistantInput"),send=$("trainingAssistantSend"),answer=$("trainingAssistantAnswer");
     if(!speechSupported())mic.style.display="none";else createSpeech(mic,(text,done)=>{input.value=text;if(done)input.focus()});
     async function ask(){
       const q=input.value.trim();if(!q)return;
