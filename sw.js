@@ -1,14 +1,26 @@
-const CACHE="chibianying-diet-memo-v1";
+const CACHE="chibianying-diet-memo-diet-v2-20261011c";
 const ASSETS=[
   "./","index.html","manifest.json","deepseek-config.js","app-config.js",
-  "food-system.js","ai-system.js","ui-v3.js","ui-keyboard.js","ui-v2.css",
+  "food-system.js","ai-system.js","ui-keyboard.js","ui-v2.css",
   "update.html","icon-192.png","icon-512.png"
 ];
 self.addEventListener("install",event=>{
-  event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(async c=>{
+        for(const asset of ASSETS){
+          try{ await c.add(asset); }catch{}
+        }
+      })
+      .then(()=>self.skipWaiting())
+  );
 });
 self.addEventListener("activate",event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+      .then(()=>self.clients.claim())
+  );
 });
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
@@ -23,7 +35,7 @@ self.addEventListener("fetch",event=>{
       }
       return fresh;
     }catch{
-      return (await caches.match(event.request))||(await caches.match("index.html"))||Response.error();
+      return (await caches.match(event.request))||(await caches.match("./"))||(await caches.match("index.html"))||Response.error();
     }
   })());
 });
