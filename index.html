@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f14">
-<link rel="manifest" href="manifest.json?v=diet-v2-20261011f">
+<link rel="manifest" href="manifest.json?v=diet-v2-20261011g">
 <link rel="icon" href="icon-192.png">
 <title>饮食记录</title>
 <style>
@@ -355,8 +355,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-
 
 <div class="toast" id="toast"></div>
 
-<script src="deepseek-config.js?v=diet-v2-20261011f"></script>
-<script src="app-config.js?v=diet-v2-20261011f"></script>
+<script src="deepseek-config.js?v=diet-v2-20261011g"></script>
+<script src="app-config.js?v=diet-v2-20261011g"></script>
 <script>
 const STORAGE_KEY="chibianyingFitnessV1";
 const OLD_STORAGE_KEY="cutTrackerV2";
@@ -893,10 +893,10 @@ $("importFile").addEventListener("change",e=>{if(e.target.files[0])importJSON(e.
 refreshAll();
 refreshBackupStatus();
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-    navigator.serviceWorker.register("sw.js?v=diet-v2-20261011f").then(reg=>reg.update()).catch(()=>{});
+    navigator.serviceWorker.register("sw.js?v=diet-v2-20261011g").then(reg=>reg.update()).catch(()=>{});
     navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(sessionStorage.getItem("dietSwReloaded")==="diet-v2-20261011f")return;
-      sessionStorage.setItem("dietSwReloaded","diet-v2-20261011f");
+      if(sessionStorage.getItem("dietSwReloaded")==="diet-v2-20261011g")return;
+      sessionStorage.setItem("dietSwReloaded","diet-v2-20261011g");
       location.reload();
     });
   }
@@ -934,13 +934,13 @@ window.fitnessApp={
 </script>
 
 
-<script src="food-system.js?v=diet-v2-20261011f"></script>
-<script src="ai-system.js?v=diet-v2-20261011f"></script>
+<script src="food-system.js?v=diet-v2-20261011g"></script>
+<script src="ai-system.js?v=diet-v2-20261011g"></script>
 
 <script>
   // Never leave the user on a blank screen if a future UI script fails.
   setTimeout(()=>document.body.classList.remove("simple-booting"),1800);
 </script>
-<script src="ui-v3.js?v=diet-v2-20261011f"></script>
+<script src="ui-v3.js?v=diet-v2-20261011g"></script>
 </body>
 </html>
