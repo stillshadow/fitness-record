@@ -6,37 +6,6 @@ try{
   localStorage.removeItem("chibianyingGithubBackupLast");
 }catch{}
 
-// V3 和 AI 首屏一起提前加载，同时先遮住旧首页，避免“无 AI 首页”先闪出来。
-(() => {
-  const app = document.querySelector(".app");
-  if (app) app.style.visibility = "hidden";
-
-  const loadEarly = (src,attr) => {
-    if (document.querySelector(`script[data-${attr}]`)) return;
-    const s = document.createElement("script");
-    s.src = src;
-    s.async = false;
-    s.setAttribute(`data-${attr}`,"1");
-    document.head.appendChild(s);
-  };
-
-  loadEarly("ui-v3.js?v=68","ui-v3");
-  loadEarly("ai-system.js?v=17","ai-system");
-  loadEarly("training-ai.js?v=1","training-ai");
-
-  let tries = 0;
-  const reveal = setInterval(() => {
-    tries++;
-    const homeReady = !!document.getElementById("v3Home");
-    const aiReady = !!document.getElementById("aiHomeCard");
-    const trainingAiReady = !!document.getElementById("aiTrainingAssistant");
-    if ((homeReady && aiReady && trainingAiReady) || tries > 120) {
-      clearInterval(reveal);
-      if (app) app.style.visibility = "";
-    }
-  }, 35);
-})();
-
 (() => {
   const style = document.createElement("style");
   style.textContent = `
@@ -301,26 +270,3 @@ try{
   else setTimeout(setup,0);
 })();
 
-(() => {
-  const load = () => {
-    if (document.querySelector('script[data-food-system]')) return;
-    const s = document.createElement('script');
-    s.src = 'food-system.js?v=15';
-    s.dataset.foodSystem = '1';
-    document.head.appendChild(s);
-  };
-  if (document.readyState === 'complete') setTimeout(load,0);
-  else window.addEventListener('load',load,{once:true});
-})();
-
-(() => {
-  const load = () => {
-    if (document.querySelector('script[data-training-system]')) return;
-    const s = document.createElement('script');
-    s.src = 'training-system.js?v=26';
-    s.dataset.trainingSystem = '1';
-    document.head.appendChild(s);
-  };
-  if (document.readyState === 'complete') setTimeout(load,0);
-  else window.addEventListener('load',load,{once:true});
-})();
