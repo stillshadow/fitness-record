@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>更新饮食记录</title>
+<style>
+body{margin:0;background:#090b0f;color:#f2f4f7;font:14px/1.7 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;display:grid;place-items:center;min-height:100vh}
+main{max-width:420px;padding:24px;text-align:center}small{color:#8993a2}
+</style>
+</head>
+<body><main><h2>正在切换到新版</h2><small id="status">清理旧缓存…</small></main>
+<script>
+(async()=>{
+  const s=document.getElementById("status");
+  try{
+    if("serviceWorker" in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+    sessionStorage.clear();
+    s.textContent="旧缓存已清理，正在进入新版…";
+  }catch(e){
+    s.textContent="正在进入新版…";
+  }
+  location.replace("./?fresh=diet-v2-20261011c");
+})();
+</script>
+</body></html>
