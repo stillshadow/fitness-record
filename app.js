@@ -276,4 +276,69 @@ a-delete-meal="${m.id}">删除</button></div>`;mb.appendChild(d);
     $("settingC").value=DB.settings.c;$("settingP").value=DB.settings.p;$("settingF").value=DB.settings.f;$("settingWater").value=DB.settings.waterGoal;
   }
   function saveTargets(){
-    DB.settings.c=Math.max(0,+$("settingC").value||0);DB.settings.p=Math.max(0,+$("settingP").value||0);DB.settings.f=Math.max(0,+$("settingF").value||
+    DB.settings.c=Math.max(0,+$("settingC").value||0);DB.settings.p=Math.max(0,+$("settingP").value||0);DB.settings.f=Math.max(0,+$("settingF").value||0);DB.settings.waterGoal=Math.max(0,+$("settingWater").value||0);
+    persist();renderDiet();toast("目标已保存");
+  }
+  function clearHistory(){
+    if(!confirm("确定清除所有饮食历史、饮水记录、健身备忘录以及旧版训练/体重数据吗？食物库、餐食模板、目标和 AI Key 会保留。"))return;
+    DB.days={};DB.memos=[];LEGACY_KEYS.forEach(k=>localStorage.removeItem(k));localStorage.removeItem("chibianyingAiInsightCacheV2");persist();activeDate=today();renderAll();toast("历史数据已清除");
+  }
+
+  function addWater(amount){
+    const day=ensureDay();day.waterMl=Math.max(0,(+day.waterMl||0)+amount);persist();renderDiet();
+  }
+  function addFoodEntry(entry,date=activeDate){
+    const day=ensureDay(date),saved={...clone(entry),id:entry?.id||uid("fd"),slot:entry?.slot||inferSlot(),time:entry?.time||localTime()};day.foods.push(saved);persist();if(date===activeDate)renderDiet();return clone(saved);
+  }
+  function getDaySummary(date=activeDate){
+    const day=DB.days?.[date]||{date,foods:[],waterMl:0},sum=totals(day),s=DB.settings;
+    return {
+      date,
+      isToday:date===today(),
+      goals:{carbs:+s.c||0,protein:+s.p||0,fat:+s.f||0,kcal:(+s.c||0)*4+(+s.p||0)*4+(+s.f||0)*9,water_ml:+s.waterGoal||0},
+      totals:{carbs:+sum.C.toFixed(1),protein:+sum.P.toFixed(1),fat:+sum.F.toFixed(1),kcal:Math.round(sum.K),water_ml:+day.waterMl||0},
+      foods:(day.foods||[]).map(x=>{const q=macroOf(x);return{name:x.name||"",slot:x.slot||"",time:x.time||"",carbs:+q.C.toFixed(1),protein:+q.P.toFixed(1),fat:+q.F.toFixed(1),kcal:Math.round(q.K)}})
+    };
+  }
+
+  function showView(name){
+    document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===name));
+    if(name==="diet")renderDiet();if(name==="library")renderLibrary();if(name==="memos")renderMemos();if(name==="settings")renderSettings();window.scrollTo(0,0);
+  }
+  function renderAll(){renderDiet();renderLibrary();renderMemos();renderSettings()}
+
+  function wire(){
+    document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+    document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
+    document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModal(m.id)}));
+    $("prevDate").onclick=()=>{activeDate=shiftDate(activeDate,-1);renderDiet()};
+    $("nextDate").onclick=()=>{if(activeDate<today()){activeDate=shiftDate(activeDate,1);renderDiet()}};
+    $("dateButton").onclick=()=>{const i=$("dateInput");try{i.showPicker?i.showPicker():i.click()}catch{i.click()}};
+    $("dateInput").onchange=e=>{if(e.target.value&&e.target.value<=today()){activeDate=e.target.value;renderDiet()}};
+    $("openManualFood").onclick=openManual;
+    $("manualMode").onchange=toggleManualMode;$("manualFoodSelect").onchange=updateManualAmountLabel;$("saveManualFood").onclick=saveManual;
+    document.querySelectorAll("[data-water-add]").forEach(b=>b.onclick=()=>addWater(+b.dataset.waterAdd||0));
+    $("addCustomWater").onclick=()=>{const v=+$("customWater").value;if(!(v>0))return toast("填写饮水量");addWater(v);$("customWater").value=""};
+    document.querySelectorAll("[data-library-tab]").forEach(b=>b.onclick=()=>{libraryTab=b.dataset.libraryTab;renderLibrary()});
+    $("newFood").onclick=()=>openFoodEditor();$("saveFoodLibrary").onclick=saveFoodLibrary;$("newMeal").onclick=()=>openMealEditor();$("addMealItem").onclick=addMealItem;$("saveMeal").onclick=saveMeal;
+    $("newMemo").onclick=()=>openMemo();$("saveMemo").onclick=saveMemo;
+    $("saveTargets").onclick=saveTargets;$("clearHistory").onclick=clearHistory;
+    $("openAiFood").onclick=()=>window.dietAI?.openFood?.(activeDate);
+    $("openAiReview").onclick=()=>window.dietAI?.reviewDay?.(activeDate);
+  }
+
+  window.dietApp={
+    getDB:()=>clone(DB),
+    replaceDB(next){DB={...clone(DEFAULT_DB),...clone(next),settings:{...clone(DEFAULT_DB.settings),...(next.settings||{})}};persist();renderAll()},
+    getDate:()=>activeDate,
+    getDaySummary,
+    addFoodEntry,
+    toast,
+    render:renderAll,
+    inferSlot,
+    localTime
+  };
+
+  function setup(){wire();renderAll()}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setup,{once:true});else setup();
+})();
