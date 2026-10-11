@@ -86,4 +86,67 @@
   }
   function ensureDay(date=activeDate){
     DB.days[date]=DB.days[date]||{date,foods:[],waterMl:0};
-    DB.day
+    DB.days[date].foods=DB.days[date].foods||[];
+    DB.days[date].waterMl=+DB.days[date].waterMl||0;
+    return DB.days[date];
+  }
+  function macroOf(entry,amountOverride){
+    if(entry?.totalMacros){
+      const C=+entry.totalC||0,P=+entry.totalP||0,F=+entry.totalF||0;
+      return {C,P,F,K:C*4+P*4+F*9};
+    }
+    const amount=amountOverride==null?(+entry?.grams||0):+amountOverride;
+    if(entry?.basis==="serving"){
+      const C=(+entry.c||0)/100*amount,P=(+entry.p||0)/100*amount,F=(+entry.f||0)/100*amount;
+      return {C,P,F,K:C*4+P*4+F*9};
+    }
+    const q=amount/100,C=(+entry?.c||0)*q,P=(+entry?.p||0)*q,F=(+entry?.f||0)*q;
+    return {C,P,F,K:C*4+P*4+F*9};
+  }
+  function totals(day){
+    return (day?.foods||[]).reduce((s,x)=>{const q=macroOf(x);s.C+=q.C;s.P+=q.P;s.F+=q.F;s.K+=q.K;return s},{C:0,P:0,F:0,K:0});
+  }
+  function progress(value,target){return target>0?Math.min(100,Math.max(0,value/target*100)):0}
+  function setBar(id,value,target){const el=$(id);if(el)el.style.width=progress(value,target)+"%"}
+  function openModal(id){$(id)?.classList.add("open")}
+  function closeModal(id){$(id)?.classList.remove("open")}
+
+  function renderDiet(){
+    const day=ensureDay(),sum=totals(day),s=DB.settings,targetK=s.c*4+s.p*4+s.f*9;
+    $("dateLabel").textContent=prettyDate(activeDate);
+    $("dateInput").value=activeDate;$("dateInput").max=today();
+    $("nextDate").disabled=activeDate>=today();
+    $("macroC").textContent=fmt(sum.C)+"g";$("targetC").textContent="/ "+fmt(s.c)+"g";
+    $("macroP").textContent=fmt(sum.P)+"g";$("targetP").textContent="/ "+fmt(s.p)+"g";
+    $("macroF").textContent=fmt(sum.F)+"g";$("targetF").textContent="/ "+fmt(s.f)+"g";
+    $("macroK").textContent=Math.round(sum.K);$("targetK").textContent="/ "+Math.round(targetK)+" kcal";
+    setBar("barC",sum.C,s.c);setBar("barP",sum.P,s.p);setBar("barF",sum.F,s.f);setBar("barK",sum.K,targetK);
+    $("macroHint").textContent=(day.foods||[]).length?`${day.foods.length} 条记录`:"尚未记录";
+    $("waterValue").textContent=Math.round(day.waterMl)+" ml";$("waterTargetText").textContent="目标 "+Math.round(s.waterGoal)+" ml";setBar("barWater",day.waterMl,s.waterGoal);
+    renderEntries(day);
+  }
+  function renderEntries(day){
+    const box=$("foodEntries"),rows=day.foods||[];$("foodCount").textContent=rows.length+" 条";box.innerHTML="";
+    if(!rows.length){box.innerHTML='<div class="empty">这一天还没有饮食记录。</div>';return}
+    [...rows].sort((a,b)=>String(a.time||"").localeCompare(String(b.time||""))).forEach(x=>{
+      const q=macroOf(x),d=document.createElement("div");d.className="item";
+      d.innerHTML=`<div><div class="item-title">${escapeHtml(x.slot||"饮食")} · ${escapeHtml(x.name||"未命名")}</div><div class="item-sub">${x.time?escapeHtml(x.time)+" · ":""}C ${fmt(q.C)} / P ${fmt(q.P)} / F ${fmt(q.F)}${x.grams?` · ${fmt(x.grams)}${escapeHtml(x.unit||"g")}`:""}</div></div><div class="item-actions"><span class="kcal">${Math.round(q.K)} kcal</span><button class="chip" data-delete-entry="${x.id}">删除</button></div>`;
+      box.appendChild(d);
+    });
+    box.querySelectorAll("[data-delete-entry]").forEach(b=>b.onclick=()=>{
+      if(!confirm("删除这条饮食记录？"))return;
+      day.foods=day.foods.filter(x=>x.id!==b.dataset.deleteEntry);persist();renderDiet();
+    });
+  }
+
+  function fillFoodSelects(){
+    const options=(DB.foods||[]).map(f=>`<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`).join("");
+    ["manualFoodSelect","mealFoodSelect"].forEach(id=>{const el=$(id);if(el){const old=el.value;el.innerHTML=options;if(old&&DB.foods.some(f=>f.id===old))el.value=old}});
+    const mealOptions=(DB.meals||[]).map(m=>`<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)}</option>`).join("");
+    $("manualMealSelect").innerHTML=mealOptions;
+    updateManualAmountLabel();
+  }
+  function updateManualAmountLabel(){
+    const f=DB.foods.find(x=>x.id===$("manualFoodSelect")?.value);
+    if(!$("manualAmountLabel"))return;
+    $("manualAmountLabel").textContent=f?.basis==="serving"?"份数":"重量 "+(f?.
