@@ -1,10 +1,10 @@
 {
-  "name": "池边影の健身记录",
-  "short_name": "健身记录",
-  "start_url": "./",
+  "name": "饮食记录",
+  "short_name": "饮食记录",
+  "start_url": "./?app=diet-v2-20261011c",
   "display": "standalone",
-  "background_color": "#07090d",
-  "theme_color": "#07090d",
+  "background_color": "#090b0f",
+  "theme_color": "#090b0f",
   "icons": [
     {
       "src": "icon-192.png",
