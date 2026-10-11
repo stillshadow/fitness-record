@@ -254,4 +254,58 @@
     box.querySelectorAll("[data-delete-memo]").forEach(b=>b.onclick=()=>deleteMemo(b.dataset.deleteMemo));
   }
   function formatDateTime(iso){
-    if(!iso)return"";const d=new Date(iso);return 
+    if(!iso)return"";const d=new Date(iso);return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+  function openMemo(id=""){
+    const m=DB.memos.find(x=>x.id===id);$("editingMemoId").value=id;$("memoModalTitle").textContent=id?"编辑备忘录":"新建备忘录";$("memoTitle").value=m?.title||"";$("memoContent").value=m?.content||"";openModal("memoModal");
+  }
+  function saveMemo(){
+    const id=$("editingMemoId").value,title=$("memoTitle").value.trim(),content=$("memoContent").value.trim();if(!title&&!content)return toast("写点内容再保存");
+    const now=new Date().toISOString(),obj={id:id||uid("memo"),title:title||"未命名",content,createdAt:DB.memos.find(x=>x.id===id)?.createdAt||now,updatedAt:now},i=DB.memos.findIndex(x=>x.id===id);if(i>=0)DB.memos[i]=obj;else DB.memos.push(obj);
+    persist();closeModal("memoModal");renderMemos();toast("备忘录已保存");
+  }
+  function deleteMemo(id){if(!confirm("删除这条备忘录？"))return;DB.memos=DB.memos.filter(x=>x.id!==id);persist();renderMemos()}
+
+  function renderSettings(){
+    $("settingC").value=DB.settings.c;$("settingP").value=DB.settings.p;$("settingF").value=DB.settings.f;$("settingWater").value=DB.settings.waterGoal;
+  }
+  function saveTargets(){
+    DB.settings.c=Math.max(0,+$("settingC").value||0);DB.settings.p=Math.max(0,+$("settingP").value||0);DB.settings.f=Math.max(0,+$("settingF").value||0);DB.settings.waterGoal=Math.max(0,+$("settingWater").value||0);
+    persist();renderDiet();toast("目标已保存");
+  }
+  function clearHistory(){
+    if(!confirm("确定清除所有饮食历史、饮水记录、健身备忘录以及旧版训练/体重数据吗？食物库、餐食模板、目标和 AI Key 会保留。"))return;
+    DB.days={};DB.memos=[];LEGACY_KEYS.forEach(k=>localStorage.removeItem(k));localStorage.removeItem("chibianyingAiInsightCacheV2");persist();activeDate=today();renderAll();toast("历史数据已清除");
+  }
+
+  function addWater(amount){
+    const day=ensureDay();day.waterMl=Math.max(0,(+day.waterMl||0)+amount);persist();renderDiet();
+  }
+  function addFoodEntry(entry,date=activeDate){
+    const day=ensureDay(date),saved={...clone(entry),id:entry?.id||uid("fd"),slot:entry?.slot||inferSlot(),time:entry?.time||localTime()};day.foods.push(saved);persist();if(date===activeDate)renderDiet();return clone(saved);
+  }
+  function getDaySummary(date=activeDate){
+    const day=DB.days?.[date]||{date,foods:[],waterMl:0},sum=totals(day),s=DB.settings;
+    return {
+      date,
+      isToday:date===today(),
+      goals:{carbs:+s.c||0,protein:+s.p||0,fat:+s.f||0,kcal:(+s.c||0)*4+(+s.p||0)*4+(+s.f||0)*9,water_ml:+s.waterGoal||0},
+      totals:{carbs:+sum.C.toFixed(1),protein:+sum.P.toFixed(1),fat:+sum.F.toFixed(1),kcal:Math.round(sum.K),water_ml:+day.waterMl||0},
+      foods:(day.foods||[]).map(x=>{const q=macroOf(x);return{name:x.name||"",slot:x.slot||"",time:x.time||"",carbs:+q.C.toFixed(1),protein:+q.P.toFixed(1),fat:+q.F.toFixed(1),kcal:Math.round(q.K)}})
+    };
+  }
+
+  function showView(name){
+    document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===name));
+    if(name==="diet")renderDiet();if(name==="library")renderLibrary();if(name==="memos")renderMemos();if(name==="settings")renderSettings();window.scrollTo(0,0);
+  }
+  function renderAll(){renderDiet();renderLibrary();renderMemos();renderSettings()}
+
+  function wire(){
+    document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+    document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
+    document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModal(m.id)}));
+    $("prevDate").onclick=()=>{activeDate=shiftDate(activeDate,-1);renderDiet()};
+    $("nextDate").onclick=()=>{if(activeDate<today()){activeDate=shiftDate(activeDate,1);renderDiet()}};
+    $("dateButton").onclick=()=>{const i=$("dateInput");try{i.showPicker?i.showPicker():i.click()}catch{i.click()}};
+    $("dateInput").on
