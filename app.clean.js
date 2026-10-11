@@ -308,4 +308,31 @@
     $("prevDate").onclick=()=>{activeDate=shiftDate(activeDate,-1);renderDiet()};
     $("nextDate").onclick=()=>{if(activeDate<today()){activeDate=shiftDate(activeDate,1);renderDiet()}};
     $("dateButton").onclick=()=>{const i=$("dateInput");try{i.showPicker?i.showPicker():i.click()}catch{i.click()}};
-    $("dateInput").on
+    $("dateInput").onchange=e=>{if(e.target.value&&e.target.value<=today()){activeDate=e.target.value;renderDiet()}};
+    $("openManualFood").onclick=openManual;
+    $("manualMode").onchange=toggleManualMode;$("manualFoodSelect").onchange=updateManualAmountLabel;$("saveManualFood").onclick=saveManual;
+    document.querySelectorAll("[data-water-add]").forEach(b=>b.onclick=()=>addWater(+b.dataset.waterAdd||0));
+    $("addCustomWater").onclick=()=>{const v=+$("customWater").value;if(!(v>0))return toast("填写饮水量");addWater(v);$("customWater").value=""};
+    document.querySelectorAll("[data-library-tab]").forEach(b=>b.onclick=()=>{libraryTab=b.dataset.libraryTab;renderLibrary()});
+    $("newFood").onclick=()=>openFoodEditor();$("saveFoodLibrary").onclick=saveFoodLibrary;$("newMeal").onclick=()=>openMealEditor();$("addMealItem").onclick=addMealItem;$("saveMeal").onclick=saveMeal;
+    $("newMemo").onclick=()=>openMemo();$("saveMemo").onclick=saveMemo;
+    $("saveTargets").onclick=saveTargets;$("clearHistory").onclick=clearHistory;
+    $("openAiFood").onclick=()=>window.dietAI?.openFood?.(activeDate);
+    $("openAiReview").onclick=()=>window.dietAI?.reviewDay?.(activeDate);
+  }
+
+  window.dietApp={
+    getDB:()=>clone(DB),
+    replaceDB(next){DB={...clone(DEFAULT_DB),...clone(next),settings:{...clone(DEFAULT_DB.settings),...(next.settings||{})}};persist();renderAll()},
+    getDate:()=>activeDate,
+    getDaySummary,
+    addFoodEntry,
+    toast,
+    render:renderAll,
+    inferSlot,
+    localTime
+  };
+
+  function setup(){wire();renderAll()}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setup,{once:true});else setup();
+})();
