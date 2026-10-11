@@ -149,4 +149,60 @@
   function updateManualAmountLabel(){
     const f=DB.foods.find(x=>x.id===$("manualFoodSelect")?.value);
     if(!$("manualAmountLabel"))return;
-    $("manualAmountLabel").textContent=f?.basis==="serving"?"份数":"重量 "+(f?.
+    $("manualAmountLabel").textContent=f?.basis==="serving"?"份数":"重量 "+(f?.unit||"g");
+  }
+  function openManual(){
+    fillFoodSelects();
+    $("manualSlot").value=inferSlot();$("manualTime").value=localTime();$("manualMode").value="library";
+    $("manualAmount").value="";$("customFoodName").value="";$("customFoodWeight").value="";$("customFoodC").value="";$("customFoodP").value="";$("customFoodF").value="";
+    toggleManualMode();openModal("manualFoodModal");
+  }
+  function toggleManualMode(){
+    const m=$("manualMode").value;$("manualLibraryFields").hidden=m!=="library";$("manualMealFields").hidden=m!=="meal";$("manualCustomFields").hidden=m!=="custom";
+  }
+  function saveManual(){
+    const day=ensureDay(),slot=$("manualSlot").value,time=$("manualTime").value||localTime(),mode=$("manualMode").value;
+    if(mode==="library"){
+      const f=DB.foods.find(x=>x.id===$("manualFoodSelect").value),amount=+$("manualAmount").value;
+      if(!f||!(amount>0))return toast("请选择食物并填写数量");
+      day.foods.push({...clone(f),id:uid("fd"),sourceFoodId:f.id,grams:amount,slot,time});
+    }else if(mode==="meal"){
+      const meal=DB.meals.find(x=>x.id===$("manualMealSelect").value);
+      if(!meal)return toast("请选择餐食模板");
+      for(const it of meal.items||[]){
+        const f=DB.foods.find(x=>x.id===it.foodId);if(!f)continue;
+        day.foods.push({...clone(f),id:uid("fd"),sourceFoodId:f.id,grams:+it.amount||+it.grams||0,slot,time,mealName:meal.name});
+      }
+    }else{
+      const name=$("customFoodName").value.trim(),C=+$("customFoodC").value||0,P=+$("customFoodP").value||0,F=+$("customFoodF").value||0,grams=+$("customFoodWeight").value||0;
+      if(!name)return toast("填写食物名称");
+      day.foods.push({id:uid("fd"),name,grams,unit:"g",totalMacros:true,totalC:C,totalP:P,totalF:F,slot,time,source:"manual"});
+    }
+    persist();closeModal("manualFoodModal");renderDiet();toast("已记录");
+  }
+
+  function renderLibrary(){
+    fillFoodSelects();
+    $("libraryFoods").hidden=libraryTab!=="foods";$("libraryMeals").hidden=libraryTab!=="meals";
+    document.querySelectorAll("[data-library-tab]").forEach(b=>b.classList.toggle("active",b.dataset.libraryTab===libraryTab));
+    const fb=$("foodLibrary");fb.innerHTML="";
+    if(!DB.foods.length)fb.innerHTML='<div class="empty">暂无食物。</div>';
+    DB.foods.forEach(f=>{
+      const d=document.createElement("div");d.className="item";
+      const serving=f.basis==="serving",C=serving?(+f.c||0)/100:+f.c||0,P=serving?(+f.p||0)/100:+f.p||0,F=serving?(+f.f||0)/100:+f.f||0;
+      d.innerHTML=`<div><div class="item-title">${escapeHtml(f.name)}</div><div class="item-sub">${serving?"每份":"每100"+escapeHtml(f.unit||"g")} · C ${fmt(C)} / P ${fmt(P)} / F ${fmt(F)}</div></div><div class="item-actions"><button class="chip" data-edit-food="${f.id}">编辑</button><button class="chip" data-delete-food="${f.id}">删除</button></div>`;
+      fb.appendChild(d);
+    });
+    fb.querySelectorAll("[data-edit-food]").forEach(b=>b.onclick=()=>openFoodEditor(b.dataset.editFood));
+    fb.querySelectorAll("[data-delete-food]").forEach(b=>b.onclick=()=>deleteFood(b.dataset.deleteFood));
+
+    const mb=$("mealLibrary");mb.innerHTML="";
+    if(!DB.meals.length)mb.innerHTML='<div class="empty">暂无餐食模板。</div>';
+    DB.meals.forEach(m=>{
+      const text=(m.items||[]).map(it=>{const f=DB.foods.find(x=>x.id===it.foodId);return f?`${f.name} ${fmt(+it.amount||+it.grams||0)}${f.basis==="serving"?"份":f.unit||"g"}`:""}).filter(Boolean).join(" · ");
+      const d=document.createElement("div");d.className="item";d.innerHTML=`<div><div class="item-title">${escapeHtml(m.name)}</div><div class="item-sub">${escapeHtml(text||"空模板")}</div></div><div class="item-actions"><button class="chip" data-edit-meal="${m.id}">编辑</button><button class="chip" data-delete-meal="${m.id}">删除</button></div>`;mb.appendChild(d);
+    });
+    mb.querySelectorAll("[data-edit-meal]").forEach(b=>b.onclick=()=>openMealEditor(b.dataset.editMeal));
+    mb.querySelectorAll("[data-delete-meal]").forEach(b=>b.onclick=()=>deleteMeal(b.dataset.deleteMeal));
+  }
+  function op
