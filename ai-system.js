@@ -759,13 +759,11 @@
     window.addEventListener("pageshow",()=>setTimeout(scheduleDynamicUi,0));
   }
   function setup(){
-    if(!window.fitnessApp?.getDB)return setTimeout(setup,80);
+    if(!window.fitnessApp?.getDB)return setTimeout(setup,40);
     ensureStyles();
     ensureModals();
-    setupObservers();
-    ensureDynamicUi();
-    setTimeout(ensureDynamicUi,120);
-    setTimeout(ensureDynamicUi,400);
+    injectFoodShortcut();
+    window.fitnessAI={...(window.fitnessAI||{}),openFoodAI};
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(setup,0),{once:true});else setTimeout(setup,0);
 })();
