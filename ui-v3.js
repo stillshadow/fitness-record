@@ -322,7 +322,7 @@
 食物：${JSON.stringify(foods)}`;
     btn.disabled=true;btn.textContent="分析中…";box.textContent="AI 正在综合今天的饮食记录…";
     try{
-      const res=await fetch(cfg.url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.key},body:JSON.stringify({model:cfg.model,messages:[{role:"system",content:"你是简洁、谨慎的饮食记录助手。不得编造用户未提供的信息。"},{"role:"user",content:prompt}],temperature:.3,max_tokens:500})});
+      const res=await fetch(cfg.url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.key},body:JSON.stringify({model:cfg.model,messages:[{role:"system",content:"你是简洁、谨慎的饮食记录助手。不得编造用户未提供的信息。"},{role:"user",content:prompt}],temperature:.3,max_tokens:500})});
       const data=await res.json().catch(()=>({}));
       if(!res.ok)throw new Error(data?.error?.message||("HTTP "+res.status));
       const answer=data?.choices?.[0]?.message?.content?.trim();
