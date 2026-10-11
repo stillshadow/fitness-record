@@ -205,4 +205,53 @@
     mb.querySelectorAll("[data-edit-meal]").forEach(b=>b.onclick=()=>openMealEditor(b.dataset.editMeal));
     mb.querySelectorAll("[data-delete-meal]").forEach(b=>b.onclick=()=>deleteMeal(b.dataset.deleteMeal));
   }
-  function op
+  function openFoodEditor(id=""){
+    const f=DB.foods.find(x=>x.id===id);$("editingFoodId").value=id;$("foodEditorTitle").textContent=id?"编辑食物":"添加食物";
+    $("foodName").value=f?.name||"";$("foodUnit").value=f?.unit==="ml"?"ml":"g";
+    if(f?.basis==="serving"){$("foodC").value=fmt((+f.c||0)/100);$("foodP").value=fmt((+f.p||0)/100);$("foodF").value=fmt((+f.f||0)/100)}
+    else{$("foodC").value=f?.c??"";$("foodP").value=f?.p??"";$("foodF").value=f?.f??""}
+    openModal("foodEditorModal");
+  }
+  function saveFoodLibrary(){
+    const id=$("editingFoodId").value,name=$("foodName").value.trim();if(!name)return toast("填写食物名称");
+    const obj={id:id||uid("food"),name,unit:$("foodUnit").value,c:+$("foodC").value||0,p:+$("foodP").value||0,f:+$("foodF").value||0,basis:$("foodUnit").value==="ml"?"per100ml":"per100g"};
+    const i=DB.foods.findIndex(x=>x.id===id);if(i>=0)DB.foods[i]=obj;else DB.foods.push(obj);
+    persist();closeModal("foodEditorModal");renderLibrary();toast("食物已保存");
+  }
+  function deleteFood(id){
+    if(!confirm("删除这个食物？使用它的历史记录不会受影响。"))return;
+    DB.foods=DB.foods.filter(x=>x.id!==id);DB.meals.forEach(m=>m.items=(m.items||[]).filter(it=>it.foodId!==id));persist();renderLibrary();
+  }
+
+  function openMealEditor(id=""){
+    const m=DB.meals.find(x=>x.id===id);$("editingMealId").value=id;$("mealEditorTitle").textContent=id?"编辑餐食模板":"添加餐食模板";$("mealName").value=m?.name||"";
+    mealBuilder=(m?.items||[]).map(x=>({foodId:x.foodId,amount:+x.amount||+x.grams||0}));fillFoodSelects();$("mealFoodAmount").value="";renderMealBuilder();openModal("mealEditorModal");
+  }
+  function renderMealBuilder(){
+    const box=$("mealBuilderList");box.innerHTML="";
+    mealBuilder.forEach((it,i)=>{const f=DB.foods.find(x=>x.id===it.foodId);if(!f)return;const d=document.createElement("div");d.className="item";d.innerHTML=`<div><div class="item-title">${escapeHtml(f.name)}</div><div class="item-sub">${fmt(it.amount)}${f.basis==="serving"?"份":escapeHtml(f.unit||"g")}</div></div><button class="chip" data-remove-meal-item="${i}">删除</button>`;box.appendChild(d)});
+    box.querySelectorAll("[data-remove-meal-item]").forEach(b=>b.onclick=()=>{mealBuilder.splice(+b.dataset.removeMealItem,1);renderMealBuilder()});
+  }
+  function addMealItem(){
+    const foodId=$("mealFoodSelect").value,amount=+$("mealFoodAmount").value;if(!foodId||!(amount>0))return toast("选择食物并填写数量");
+    mealBuilder.push({foodId,amount});$("mealFoodAmount").value="";renderMealBuilder();
+  }
+  function saveMeal(){
+    const id=$("editingMealId").value,name=$("mealName").value.trim();if(!name)return toast("填写模板名称");if(!mealBuilder.length)return toast("至少添加一个食物");
+    const obj={id:id||uid("meal"),name,items:mealBuilder.map(x=>({...x}))},i=DB.meals.findIndex(x=>x.id===id);if(i>=0)DB.meals[i]=obj;else DB.meals.push(obj);
+    persist();closeModal("mealEditorModal");renderLibrary();toast("餐食模板已保存");
+  }
+  function deleteMeal(id){if(!confirm("删除这个餐食模板？"))return;DB.meals=DB.meals.filter(x=>x.id!==id);persist();renderLibrary()}
+
+  function renderMemos(){
+    const box=$("memoList"),rows=[...DB.memos].sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));box.innerHTML="";
+    if(!rows.length){box.innerHTML='<div class="empty">还没有备忘录。可以记录训练计划、动作重量或任何想记住的东西。</div>';return}
+    rows.forEach(m=>{
+      const d=document.createElement("div");d.className="memo-card";
+      d.innerHTML=`<h3>${escapeHtml(m.title||"未命名")}</h3><p>${escapeHtml(m.content||"")}</p><div class="memo-meta">${escapeHtml(formatDateTime(m.updatedAt))}</div><div class="memo-actions"><button class="chip" data-edit-memo="${m.id}">编辑</button><button class="chip" data-delete-memo="${m.id}">删除</button></div>`;box.appendChild(d);
+    });
+    box.querySelectorAll("[data-edit-memo]").forEach(b=>b.onclick=()=>openMemo(b.dataset.editMemo));
+    box.querySelectorAll("[data-delete-memo]").forEach(b=>b.onclick=()=>deleteMemo(b.dataset.deleteMemo));
+  }
+  function formatDateTime(iso){
+    if(!iso)return"";const d=new Date(iso);return 
