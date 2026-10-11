@@ -19,6 +19,7 @@
   };
   const getDB=()=>window.fitnessApp?.getDB?.()||{days:{},settings:{}};
   const saveDB=db=>window.fitnessApp?.replaceDB?.(db);
+  const AI_KEY_STORAGE="chibianyingDeepSeekApiKey";
   let activeDate=today(),editingMemoId=null,lastDietSignature="";
 
   function ensureDay(db,date=activeDate){
@@ -247,11 +248,60 @@
     $("simpleMemoEditor").classList.remove("open");editingMemoId=null;renderNotes();renderMemoPreview();
   }
 
+  function configuredAiKey(){
+    return (localStorage.getItem(AI_KEY_STORAGE)||"").trim()||String(window.DEEPSEEK_CONFIG?.apiKey||"").trim();
+  }
+
+  function refreshSimpleAiStatus(message=""){
+    const status=$("simpleAiStatus"),remove=$("simpleAiRemove");
+    if(!status)return;
+    const local=(localStorage.getItem(AI_KEY_STORAGE)||"").trim();
+    const github=String(window.DEEPSEEK_CONFIG?.apiKey||"").trim();
+    status.textContent=message||(local?"DeepSeek · 已保存在本机":github?"DeepSeek · 使用 GitHub 配置":"DeepSeek · 未配置");
+    if(remove)remove.hidden=!local;
+  }
+
+  async function validateSimpleAiKey(key){
+    if(!key)throw new Error("请先填写 DeepSeek API Key");
+    const resp=await fetch("https://api.deepseek.com/models",{headers:{Authorization:"Bearer "+key}});
+    const raw=await resp.json().catch(()=>({}));
+    if(!resp.ok)throw new Error(raw?.error?.message||raw?.message||("DeepSeek HTTP "+resp.status));
+    return true;
+  }
+
+  async function saveSimpleAiKey(){
+    const input=$("simpleAiApiKey"),btn=$("simpleAiSave"),key=input.value.trim();
+    if(!key){refreshSimpleAiStatus("请先填写 API Key");return}
+    btn.disabled=true;btn.textContent="验证中…";refreshSimpleAiStatus("正在验证 DeepSeek…");
+    try{
+      await validateSimpleAiKey(key);
+      localStorage.setItem(AI_KEY_STORAGE,key);
+      input.value="";
+      refreshSimpleAiStatus("DeepSeek · 已连接并保存在本机");
+    }catch(err){refreshSimpleAiStatus("连接失败 · "+(err?.message||"请检查 Key"))}
+    finally{btn.disabled=false;btn.textContent="保存并验证"}
+  }
+
+  async function testSimpleAiKey(){
+    const btn=$("simpleAiTest"),key=configuredAiKey();
+    btn.disabled=true;btn.textContent="测试中…";
+    try{await validateSimpleAiKey(key);refreshSimpleAiStatus("DeepSeek · 连接正常")}
+    catch(err){refreshSimpleAiStatus("连接失败 · "+(err?.message||"请检查 Key"))}
+    finally{btn.disabled=false;btn.textContent="测试连接"}
+  }
+
+  function removeSimpleAiKey(){
+    if(!confirm("移除这台设备保存的 DeepSeek API Key？"))return;
+    localStorage.removeItem(AI_KEY_STORAGE);
+    refreshSimpleAiStatus();
+  }
+
   function openSettings(){
     const db=getDB(),t=getTargets(db);
     $("simpleTargetC").value=t.c||"";
     $("simpleTargetP").value=t.p||"";
     $("simpleTargetF").value=t.f||"";
+    refreshSimpleAiStatus();
     $("simpleSettingsSheet").classList.add("open");
   }
 
@@ -344,7 +394,10 @@
     if($("simpleAppStyle"))return;
     const s=document.createElement("style");s.id="simpleAppStyle";s.textContent=`
       :root{--simple-bg:#090b0f;--simple-panel:#11151c;--simple-panel2:#151a22;--simple-line:#252c37;--simple-text:#f2f4f7;--simple-muted:#8993a2;--simple-accent:#b8c5ff;--simple-danger:#ff8a96}
+      html,body{touch-action:manipulation;-webkit-text-size-adjust:100%}
       body{background:var(--simple-bg)!important;color:var(--simple-text)!important}
+      button,a,input,textarea,select,[role="button"]{touch-action:manipulation}
+      input,textarea,select{font-size:16px!important}
       .app > .header,.desktop-tabs,.bottom-nav,#fab{display:none!important}
       body.simple-legacy .app > .header{display:none!important}
       body:not(.simple-legacy) .page{display:none!important}
@@ -375,7 +428,7 @@
       .simple-notes-list{display:grid;gap:8px}.simple-note-row{display:block;text-align:left;width:100%;border:1px solid var(--simple-line);background:var(--simple-panel);color:var(--simple-text);border-radius:14px;padding:12px}.simple-note-row b,.simple-note-row span,.simple-note-row small{display:block}.simple-note-row span{color:#c6ced9;font-size:12px;line-height:1.5;margin:5px 0}.simple-note-row small{color:var(--simple-muted);font-size:9px}
       .simple-note-new{width:100%;margin-bottom:10px}.simple-field{margin-bottom:12px}.simple-field label{display:block;font-size:11px;color:var(--simple-muted);margin-bottom:6px}.simple-field textarea{min-height:46vh;resize:vertical;line-height:1.65}
       .simple-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-      .simple-settings-section{background:var(--simple-panel);border:1px solid var(--simple-line);border-radius:15px;padding:13px;margin-bottom:12px}.simple-settings-section h3{font-size:14px;margin:0 0 12px}.simple-target-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+      .simple-settings-section{background:var(--simple-panel);border:1px solid var(--simple-line);border-radius:15px;padding:13px;margin-bottom:12px}.simple-settings-section h3{font-size:14px;margin:0 0 12px}.simple-target-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.simple-settings-actions{display:flex;gap:8px;flex-wrap:wrap}.simple-settings-note{margin-top:9px;color:var(--simple-muted);font-size:11px;line-height:1.6}
       .simple-legacy-back{position:fixed;z-index:120;top:0;left:0;right:0;height:52px;padding-top:env(safe-area-inset-top);display:flex;align-items:center;gap:12px;background:#0b0e13;border-bottom:1px solid var(--simple-line);padding-left:12px;padding-right:12px}.simple-legacy-back button{border:0;background:transparent;color:var(--simple-accent);font-size:14px}.simple-legacy-back b{font-size:14px}
       @media(max-width:520px){.simple-macro-grid{grid-template-columns:1fr 1fr}.simple-water-actions{grid-template-columns:1fr 1fr}.simple-water-actions input{grid-column:1/2}.simple-water-actions .simple-water-add{grid-column:2/3}.simple-target-grid{grid-template-columns:1fr 1fr 1fr}}
     `;document.head.appendChild(s);
@@ -455,6 +508,19 @@
           <button class="simple-btn primary" type="button" id="simpleTargetSave">保存目标</button>
         </section>
         <section class="simple-settings-section">
+          <div class="simple-card-head"><h3>AI 服务</h3><small id="simpleAiStatus">DeepSeek · 检查中…</small></div>
+          <div class="simple-field">
+            <label>DeepSeek API Key</label>
+            <input id="simpleAiApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 API Key">
+          </div>
+          <div class="simple-settings-actions">
+            <button class="simple-btn primary" type="button" id="simpleAiSave">保存并验证</button>
+            <button class="simple-btn" type="button" id="simpleAiTest">测试连接</button>
+            <button class="simple-btn danger" type="button" id="simpleAiRemove" hidden>移除本机 Key</button>
+          </div>
+          <div class="simple-settings-note">Key 只保存在当前设备的浏览器中，食物图片分析和今日饮食评估共用这一份配置。</div>
+        </section>
+        <section class="simple-settings-section">
           <h3>历史数据</h3>
           <div class="simple-empty">清空饮食、饮水、备忘录，以及旧版本遗留的体重和训练记录。食物库、餐食模板和目标设置会保留。</div>
           <button class="simple-btn danger" type="button" id="simpleClearHistory">清空所有历史记录</button>
@@ -489,6 +555,9 @@
     $("simpleSettingsBtn").onclick=openSettings;
     $("simpleSettingsClose").onclick=()=>$("simpleSettingsSheet").classList.remove("open");
     $("simpleTargetSave").onclick=saveTargets;
+    $("simpleAiSave").onclick=saveSimpleAiKey;
+    $("simpleAiTest").onclick=testSimpleAiKey;
+    $("simpleAiRemove").onclick=removeSimpleAiKey;
     $("simpleClearHistory").onclick=clearHistory;
     window.addEventListener("fitness:changed",renderAll);
     window.addEventListener("fitness:date-changed",()=>{activeDate=window.fitnessApp?.getActiveDate?.()||activeDate;renderAll()});
