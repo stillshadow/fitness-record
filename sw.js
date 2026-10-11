@@ -1,4 +1,4 @@
-const CACHE="chibianying-diet-memo-diet-v2-20261011f";
+const CACHE="chibianying-diet-memo-diet-v2-20261011g";
 const ASSETS=[
   "./","index.html","manifest.json","deepseek-config.js","app-config.js",
   "food-system.js","ai-system.js","ui-v3.js","ui-keyboard.js","ui-v2.css",
