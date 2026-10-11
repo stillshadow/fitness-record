@@ -20,7 +20,69 @@
   const getDB=()=>window.fitnessApp?.getDB?.()||{days:{},settings:{}};
   const saveDB=db=>window.fitnessApp?.replaceDB?.(db);
   const AI_KEY_STORAGE="chibianyingDeepSeekApiKey";
-  let activeDate=today(),editingMemoId=null,lastDietSignature="";
+  const TRAINING_PLAN={
+    title:"四分化健身房增肌训练计划",
+    subtitle:"肌肥大为主 · 兼顾力量提升",
+    tags:["固定器械优先","保留必要自由重量","支持动作平替","建议执行 6~8 周"],
+    schedule:[
+      ["周一","胸 + 三头","17组"],
+      ["周二","背 + 二头","17组"],
+      ["周三","休息",""],
+      ["周四","腿","17组"],
+      ["周五","休息",""],
+      ["周六","肩 + 二头 + 三头","18组"],
+      ["周日","休息",""]
+    ],
+    days:[
+      {
+        title:"Day 1 · 胸 + 三头",meta:"胸部 12 组 + 三头 5 组",focus:"优先练胸，最后再练三头。水平推、上胸、夹胸和不同角度推胸相结合。",
+        exercises:[
+          ["器械卧姿推胸","3 × 6~10","杠铃卧推、史密斯卧推",false],
+          ["上斜哑铃卧推","3 × 8~12","上斜推胸机、史密斯上斜卧推",true],
+          ["蝴蝶机夹胸","3 × 12~15","绳索夹胸",false],
+          ["下斜推胸机","3 × 8~12","辅助双杠臂屈伸、下斜史密斯卧推",false],
+          ["绳索三头下压","3 × 10~15","三头下压机、直杆下压",false],
+          ["绳索过头臂屈伸","2 × 10~15","三头伸展机、哑铃过头臂屈伸",false]
+        ]
+      },
+      {
+        title:"Day 2 · 背 + 二头",meta:"背部 12 组 + 二头 5 组",focus:"高位下拉和直臂下压侧重背阔肌；两种划船使用不同握法与肘部轨迹，尽量覆盖背部不同区域。",
+        exercises:[
+          ["高位下拉","3 × 8~12","辅助引体向上、中立握下拉",false],
+          ["胸托划船机","3 × 8~12","胸托杠铃划船、哑铃胸托划船",false],
+          ["坐姿绳索划船","3 × 10~12","器械坐姿划船、单臂器械划船",false],
+          ["直臂下压","3 × 12~15","滑轮上拉（Pullover）、绳索上拉",false],
+          ["牧师椅弯举机","3 × 8~12","牧师椅哑铃弯举、绳索弯举",false],
+          ["身后绳索弯举","2 × 10~15","上斜哑铃弯举",false]
+        ]
+      },
+      {
+        title:"Day 3 · 腿",meta:"下肢总量 17 组",focus:"哈克深蹲与蹬举负责主要下肢训练量，罗马尼亚硬拉与腿弯举负责后侧，最后补充小腿。",
+        exercises:[
+          ["哈克深蹲","3 × 6~10","史密斯深蹲、腿部深蹲机",false],
+          ["罗马尼亚硬拉","3 × 8~10","哑铃罗马尼亚硬拉、史密斯罗马尼亚硬拉",true],
+          ["45° 蹬举","3 × 10~15","水平蹬举、单腿蹬举",false],
+          ["坐姿腿弯举","3 × 10~15","俯卧腿弯举",false],
+          ["腿屈伸","2 × 12~15","单腿腿屈伸、其他腿屈伸机",false],
+          ["腿举机提踵","3 × 12~20","站姿提踵、坐姿提踵",false]
+        ]
+      },
+      {
+        title:"Day 4 · 肩 + 手臂强化",meta:"肩部 8 组 + 二头 5 组 + 三头 5 组",focus:"胸日已经刺激肩前束，因此肩日更侧重中束、后束。二头与三头交替训练，最后两个动作可适当提高强度。",
+        exercises:[
+          ["器械坐姿推肩","2 × 8~12","哑铃坐姿推肩、史密斯推肩",false],
+          ["侧平举机","3 × 12~20","绳索侧平举、哑铃侧平举",false],
+          ["反向蝴蝶机","3 × 12~20","绳索反向飞鸟",false],
+          ["绳索锤式弯举","3 × 10~15","哑铃锤式弯举",false],
+          ["三头下压机","3 × 10~15","绳索下压、单臂绳索下压",false],
+          ["绳索弯举","2 × 10~15","哑铃弯举、弯举机",false],
+          ["绳索过头臂屈伸","2 × 10~15","三头伸展机、哑铃过头臂屈伸",false]
+        ]
+      }
+    ],
+    volume:[["胸部","12组"],["背部","12组"],["下肢总量","17组"],["肩部","8组"],["二头肌","10组"],["三头肌","10组"]]
+  };
+  let activeDate=today(),lastDietSignature="";
 
   function ensureDay(db,date=activeDate){
     db.days=db.days||{};
@@ -125,16 +187,70 @@
     lastDietSignature=sig;
   }
 
-  function renderMemoPreview(){
-    const db=getDB(),memos=Array.isArray(db.memos)?db.memos:[];
-    const latest=[...memos].sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")))[0];
-    $("simpleMemoPreview").innerHTML=latest
-      ? `<b>${esc(latest.title||"未命名备忘")}</b><p>${esc(String(latest.content||"").slice(0,120))||"暂无内容"}</p><small>${new Date(latest.updatedAt||Date.now()).toLocaleDateString("zh-CN")}</small>`
-      : '<div class="simple-empty">还没有备忘录。可以记训练计划、常用重量或任何训练提示。</div>';
+  function renderTrainingPlan(){
+    const schedule=TRAINING_PLAN.schedule.map(([day,name,sets])=>`
+      <div class="simple-plan-schedule-row">
+        <span>${esc(day)}</span><b>${esc(name)}</b><small>${esc(sets||"休息")}</small>
+      </div>`).join("");
+
+    const days=TRAINING_PLAN.days.map((day,index)=>`
+      <details class="simple-plan-day" ${index===0?"open":""}>
+        <summary><span><b>${esc(day.title)}</b><small>${esc(day.meta)}</small></span></summary>
+        <div class="simple-plan-day-body">
+          ${day.exercises.map((x,i)=>`
+            <div class="simple-plan-exercise">
+              <span class="simple-plan-index">${i+1}</span>
+              <div><b>${x[3]?"★ ":""}${esc(x[0])}</b><small>可替换：${esc(x[2])}</small></div>
+              <strong>${esc(x[1])}</strong>
+            </div>`).join("")}
+          <p class="simple-plan-focus"><b>训练重点：</b>${esc(day.focus)}</p>
+        </div>
+      </details>`).join("");
+
+    const volume=TRAINING_PLAN.volume.map(([name,sets])=>`<span><b>${esc(name)}</b> ${esc(sets)}</span>`).join("");
+
+    return `
+      <div class="simple-plan-intro">
+        <div><b>${esc(TRAINING_PLAN.title)}</b><small>${esc(TRAINING_PLAN.subtitle)}</small></div>
+        <div class="simple-plan-tags">${TRAINING_PLAN.tags.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
+      </div>
+      <details class="simple-plan-block">
+        <summary><span><b>每周安排</b><small>每次约 60~90 分钟</small></span></summary>
+        <div class="simple-plan-schedule">${schedule}</div>
+      </details>
+      <div class="simple-plan-days">${days}</div>
+      <details class="simple-plan-block">
+        <summary><span><b>核心训练</b><small>每次训练结束收尾</small></span></summary>
+        <div class="simple-plan-copy">
+          <p><b>器械卷腹：2 × 12~20</b></p>
+          <p>可替换：绳索卷腹、地面卷腹。每周最多 4 次；如果腹肌仍明显酸痛或恢复不足，减少到每周 2~3 次。</p>
+        </div>
+      </details>
+      <details class="simple-plan-block">
+        <summary><span><b>训练规则</b><small>强度 · 休息 · 渐进</small></span></summary>
+        <div class="simple-plan-rules">
+          <div><small>复合动作休息</small><b>2~3 分钟</b></div>
+          <div><small>孤立动作休息</small><b>60~120 秒</b></div>
+          <div><small>正式组强度</small><b>RIR 1~2</b></div>
+          <div><small>执行周期</small><b>6~8 周</b></div>
+        </div>
+        <div class="simple-plan-copy">
+          <p><b>渐进超负荷：</b>当一个动作所有正式组都达到次数上限，而且动作标准，下次小幅增加重量。例如 3 × 6~10 能稳定完成 10、10、10，再加重量。</p>
+          <p><b>动作替换：</b>同一个训练位置只选一个动作，尽量保持相同运动模式。替换后保持一段时间，不要每次训练都换。</p>
+          <p><b>重量记录：</b>不同器械的重量独立看待，例如史密斯卧推和杠铃卧推不要直接比较。</p>
+          <p>★ 建议长期保留的自由重量动作：上斜哑铃卧推、罗马尼亚硬拉。</p>
+        </div>
+      </details>
+      <details class="simple-plan-block">
+        <summary><span><b>每周训练量</b><small>正式组</small></span></summary>
+        <div class="simple-plan-volume">${volume}</div>
+        <div class="simple-plan-copy"><p>下肢 17 组为下肢总组数，并非单一肌群；不包含复合动作对辅助肌群的间接刺激。</p></div>
+      </details>
+    `;
   }
 
   function renderAll(){
-    renderDiet();renderMemoPreview();adoptAiCard();
+    renderDiet();adoptAiCard();
   }
 
   function setDate(date){
@@ -196,56 +312,6 @@
     qa(".page").forEach(p=>p.classList.remove("active"));
     $("simpleApp").hidden=false;
     renderAll();
-  }
-
-  function openNotes(){
-    renderNotes();$("simpleNotesSheet").classList.add("open");
-  }
-
-  function closeNotes(){
-    $("simpleNotesSheet").classList.remove("open");
-  }
-
-  function renderNotes(){
-    const db=getDB(),memos=Array.isArray(db.memos)?[...db.memos]:[];
-    memos.sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
-    $("simpleNotesList").innerHTML=memos.length?memos.map(m=>`
-      <button type="button" class="simple-note-row" data-edit-memo="${esc(m.id)}">
-        <b>${esc(m.title||"未命名备忘")}</b>
-        <span>${esc(String(m.content||"").replace(/\s+/g," ").slice(0,90))||"暂无内容"}</span>
-        <small>${new Date(m.updatedAt||Date.now()).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</small>
-      </button>`).join(""):'<div class="simple-empty">还没有备忘录。</div>';
-  }
-
-  function openMemoEditor(id=null){
-    const db=getDB(),m=(db.memos||[]).find(x=>x.id===id);
-    editingMemoId=m?.id||null;
-    $("simpleMemoEditorTitle").textContent=m?"编辑备忘":"新建备忘";
-    $("simpleMemoTitle").value=m?.title||"";
-    $("simpleMemoContent").value=m?.content||"";
-    $("simpleMemoDelete").hidden=!m;
-    $("simpleMemoEditor").classList.add("open");
-    setTimeout(()=>$("simpleMemoTitle").focus(),60);
-  }
-
-  function saveMemo(){
-    const title=$("simpleMemoTitle").value.trim(),content=$("simpleMemoContent").value.trim();
-    if(!title&&!content)return;
-    const db=getDB();db.memos=Array.isArray(db.memos)?db.memos:[];
-    const now=new Date().toISOString();
-    if(editingMemoId){
-      const m=db.memos.find(x=>x.id===editingMemoId);
-      if(m){m.title=title||"未命名备忘";m.content=content;m.updatedAt=now}
-    }else{
-      db.memos.push({id:"memo_"+Date.now().toString(36),title:title||"未命名备忘",content,createdAt:now,updatedAt:now});
-    }
-    saveDB(db);$("simpleMemoEditor").classList.remove("open");editingMemoId=null;renderNotes();renderMemoPreview();
-  }
-
-  function deleteMemo(){
-    if(!editingMemoId||!confirm("删除这条备忘录？"))return;
-    const db=getDB();db.memos=(db.memos||[]).filter(x=>x.id!==editingMemoId);saveDB(db);
-    $("simpleMemoEditor").classList.remove("open");editingMemoId=null;renderNotes();renderMemoPreview();
   }
 
   function configuredAiKey(){
@@ -312,11 +378,11 @@
   }
 
   function clearHistory(){
-    if(!confirm("清空所有历史记录？\n\n会删除饮食、饮水、健身备忘录，以及旧版本遗留的体重和训练记录。食物库、餐食模板和目标设置会保留。"))return;
+    if(!confirm("清空所有历史记录？\n\n会删除饮食、饮水，以及旧版本遗留的体重、训练和备忘录数据。当前训练计划不会被删除。食物库、餐食模板和目标设置会保留。"))return;
     const db=getDB();
     db.days={};db.memos=[];
     ["plans","exercises","trainingPlans","workoutPlans","strengthRecords","trainingHistory"].forEach(k=>{if(k in db)db[k]=[]});
-    saveDB(db);activeDate=today();window.fitnessApp?.setActiveDate?.(activeDate);closeNotes();$("simpleSettingsSheet").classList.remove("open");renderAll();
+    saveDB(db);activeDate=today();window.fitnessApp?.setActiveDate?.(activeDate);$("simpleSettingsSheet").classList.remove("open");renderAll();
   }
 
   function findApiSecret(obj,depth=0){
@@ -422,12 +488,16 @@
       .simple-empty{color:var(--simple-muted);font-size:12px;line-height:1.6;padding:12px 2px}
       #simpleDietAiHost{margin-top:14px}#simpleDietAiHost #aiHomeCard{margin:0!important}
       .simple-ai-assess{margin-top:10px;padding-top:10px;border-top:1px solid var(--simple-line)}.simple-ai-answer{font-size:12px;line-height:1.7;color:#cdd4df;white-space:pre-wrap;margin-top:9px}
-      .simple-memo-preview b{display:block}.simple-memo-preview p{color:#c9d0da;font-size:12px;line-height:1.6;margin:7px 0}.simple-memo-preview small{color:var(--simple-muted)}
+      .simple-plan-intro{display:grid;gap:9px}.simple-plan-intro>div>b{display:block;font-size:14px}.simple-plan-intro>div>small{display:block;color:var(--simple-muted);font-size:11px;margin-top:3px}
+      .simple-plan-tags{display:flex;flex-wrap:wrap;gap:6px}.simple-plan-tags span{background:var(--simple-panel2);border:1px solid var(--simple-line);border-radius:999px;color:#cdd4df;font-size:10px;padding:4px 8px}
+      .simple-plan-block,.simple-plan-day{border-top:1px solid var(--simple-line);margin-top:12px;padding-top:2px}.simple-plan-block summary,.simple-plan-day summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;padding:11px 0;touch-action:manipulation}.simple-plan-block summary::-webkit-details-marker,.simple-plan-day summary::-webkit-details-marker{display:none}
+      .simple-plan-block summary:after,.simple-plan-day summary:after{content:"＋";color:var(--simple-muted);font-size:15px}.simple-plan-block[open]>summary:after,.simple-plan-day[open]>summary:after{content:"−"}.simple-plan-block summary small,.simple-plan-day summary small{display:block;color:var(--simple-muted);font-size:10px;margin-top:2px}.simple-plan-day summary>span,.simple-plan-block summary>span{min-width:0}
+      .simple-plan-schedule{display:grid;gap:1px;background:var(--simple-line);border:1px solid var(--simple-line);border-radius:12px;overflow:hidden}.simple-plan-schedule-row{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;background:var(--simple-panel2);padding:9px 10px;font-size:11px}.simple-plan-schedule-row span,.simple-plan-schedule-row small{color:var(--simple-muted)}
+      .simple-plan-days{margin-top:4px}.simple-plan-day-body{padding-bottom:4px}.simple-plan-exercise{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:start;padding:9px 0;border-top:1px solid rgba(255,255,255,.05)}.simple-plan-exercise:first-child{border-top:0}.simple-plan-index{display:grid;place-items:center;width:20px;height:20px;border-radius:7px;background:var(--simple-panel2);color:var(--simple-muted);font-size:9px}.simple-plan-exercise b{display:block;font-size:12px}.simple-plan-exercise small{display:block;color:var(--simple-muted);font-size:9px;line-height:1.5;margin-top:3px}.simple-plan-exercise strong{font-size:11px;white-space:nowrap}
+      .simple-plan-focus,.simple-plan-copy{color:#c9d0da;font-size:10px;line-height:1.7}.simple-plan-focus{background:var(--simple-panel2);border-radius:10px;padding:9px 10px;margin:7px 0}.simple-plan-copy p{margin:8px 0}.simple-plan-rules{display:grid;grid-template-columns:1fr 1fr;gap:7px}.simple-plan-rules div{background:var(--simple-panel2);border-radius:11px;padding:10px}.simple-plan-rules small,.simple-plan-rules b{display:block}.simple-plan-rules small{color:var(--simple-muted);font-size:9px}.simple-plan-rules b{font-size:14px;margin-top:3px}.simple-plan-volume{display:flex;flex-wrap:wrap;gap:6px}.simple-plan-volume span{background:var(--simple-panel2);border-radius:10px;padding:7px 9px;font-size:10px}.simple-plan-volume b{font-size:10px}
       .simple-sheet{position:fixed;inset:0;z-index:90;background:var(--simple-bg);display:none;overflow:auto}.simple-sheet.open{display:block}.simple-sheet-inner{max-width:760px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 14px 40px}
       .simple-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}.simple-sheet-head h2{font-size:18px;margin:0}.simple-sheet-head button{border:0;background:transparent;color:var(--simple-text);font-size:16px;padding:8px}
-      .simple-notes-list{display:grid;gap:8px}.simple-note-row{display:block;text-align:left;width:100%;border:1px solid var(--simple-line);background:var(--simple-panel);color:var(--simple-text);border-radius:14px;padding:12px}.simple-note-row b,.simple-note-row span,.simple-note-row small{display:block}.simple-note-row span{color:#c6ced9;font-size:12px;line-height:1.5;margin:5px 0}.simple-note-row small{color:var(--simple-muted);font-size:9px}
-      .simple-note-new{width:100%;margin-bottom:10px}.simple-field{margin-bottom:12px}.simple-field label{display:block;font-size:11px;color:var(--simple-muted);margin-bottom:6px}.simple-field textarea{min-height:46vh;resize:vertical;line-height:1.65}
-      .simple-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .simple-field{margin-bottom:12px}.simple-field label{display:block;font-size:11px;color:var(--simple-muted);margin-bottom:6px}.simple-field textarea{min-height:46vh;resize:vertical;line-height:1.65}
       .simple-settings-section{background:var(--simple-panel);border:1px solid var(--simple-line);border-radius:15px;padding:13px;margin-bottom:12px}.simple-settings-section h3{font-size:14px;margin:0 0 12px}.simple-target-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.simple-settings-actions{display:flex;gap:8px;flex-wrap:wrap}.simple-settings-note{margin-top:9px;color:var(--simple-muted);font-size:11px;line-height:1.6}
       .simple-legacy-back{position:fixed;z-index:120;top:0;left:0;right:0;height:52px;padding-top:env(safe-area-inset-top);display:flex;align-items:center;gap:12px;background:#0b0e13;border-bottom:1px solid var(--simple-line);padding-left:12px;padding-right:12px}.simple-legacy-back button{border:0;background:transparent;color:var(--simple-accent);font-size:14px}.simple-legacy-back b{font-size:14px}
       @media(max-width:520px){.simple-macro-grid{grid-template-columns:1fr 1fr}.simple-water-actions{grid-template-columns:1fr 1fr}.simple-water-actions input{grid-column:1/2}.simple-water-actions .simple-water-add{grid-column:2/3}.simple-target-grid{grid-template-columns:1fr 1fr 1fr}}
@@ -471,29 +541,13 @@
           <div class="simple-ai-answer" id="simpleAiAssessment">AI 会结合当天食物、碳蛋脂目标和饮水记录做整体评估。</div>
         </div>
       </section>
-      <section class="simple-card">
-        <div class="simple-card-head"><h2>健身备忘录</h2><button class="simple-btn" type="button" id="simpleOpenNotes">打开备忘录</button></div>
-        <div id="simpleMemoPreview" class="simple-memo-preview"></div>
+      <section class="simple-card" id="simpleTrainingPlan">
+        <div class="simple-card-head"><h2>训练计划</h2><small>当前计划 · 四分化</small></div>
+        ${renderTrainingPlan()}
       </section>
     `;
     app.insertBefore(root,app.firstChild);
 
-    const notes=document.createElement("div");notes.id="simpleNotesSheet";notes.className="simple-sheet";notes.innerHTML=`
-      <div class="simple-sheet-inner">
-        <div class="simple-sheet-head"><h2>健身备忘录</h2><button type="button" id="simpleNotesClose">关闭</button></div>
-        <button class="simple-btn primary simple-note-new" type="button" id="simpleNewMemo">＋ 新建备忘</button>
-        <div id="simpleNotesList" class="simple-notes-list"></div>
-      </div>`;
-    document.body.appendChild(notes);
-
-    const editor=document.createElement("div");editor.id="simpleMemoEditor";editor.className="simple-sheet";editor.innerHTML=`
-      <div class="simple-sheet-inner">
-        <div class="simple-sheet-head"><h2 id="simpleMemoEditorTitle">新建备忘</h2><button type="button" id="simpleMemoEditorClose">关闭</button></div>
-        <div class="simple-field"><label>标题</label><input id="simpleMemoTitle" type="text" placeholder="例如：推日训练计划"></div>
-        <div class="simple-field"><label>内容</label><textarea id="simpleMemoContent" placeholder="记录训练计划、常用重量、动作提示……"></textarea></div>
-        <div class="simple-editor-actions"><button class="simple-btn danger" type="button" id="simpleMemoDelete" hidden>删除</button><button class="simple-btn primary" type="button" id="simpleMemoSave">保存</button></div>
-      </div>`;
-    document.body.appendChild(editor);
 
     const settings=document.createElement("div");settings.id="simpleSettingsSheet";settings.className="simple-sheet";settings.innerHTML=`
       <div class="simple-sheet-inner">
@@ -522,7 +576,7 @@
         </section>
         <section class="simple-settings-section">
           <h3>历史数据</h3>
-          <div class="simple-empty">清空饮食、饮水、备忘录，以及旧版本遗留的体重和训练记录。食物库、餐食模板和目标设置会保留。</div>
+          <div class="simple-empty">清空饮食、饮水，以及旧版本遗留的体重、训练和备忘录数据。当前训练计划、食物库、餐食模板和目标设置会保留。</div>
           <button class="simple-btn danger" type="button" id="simpleClearHistory">清空所有历史记录</button>
         </section>
       </div>`;
@@ -545,13 +599,6 @@
     $("simpleFoodLibrary").onclick=openFoodLibrary;
     $("simpleFoodList").onclick=e=>{const b=e.target.closest("[data-del-food]");if(b)deleteFood(b.dataset.delFood)};
     $("simpleAiAssessBtn").onclick=evaluateDiet;
-    $("simpleOpenNotes").onclick=openNotes;
-    $("simpleNotesClose").onclick=closeNotes;
-    $("simpleNewMemo").onclick=()=>openMemoEditor();
-    $("simpleNotesList").onclick=e=>{const b=e.target.closest("[data-edit-memo]");if(b)openMemoEditor(b.dataset.editMemo)};
-    $("simpleMemoEditorClose").onclick=()=>$("simpleMemoEditor").classList.remove("open");
-    $("simpleMemoSave").onclick=saveMemo;
-    $("simpleMemoDelete").onclick=deleteMemo;
     $("simpleSettingsBtn").onclick=openSettings;
     $("simpleSettingsClose").onclick=()=>$("simpleSettingsSheet").classList.remove("open");
     $("simpleTargetSave").onclick=saveTargets;
