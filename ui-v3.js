@@ -345,7 +345,8 @@
     const s=document.createElement("style");s.id="simpleAppStyle";s.textContent=`
       :root{--simple-bg:#090b0f;--simple-panel:#11151c;--simple-panel2:#151a22;--simple-line:#252c37;--simple-text:#f2f4f7;--simple-muted:#8993a2;--simple-accent:#b8c5ff;--simple-danger:#ff8a96}
       body{background:var(--simple-bg)!important;color:var(--simple-text)!important}
-      .desktop-tabs,.bottom-nav,#fab{display:none!important}
+      .app > .header,.desktop-tabs,.bottom-nav,#fab{display:none!important}
+      body.simple-legacy .app > .header{display:none!important}
       body:not(.simple-legacy) .page{display:none!important}
       body.simple-legacy .page.active{display:block!important;padding-top:62px!important}
       #simpleApp{max-width:760px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 14px 42px}
