@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f14">
-<link rel="manifest" href="manifest.json?v=diet-v2-20261011g">
+<link rel="manifest" href="manifest.json?v=diet-v2-20261011h">
 <link rel="icon" href="icon-192.png">
 <title>饮食记录</title>
 <style>
@@ -66,19 +66,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-
 }
 @media(max-width:430px){.summary{grid-template-columns:1fr 1fr}.summary-item:last-child{grid-column:span 2}.sheet-actions{grid-template-columns:1fr}}
 </style>
-
-<style id="simple-shell-boot">
-  body.simple-booting .app > * { visibility:hidden !important; }
-  body.simple-booting .app::before{
-    content:"正在加载新版饮食记录…";
-    display:block;
-    color:#8993a2;
-    padding:28px 14px;
-    font:14px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
-  }
-</style>
 </head>
-<body class="simple-booting">
+<body>
 <div class="app">
   <header class="header">
     <div>
@@ -355,8 +344,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{min-
 
 <div class="toast" id="toast"></div>
 
-<script src="deepseek-config.js?v=diet-v2-20261011g"></script>
-<script src="app-config.js?v=diet-v2-20261011g"></script>
+<script src="deepseek-config.js?v=diet-v2-20261011h"></script>
+<script src="app-config.js?v=diet-v2-20261011h"></script>
 <script>
 const STORAGE_KEY="chibianyingFitnessV1";
 const OLD_STORAGE_KEY="cutTrackerV2";
@@ -893,12 +882,9 @@ $("importFile").addEventListener("change",e=>{if(e.target.files[0])importJSON(e.
 refreshAll();
 refreshBackupStatus();
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-    navigator.serviceWorker.register("sw.js?v=diet-v2-20261011g").then(reg=>reg.update()).catch(()=>{});
-    navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(sessionStorage.getItem("dietSwReloaded")==="diet-v2-20261011g")return;
-      sessionStorage.setItem("dietSwReloaded","diet-v2-20261011g");
-      location.reload();
-    });
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"})
+      .then(reg=>reg.update())
+      .catch(()=>{});
   }
 
 function replaceDBInternal(incoming,refresh=true){
@@ -934,13 +920,8 @@ window.fitnessApp={
 </script>
 
 
-<script src="food-system.js?v=diet-v2-20261011g"></script>
-<script src="ai-system.js?v=diet-v2-20261011g"></script>
-
-<script>
-  // Never leave the user on a blank screen if a future UI script fails.
-  setTimeout(()=>document.body.classList.remove("simple-booting"),1800);
-</script>
-<script src="ui-v3.js?v=diet-v2-20261011g"></script>
+<script src="food-system.js?v=diet-v2-20261011h"></script>
+<script src="ai-system.js?v=diet-v2-20261011h"></script>
+<script src="ui-v3.js?v=diet-v2-20261011h"></script>
 </body>
 </html>
