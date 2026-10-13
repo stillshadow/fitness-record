@@ -215,6 +215,9 @@
       "你是健身饮食记录中的食物营养估算助手。",
       "根据用户提供的食物照片、已知总重量和文字备注，估算这一整顿食物的碳水、蛋白质、脂肪和热量。",
       "如果用户明确说没吃鸡皮、没拌汤汁、剩下某部分等，必须据此调整可食部分。",
+      "payload.history_context 是程序从用户自己的历史饮食记录中整理出的上下文。用户说“和昨天一样”“跟前天午饭一样”“上次那个早餐”等引用历史餐次时，优先使用 history_context 中匹配的已记录食物和营养数据，不要把这类话当成信息不足。",
+      "如果历史上下文已经提供某餐次的合计 C/P/F/热量，应优先复用这些记录值；只有用户明确说明本次份量或食物有变化时才按变化调整。",
+      "历史引用找不到匹配记录时，必须降低 confidence，并在 assumptions 明确说明未找到对应历史餐次，不要自行猜一顿早餐。",
       "如果给了总重量，优先将它视为用户实际称得的整份食物重量，但要结合备注判断不可食骨头、包装等是否可能包含在称重里。",
       "不要虚构精确到克的确定性。信息不足时降低 confidence，并在 assumptions 说明主要不确定来源。",
       "calories_kcal 应与三大营养素大致满足 C*4 + P*4 + F*9。",
@@ -437,7 +440,7 @@
       const modal=document.createElement("div");modal.className="modal";modal.id="aiFoodModal";
       modal.innerHTML='<div class="modal-panel"><div class="ai-modal-head"><div><b>AI 食物估算</b><small>照片、重量和备注一起判断</small></div><button type="button" class="ai-modal-close" id="aiFoodClose" aria-label="关闭">×</button></div>'+
         '<div class="ai-upload" id="aiUpload"><div class="ai-food-previews" id="aiFoodPreviews"></div><label class="btn soft" for="aiFoodImage">📷 拍照 / 从相册选择</label><input id="aiFoodImage" type="file" accept="image/*" multiple><div class="meta" style="margin-top:7px">可一次选择多张图片；不同角度、包装和餐盘可以一起分析</div></div>'+
-        '<div class="ai-fields"><div><label for="aiFoodWeight">已知总重量 g（可选）</label><input id="aiFoodWeight" type="number" min="0" step="1" inputmode="decimal"></div><div><label for="aiFoodSlot">餐次</label><select id="aiFoodSlot"><option>早餐</option><option>午餐</option><option>加餐</option><option>晚餐</option><option>练后</option></select></div><div class="wide"><label for="aiFoodNote">描述 / 备注</label><textarea id="aiFoodNote" placeholder="例如：黄焖鸡米饭，鸡皮没吃，汤汁没有拌饭"></textarea></div></div>'+
+        '<div class="ai-fields"><div><label for="aiFoodWeight">已知总重量 g（可选）</label><input id="aiFoodWeight" type="number" min="0" step="1" inputmode="decimal"></div><div><label for="aiFoodSlot">餐次</label><select id="aiFoodSlot"><option>早餐</option><option>午餐</option><option>加餐</option><option>晚餐</option><option>练后</option></select></div><div class="wide"><label for="aiFoodNote">描述 / 备注</label><textarea id="aiFoodNote" placeholder="例如：黄焖鸡米饭，鸡皮没吃；或：和昨天一样的早餐"></textarea></div></div>'+
         '<div id="aiFoodResult"></div><div class="modal-actions"><button class="btn ghost" id="aiFoodBack">手动记录</button><button class="btn" id="aiFoodAnalyze">AI 估算</button></div></div>';
       document.body.appendChild(modal);
       $("aiFoodClose").onclick=closeFoodAI;$("aiFoodBack").onclick=openManualFoodFromAI;$("aiFoodAnalyze").onclick=runFoodAI;
@@ -530,13 +533,104 @@
       '<div class="ai-food-save-hint">上面的名称、重量和 C/P/F 都可以直接修改后再保存</div>';
     $("aiUseFood").onclick=saveFoodResult;$("aiFoodAnalyze").textContent="重新估算";
   }
+  function selectedFoodDate(){
+    return window.fitnessApp?.getActiveDate?.()||today();
+  }
+
+  function referencedMealSlot(note,fallback){
+    const s=String(note||"");
+    if(/早餐|早饭/.test(s))return "早餐";
+    if(/午餐|午饭/.test(s))return "午餐";
+    if(/晚餐|晚饭/.test(s))return "晚餐";
+    if(/加餐/.test(s))return "加餐";
+    if(/练后|训练后/.test(s))return "练后";
+    return fallback||"";
+  }
+
+  function historicalReferenceOffset(note){
+    const s=String(note||"");
+    if(/前天|前一前天/.test(s))return -2;
+    if(/昨天|昨日/.test(s))return -1;
+    return null;
+  }
+
+  function historyMealSummary(day,slot){
+    const entries=(day?.foods||[]).filter(x=>!slot||x.slot===slot);
+    if(!entries.length)return null;
+    const totals=entries.reduce((sum,x)=>{
+      const m=foodMacros(x);
+      sum.carbs_g+=m.C;sum.protein_g+=m.P;sum.fat_g+=m.F;sum.calories_kcal+=m.K;
+      return sum;
+    },{carbs_g:0,protein_g:0,fat_g:0,calories_kcal:0});
+    return {
+      meal_slot:slot||"全部",
+      foods:entries.map(x=>{
+        const m=foodMacros(x);
+        return {
+          name:x.name||"食物",
+          grams:+x.grams||0,
+          unit:x.unit||"g",
+          carbs_g:+m.C.toFixed(1),
+          protein_g:+m.P.toFixed(1),
+          fat_g:+m.F.toFixed(1),
+          calories_kcal:Math.round(m.K)
+        };
+      }),
+      totals:{
+        carbs_g:+totals.carbs_g.toFixed(1),
+        protein_g:+totals.protein_g.toFixed(1),
+        fat_g:+totals.fat_g.toFixed(1),
+        calories_kcal:Math.round(totals.calories_kcal)
+      }
+    };
+  }
+
+  function buildFoodHistoryContext(note,currentSlot){
+    const db=getDB(),base=selectedFoodDate(),slot=referencedMealSlot(note,currentSlot);
+    const explicitOffset=historicalReferenceOffset(note);
+    const looksHistorical=/(昨天|昨日|前天|上次|之前|一样|同样|照旧|还是那个|再来一份)/.test(String(note||""));
+    if(!looksHistorical)return null;
+
+    const days=[];
+    if(explicitOffset!=null){
+      const date=addDays(base,explicitOffset),summary=historyMealSummary(db.days?.[date],slot);
+      days.push({date,relative:explicitOffset===-1?"昨天":"前天",meal:summary});
+    }else{
+      for(let i=1;i<=7;i++){
+        const date=addDays(base,-i),summary=historyMealSummary(db.days?.[date],slot);
+        if(summary){days.push({date,relative:i===1?"昨天":i===2?"前天":i+"天前",meal:summary});break}
+      }
+    }
+    return {
+      reference_text:String(note||""),
+      requested_meal_slot:slot||currentSlot||"",
+      matches:days
+    };
+  }
+
   async function runFoodAI(){
     pendingSlot=$("aiFoodSlot")?.value||pendingSlot;
     const note=$("aiFoodNote").value.trim(),weight=+$("aiFoodWeight").value||null;
     if(!pendingFoodImages.length&&!note)return toast("请选择图片，或写一下这顿吃了什么");
-    const btn=$("aiFoodAnalyze");btn.disabled=true;btn.textContent="分析中…";$("aiFoodResult").innerHTML='<div class="ai-loading">DeepSeek 正在估算这顿饭…</div>';
+
+    const referencedSlot=referencedMealSlot(note,pendingSlot);
+    if(referencedSlot&&referencedSlot!==pendingSlot){
+      pendingSlot=referencedSlot;
+      if($("aiFoodSlot"))$("aiFoodSlot").value=pendingSlot;
+      syncFoodSaveLabel();
+    }
+    const historyContext=buildFoodHistoryContext(note,pendingSlot);
+
+    const btn=$("aiFoodAnalyze");btn.disabled=true;btn.textContent="分析中…";
+    $("aiFoodResult").innerHTML='<div class="ai-loading">DeepSeek 正在结合当前输入和历史饮食记录分析…</div>';
     try{
-      const data=await callAI("food_estimate",{weight_grams:weight,note,meal_slot:pendingSlot,image_count:pendingFoodImages.length},pendingFoodImages);
+      const data=await callAI("food_estimate",{
+        weight_grams:weight,
+        note,
+        meal_slot:pendingSlot,
+        image_count:pendingFoodImages.length,
+        history_context:historyContext
+      },pendingFoodImages);
       renderFoodResult(data);
     }catch(err){$("aiFoodResult").innerHTML='<div class="empty">'+escapeHtml(err.message||"AI 请求失败")+'</div>';btn.textContent="重试"}
     finally{btn.disabled=false}
