@@ -191,7 +191,7 @@
       </div>`).join("");
 
     const days=TRAINING_PLAN.days.map((day,index)=>`
-      <details class="simple-plan-day" ${index===0?"open":""}>
+      <details class="simple-plan-day">
         <summary><span><b>${esc(day.title)}</b><small>${esc(day.meta)}</small></span></summary>
         <div class="simple-plan-day-body">
           ${day.exercises.map((x,i)=>`
