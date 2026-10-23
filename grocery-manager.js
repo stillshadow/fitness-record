@@ -115,19 +115,34 @@ function deleteEdit(){
  store(s);$("groceryEditor").classList.remove("open");
 }
 function finish(){
- const s=load(),selected=s.week.filter(x=>x.checked);
- if(!selected.length){alert("先勾选实际买到的食材");return;}
- if(selected.length<s.week.length&&!confirm("仍有"+(s.week.length-selected.length)+"项未采购，只记录勾选的"+selected.length+"项，确定吗？"))return;
- const snapshot=snap(s),r=record(s);
- if(r){if(!sameRecord(s))r.recipe="";Object.assign(r,snapshot,{date:today()});}
- else{const h=Object.assign({id:"buy_"+uid(),date:today(),recipe:""},snapshot);s.history.push(h);s.activeRecordId=h.id;}
+ const s=load(),selected=allGroceries(s).filter(x=>x.checked&&needsBuying(s,x));
+ const missing=allGroceries(s).filter(x=>!x.checked&&needsBuying(s,x));
+ if(!selected.length&&!expectedAvailable(s).length){alert("先勾选实际买到的食材");return;}
+ if(missing.length&&!confirm("还有"+missing.length+"项待买。仅记录已勾选的食材，确定吗？"))return;
+ const previous=record(s),old=previous?.purchases||[];
+ const purchases=selected.map(x=>({name:x.name,amount:amountToBuy(s,x),pieces:x.pieces}));
+ for(const x of old){if(!purchases.some(y=>y.name===x.name)&&s.lastBought[x.name]===s.cycle)delete s.lastBought[x.name];}
+ selected.forEach(x=>s.lastBought[x.name]=s.cycle);
+ const snapshot={foods:purchases,purchases,available:expectedAvailable(s),pantry:s.pantry.filter(x=>!needsBuying(s,x)||x.checked).map(x=>({name:x.name,amount:x.amount}))};
+ if(previous){
+  if(JSON.stringify(previous.purchases||[])!==JSON.stringify(purchases))previous.recipe="";
+  Object.assign(previous,snapshot,{date:today()});
+ }else{
+  const r={id:"buy_"+uid(),date:today(),recipe:"",...snapshot};
+  s.history.push(r);s.activeRecordId=r.id;
+ }
  aiError="";store(s);
+ if(!record(s)?.recipe&&typeof window.fitnessDietAIAsk==="function")recommend();
 }
 function newWeek(){
  const s=load();
- if(s.week.some(x=>x.checked)&&!record(s)&&!confirm("本周采购尚未保存。仍要开始新一周吗？"))return;
- if(!confirm("开始新的一周？会清空勾选，保留食材搭配与所有历史记录。"))return;
- s.week=s.week.map(x=>Object.assign({},x,{checked:false}));s.activeRecordId=null;historyId=null;aiError="";
+ if(s.lastRolloverDate===today()){alert("今天已经开启过新一周，不会重复操作。");return;}
+ if(!record(s)&&allGroceries(s).some(x=>x.checked)&&!confirm("还没有保存采购记录，继续开始新一周吗？"))return;
+ if(!confirm("开始新一周？会按上次采购时间与预计使用周期更新清单，历史记录会保留。"))return;
+ s.week=s.week.map(x=>({...x,checked:false}));
+ s.pantry=s.pantry.map(x=>({...x,checked:false}));
+ s.cycle=(s.cycle||0)+1;s.lastRolloverDate=today();
+ s.activeRecordId=null;historyId=null;aiError="";
  store(s);$("grocerySheet").scrollTop=0;
 }
 async function recommend(){
@@ -140,6 +155,7 @@ async function recommend(){
  "每道给：菜名、使用哪些采购食材、1至2句话做法；告诉我哪些要优先吃或提前冷冻。",
  "必须仅将清单内食材当作已有。没有的调料或主食可以提，但标注需另备。不要虚构营养成分、保质期。",
  "本次买到："+JSON.stringify(r.foods),
+ "按此前采购记录预计还可用的食物："+JSON.stringify(r.available||[]),
  "家中已确认有的常备食材："+JSON.stringify(r.pantry)
  ].join("\n");
  working=true;aiError="";paint();
