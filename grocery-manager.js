@@ -42,6 +42,21 @@ function amountToBuy(s,x){
 }
 function expectedAvailable(s){return allGroceries(s).filter(x=>s.lastBought[x.name]!==undefined&&s.cycle-s.lastBought[x.name]<weeksFor(s,x)).map(x=>({name:x.name,amount:x.amount,pieces:x.pieces,life:x.life}));}
 
+function piecesToBuy(s,x){
+ const text=String(x.pieces||"按包装"),weeks=weeksFor(s,x);
+ if(weeks===1||s.pantry.includes(x)||!/\d/.test(text))return text;
+ return text.replace(/(\d+)(?:～(\d+))?/,(_,a,b)=>b?(+a*weeks)+"～"+(+b*weeks):String(+a*weeks));
+}
+function autoSunday(){
+ const now=new Date(),s=load(),r=record(s);
+ if(now.getDay()!==0||!r?.date||s.lastRolloverDate===today())return;
+ const passed=(Date.parse(today()+"T12:00:00")-Date.parse(r.date+"T12:00:00"))/86400000;
+ if(!Number.isFinite(passed)||passed<6)return;
+ s.week=s.week.map(x=>({...x,checked:false}));
+ s.pantry=s.pantry.map(x=>({...x,checked:false}));
+ s.cycle=(s.cycle||0)+1;s.lastRolloverDate=today();s.activeRecordId=null;historyId="";aiError="";
+ store(s);
+}
 function paint(){
  if(!$("grocerySheet"))return;
  const s=load(),allItems=tab==="pantry"?s.pantry:allGroceries(s),all=tab==="pantry"?allItems:allItems.filter(x=>needsBuying(s,x)),checked=all.filter(x=>x.checked).length,r=record(s);
@@ -57,7 +72,7 @@ function paint(){
  const subset=all.filter(x=>x.group===g);if(!subset.length)return "";
  return '<section class="gm-group"><h3>'+esc(g)+'</h3>'+subset.map(x=>
  '<div class="gm-item"><input aria-label="已买 '+esc(x.name)+'" type="checkbox" data-check="'+esc(x.id)+'" '+(x.checked?"checked":"")+'>'+
- '<div class="gm-info"><b>'+esc(x.name)+'</b><span>'+esc(amountToBuy(s,x))+' ≈ '+esc(x.pieces)+'</span><small>保存：'+esc(x.life)+'</small></div>'+
+ '<div class="gm-info"><b>'+esc(x.name)+'</b><span>'+esc(amountToBuy(s,x))+' ≈ '+esc(piecesToBuy(s,x))+'</span><small>保存：'+esc(x.life)+'</small></div>'+
  '<button type="button" class="gm-change" data-edit="'+esc(x.id)+'">替换/改量</button></div>'
  ).join("")+'</section>';
  }).join("")||(tab==="week"?'<p class="gm-note">按预计库存，本周没有必须补购的食材。</p>':"");
@@ -201,11 +216,11 @@ function setup(){
  if($("groceryBriefV2"))return;
  styles();
  const brief=document.createElement("section");brief.id="groceryBriefV2";brief.className="simple-card";
- brief.innerHTML='<div class="simple-card-head"><h2>🥬 本周食材</h2><small id="grocerySummary"></small></div><button class="simple-btn primary" type="button" id="gmOpen" style="width:100%">打开采购 / AI 菜谱</button>';
+ brief.innerHTML='<div class="simple-card-head"><h2>🛒 周日采购清单</h2><small id="grocerySummary"></small></div><button class="simple-btn primary" type="button" id="gmOpen" style="width:100%">查看本周要买什么</button>';
  $("simpleTrainingPlan").parentNode.insertBefore(brief,$("simpleTrainingPlan"));
  const sheet=document.createElement("div");sheet.id="grocerySheet";sheet.className="simple-sheet";sheet.setAttribute("role","dialog");
  sheet.innerHTML='<div class="simple-sheet-inner"><div class="simple-sheet-head"><h2>食材采购</h2><button id="gmClose">关闭</button></div>'+
- '<div class="gm-tabs"><button id="gmTabweek">本周</button><button id="gmTabpantry">长期储备</button><button id="gmTabhistory">采购历史</button></div>'+
+ '<div class="gm-tabs"><button id="gmTabweek">本周</button><button id="gmTabpantry">囤货</button><button id="gmTabhistory">采购历史</button></div>'+
  '<div id="gmCurrent"><div class="gm-bar"><b id="gmTitle"></b><small id="gmProgress"></small></div>'+
  '<p class="gm-note">按购买记录估算补货周期：新鲜食材每周买、可冷冻食材约两周一买。实际库存以家里为准。</p><div id="gmList"></div>'+
  '<button type="button" class="simple-btn" id="gmAdd">＋ 添加食材</button>'+
@@ -225,7 +240,7 @@ function setup(){
  '<div class="simple-field"><label>保存方式及期限</label><input id="gmLife" placeholder="按包装说明填写"></div>'+
  '<div class="gm-actions"><button class="simple-btn primary" id="gmSave">保存食材</button><button class="simple-btn danger" id="gmDelete">删除</button></div></div>';
  document.body.appendChild(ed);
- $("gmOpen").onclick=()=>{tab="week";paint();sheet.classList.add("open");sheet.scrollTop=0;};
+ $("gmOpen").onclick=()=>{autoSunday();tab="week";paint();sheet.classList.add("open");sheet.scrollTop=0;};
  $("gmClose").onclick=()=>sheet.classList.remove("open");
  for(const t of ["week","pantry","history"])$("gmTab"+t).onclick=()=>{tab=t;paint();sheet.scrollTop=0;};
  $("gmList").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)editor(b.dataset.edit);};
