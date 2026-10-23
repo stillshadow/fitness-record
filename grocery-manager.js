@@ -30,7 +30,7 @@ const FROZEN=/^(鸡胸肉|去骨鸡腿肉|猪里脊|瘦牛肉|青花鱼净肉|�
 const PANTRY_CYCLE={"大米":4,"原味燕麦":5,"冷冻西兰花":2,"菜籽油":12,"生抽":12,"食盐":24,"黑胡椒粉":12,"米醋":12};
 function allGroceries(s){return s.week.concat(s.pantry)}
 function weeksFor(s,x){return s.pantry.includes(x)?PANTRY_CYCLE[x.name]||4:(FROZEN.test(x.name)?2:1)}
-function needsBuying(s,x){const last=s.lastBought[x.name];return !Number.isFinite(last)||s.cycle-last>=weeksFor(s,x)}
+function needsBuying(s,x){const last=s.lastBought[x.name],recorded=record(s)?.purchases?.some(y=>y.name===x.name);return !Number.isFinite(last)||s.cycle-last>=weeksFor(s,x)||!!(recorded&&x.checked)}
 function amountToBuy(s,x){
  const weeks=weeksFor(s,x);
  if(weeks===1||s.pantry.includes(x))return x.amount;
@@ -45,7 +45,7 @@ function expectedAvailable(s){return allGroceries(s).filter(x=>s.lastBought[x.na
 function paint(){
  if(!$("grocerySheet"))return;
  const s=load(),allItems=tab==="pantry"?s.pantry:allGroceries(s),all=tab==="pantry"?allItems:allItems.filter(x=>needsBuying(s,x)),checked=all.filter(x=>x.checked).length,r=record(s);
- $("grocerySummary").textContent=allGroceries(s).filter(x=>needsBuying(s,x)).length+"项待买";
+ $("grocerySummary").textContent=allGroceries(s).filter(x=>needsBuying(s,x)&&!x.checked).length+"项待买";
  ["week","pantry","history"].forEach(t=>$("gmTab"+t).classList.toggle("active",tab===t));
  $("gmCurrent").hidden=tab==="history";$("gmHistory").hidden=tab!=="history";
  $("gmTitle").textContent=tab==="week"?"本周建议采购":"长期储备 / 补货";
@@ -63,7 +63,7 @@ function paint(){
  }).join("")||(tab==="week"?'<p class="gm-note">按预计库存，本周没有必须补购的食材。</p>':"");
  if(tab==="week"){const enough=allItems.filter(x=>!needsBuying(s,x));if(enough.length)$("gmList").innerHTML+='<details class="gm-group"><summary>预计库存足够（'+enough.length+'项）</summary>'+enough.map(x=>'<div class="gm-item"><div class="gm-info"><b>'+esc(x.name)+'</b><small>预计本周仍有库存</small></div><button class="gm-change" data-edit="'+esc(x.id)+'">替换</button></div>').join("")+'</details>';}
  $("gmAiBox").hidden=tab!=="week"||!r;
- $("gmSaved").textContent=r?(sameRecord(s)?"已记录 "+r.date+"，"+r.foods.length+" 种食材":"清单有变化，请更新采购记录"):"";
+ $("gmSaved").textContent=r?("已保存 "+r.date+" 的采购记录；本周已买 "+(r.purchases||r.foods||[]).length+" 项。"):"预计库存与实际不同时，可手动调整或提前补货。";
  $("gmAiText").textContent=aiError||r?.recipe||"完成采购后，根据买到的食材生成简单健身菜谱。";
  $("gmAiButton").disabled=working||!r;
  $("gmAiButton").textContent=working?"正在生成…":r?.recipe?"重新推荐菜谱":"AI 推荐做什么菜";
