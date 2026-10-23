@@ -68,15 +68,41 @@ function paint(){
  $("gmNewWeek").hidden=tab!=="week";$("gmFinish").hidden=tab!=="week";
  $("gmFinish").textContent=r?"更新采购记录":"完成采购并记录";
  $("gmAdd").hidden=tab==="history";
- $("gmList").innerHTML=groups().map(g=>{
- const subset=all.filter(x=>x.group===g);if(!subset.length)return "";
- return '<section class="gm-group"><h3>'+esc(g)+'</h3>'+subset.map(x=>
- '<div class="gm-item"><input aria-label="已买 '+esc(x.name)+'" type="checkbox" data-check="'+esc(x.id)+'" '+(x.checked?"checked":"")+'>'+
- '<div class="gm-info"><b>'+esc(x.name)+'</b><span>'+esc(amountToBuy(s,x))+' ≈ '+esc(piecesToBuy(s,x))+'</span><small>保存：'+esc(x.life)+'</small></div>'+
- '<button type="button" class="gm-change" data-edit="'+esc(x.id)+'">替换/改量</button></div>'
- ).join("")+'</section>';
+ const renderEntry=x=>{
+  const isPantry=s.pantry.includes(x),bulk=!isPantry&&weeksFor(s,x)===2;
+  const advice=C.storageAdvice(x.name,x.life,x.group);
+  const quantity=amountToBuy(s,x).replace(/（约\d+周份）/,"");
+  const pieces=piecesToBuy(s,x);
+  const due=needsBuying(s,x);
+  const primary=tab==="pantry"&&!due?"预计暂不用补货":"买 "+quantity;
+  return '<div class="gm-item">'+
+    '<input aria-label="已买 '+esc(x.name)+'" type="checkbox" data-check="'+esc(x.id)+'" '+(x.checked?'checked':'')+'>'+
+    '<div class="gm-info"><div class="gm-food-head"><b>'+esc(x.name)+'</b>'+
+      (bulk?'<span class="gm-bulk">买 2 周量</span>':'')+'</div>'+
+    '<div class="gm-buy"><strong>'+esc(primary)+'</strong><span>≈ '+esc(pieces)+'</span></div>'+
+    '<div class="gm-storage"><span class="gm-storage-place">'+esc(advice.place)+'</span>'+
+      '<span class="gm-storage-method">'+esc(advice.method)+'</span>'+
+      '<small>保存期限：'+esc(advice.expiry)+'</small></div></div>'+
+    '<button type="button" class="gm-change" data-edit="'+esc(x.id)+'">替换 / 改量</button></div>';
+ };
+ const displayGroups=tab==="week"?
+  [
+   {name:"❄️ 两周量 · 买回分装冷冻",filter:x=>!s.pantry.includes(x)&&weeksFor(s,x)===2},
+   {name:"🥬 本周新鲜食材",filter:x=>!s.pantry.includes(x)&&weeksFor(s,x)===1},
+   {name:"📦 长期储备补货",filter:x=>s.pantry.includes(x)}
+  ]:
+  [{name:"📦 常备食品与调料",filter:x=>true}];
+ $("gmList").innerHTML=displayGroups.map(g=>{
+  const subset=all.filter(g.filter);
+  if(!subset.length)return "";
+  return '<section class="gm-group"><h3>'+esc(g.name)+'</h3>'+subset.map(renderEntry).join("")+'</section>';
  }).join("")||(tab==="week"?'<p class="gm-note">按预计库存，本周没有必须补购的食材。</p>':"");
- if(tab==="week"){const enough=allItems.filter(x=>!needsBuying(s,x));if(enough.length)$("gmList").innerHTML+='<details class="gm-group"><summary>预计库存足够（'+enough.length+'项）</summary>'+enough.map(x=>'<div class="gm-item"><div class="gm-info"><b>'+esc(x.name)+'</b><small>预计本周仍有库存</small></div><button class="gm-change" data-edit="'+esc(x.id)+'">替换</button></div>').join("")+'</details>';}
+ if(tab==="week"){
+  const enough=allItems.filter(x=>!needsBuying(s,x));
+  if(enough.length)$("gmList").innerHTML+='<details class="gm-group"><summary>预计库存足够（'+enough.length+'项，不用再买）</summary>'+
+   enough.map(x=>'<div class="gm-item"><div class="gm-info"><b>'+esc(x.name)+'</b><small>'+esc(C.storageAdvice(x.name,x.life,x.group).place)+' · 当前按库存估算暂不补货</small></div>'+
+   '<button class="gm-change" data-edit="'+esc(x.id)+'">调整</button></div>').join("")+'</details>';
+ }
  $("gmAiBox").hidden=tab!=="week"||!r;
  $("gmSaved").textContent=r?("已保存 "+r.date+" 的采购记录；本周已买 "+(r.purchases||r.foods||[]).length+" 项。"):"预计库存与实际不同时，可手动调整或提前补货。";
  $("gmAiText").textContent=aiError||r?.recipe||"完成采购后，根据买到的食材生成简单健身菜谱。";
@@ -200,6 +226,15 @@ function styles(){
  ".gm-item{display:flex;gap:9px;align-items:center;border-top:1px solid var(--simple-line);padding:11px 0}",
  ".gm-item>input{width:19px;height:19px;accent-color:var(--simple-accent);flex-shrink:0}",
  ".gm-info{flex:1;min-width:0}.gm-info b{display:block;font-size:13px}.gm-info span,.gm-info small{display:block;color:var(--simple-muted);font-size:11px;margin-top:3px;line-height:1.4}",
+
+ ".gm-food-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.gm-food-head b{font-size:14px}",
+ ".gm-bulk{display:inline-flex;border-radius:7px;background:#29394f;border:1px solid #789dd1;color:#d4e6ff!important;padding:3px 7px;font-weight:800;font-size:11px!important;white-space:nowrap}",
+ ".gm-buy{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:6px}.gm-buy strong{font-size:16px;color:#f1f5ff}.gm-buy span{font-size:12px;color:#c9d4e8}",
+ ".gm-storage{margin-top:9px;background:#1b2633;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px;border:1px solid #2b3c50}",
+ ".gm-storage-place{font-size:12px!important;color:#c5deff!important;font-weight:750}",
+ ".gm-storage-method{font-size:12px!important;color:#d8dfe8!important;line-height:1.55!important}",
+ ".gm-storage small{color:#9eafc2!important;font-size:11px!important;margin:0!important}",
+ ".gm-info{min-width:0}.gm-item{align-items:flex-start}.gm-item>input{margin-top:5px}.gm-item>.gm-change{margin-top:3px}",
  ".gm-item:has(input:checked) b{text-decoration:line-through;color:var(--simple-muted)}",
  ".gm-change{font-size:11px;color:var(--simple-text);background:var(--simple-panel2);border:1px solid var(--simple-line);border-radius:9px;padding:8px 6px;flex-shrink:0}",
  ".gm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}",
@@ -222,7 +257,7 @@ function setup(){
  sheet.innerHTML='<div class="simple-sheet-inner"><div class="simple-sheet-head"><h2>食材采购</h2><button id="gmClose">关闭</button></div>'+
  '<div class="gm-tabs"><button id="gmTabweek">本周</button><button id="gmTabpantry">囤货</button><button id="gmTabhistory">采购历史</button></div>'+
  '<div id="gmCurrent"><div class="gm-bar"><b id="gmTitle"></b><small id="gmProgress"></small></div>'+
- '<p class="gm-note">按购买记录估算补货周期：新鲜食材每周买、可冷冻食材约两周一买。实际库存以家里为准。</p><div id="gmList"></div>'+
+ '<p class="gm-note">冷冻食材已按 2 周购买量计算；每项显示具体保存步骤。期限仅供参考，以包装和实际状态为准。</p><div id="gmList"></div>'+
  '<button type="button" class="simple-btn" id="gmAdd">＋ 添加食材</button>'+
  '<button type="button" class="simple-btn" id="gmReset">↻ 恢复默认食材</button>'+
  '<div class="gm-actions"><button class="simple-btn primary" id="gmFinish">完成采购并记录</button><button class="simple-btn" id="gmNewWeek">开始新一周</button></div>'+
