@@ -63,5 +63,85 @@ function make(name,group){
  const info=list[name]||["","按实际包装","保存期限请查看包装"];
  return {id:"catalog_"+name,name,group,amount:info[0],pieces:info[1],life:info[2],checked:false};
 }
-window.FITNESS_GROCERY_CATALOG={list,category,initial,make};
+
+/** 购物清单使用的可操作保存提示；食用期限以包装说明及实际新鲜程度为准。 */
+const rawMeat=new Set(["鸡胸肉","去骨鸡腿肉","猪里脊","瘦牛肉"]);
+const fishAndShrimp=new Set(["青花鱼净肉","沙丁鱼","三文鱼净肉","秋刀鱼","去壳虾仁"]);
+const frozenVegetables=new Set(["冷冻混合杂蔬","冷冻西兰花"]);
+const leafy=new Set(["小白菜","菠菜","油麦菜","芥蓝","娃娃菜"]);
+const crucifer=new Set(["西兰花","菜花","卷心菜"]);
+const mushrooms=new Set(["蘑菇","香菇","杏鲍菇"]);
+const rootVegetables=new Set(["红薯","土豆","洋葱","大蒜"]);
+const fruitsCold=new Set(["苹果","橙子","猕猴桃"]);
+function storageAdvice(name,life="",group=""){
+  const duration=String(life||list[name]?.[2]||"按包装日期和实际状态判断");
+  const chilled=duration.match(/冷藏[^；，]*/)?.[0];
+  const frozen=duration.match(/冷冻[^；，]*/)?.[0];
+  let place="",method="",expiry=duration;
+  if(rawMeat.has(name)){
+    place="❄️ 冷冻柜 · -18℃";
+    method="买回后按每餐150～200g分装密封袋，排出空气并写日期；吃前一晚放冷藏室解冻。";
+    expiry=frozen?frozen+"（品质参考）":duration;
+  }else if(fishAndShrimp.has(name)){
+    place="❄️ 冷冻柜 · -18℃";
+    method="买回后按每顿量分装密封袋并写日期；食用前放冷藏室解冻，不放室温解冻。";
+    expiry=frozen?frozen+"（品质参考）":duration;
+  }else if(frozenVegetables.has(name)){
+    place="❄️ 冷冻柜 · -18℃";
+    method="保持包装密封；每次只取要用的份量，剩余立即放回冷冻柜。";
+    expiry=frozen?frozen+"（品质参考）":duration;
+  }else if(name==="鸡蛋"){
+    place="🧊 冷藏室 · ≤4℃";
+    method="带壳放原蛋盒冷藏，不提前清洗，使用时再取出。";
+  }else if(name==="北豆腐"){
+    place="🧊 冷藏室 · ≤4℃";
+    method="未开封保持原包装；开封后放洁净密封盒，尽快做熟食用。";
+  }else if(name==="纯牛奶"){
+    place="🥛 看包装 / 开封冷藏";
+    method="常温灭菌奶未开封按包装常温保存，鲜奶始终冷藏；开封后盖紧放冷藏室。";
+  }else if(leafy.has(name)){
+    place="🧊 冷藏室蔬果格 · ≤4℃";
+    method="不要提前清洗；摘掉坏叶，用干厨房纸轻包，再放入保鲜袋或盒。";
+  }else if(crucifer.has(name)){
+    place="🧊 冷藏室蔬果格 · ≤4℃";
+    method="尽量整颗存放，不提前清洗；用透气袋装好，切开后包好切口。";
+  }else if(mushrooms.has(name)){
+    place="🧊 冷藏室 · ≤4℃";
+    method="用纸袋或厨房纸松包后冷藏，避免密封积水；吃之前再清洗。";
+  }else if(name==="青椒"||name==="彩椒"||name==="西葫芦"||name==="胡萝卜"){
+    place="🧊 冷藏室蔬果格 · ≤4℃";
+    method="擦干表面水分，装保鲜袋或保鲜盒；切开后盖好尽快使用。";
+  }else if(name==="番茄"){
+    place="🍅 成熟后冷藏";
+    method="未熟可室温避光放置，成熟后放冰箱冷藏，切开后密封冷藏。";
+  }else if(rootVegetables.has(name)){
+    place="🌿 常温阴凉处";
+    method=name==="土豆"?"避光、干燥、通风存放，变绿或明显发芽的不要吃。":
+      name==="红薯"?"干燥通风、避免潮湿和低温，不要生薯冷藏。":"保持干燥通风，避免阳光直射；切开后密封冷藏。";
+  }else if(fruitsCold.has(name)){
+    place="🧊 冷藏室蔬果格";
+    method=name==="猕猴桃"?"未熟可常温催熟；熟后装袋冷藏。":"保持干燥，放蔬果格或保鲜袋；吃前再清洗。";
+  }else if(name==="香蕉"){
+    place="🌿 室内阴凉处";
+    method="整根常温放置，避免挤压；成熟后尽快吃。";
+  }else if(name==="南瓜"){
+    place="🧊 切开后冷藏 · ≤4℃";
+    method="切开的南瓜用保鲜膜包好切口，装盒冷藏，尽快用完。";
+  }else if(name==="生姜"){
+    place="🧊 冷藏室";
+    method="擦干表面，装袋或密封盒冷藏；切开后尽快使用。";
+  }else if(name==="大米"||name==="原味燕麦"){
+    place="📦 常温干燥柜";
+    method="开封后倒入干净、干燥的密封容器，避免受潮和虫害。";
+  }else if(name==="菜籽油"||name==="生抽"||name==="米醋"||name==="食盐"||name==="黑胡椒粉"){
+    place="📦 调料柜 / 按瓶身说明";
+    method=name==="菜籽油"?"盖紧避光，远离灶台高温。":name==="生抽"?"开封后盖紧，优先按标签要求冷藏。":"盖紧并避免潮湿、高温，按包装要求保存。";
+  }else{
+    place=duration.includes("冷冻")?"❄️ 冷冻柜":duration.includes("冷藏")?"🧊 冷藏室":"📦 按包装说明";
+    method="按包装要求密封存放；如果是生肉或易腐食物，及时冷藏或冷冻。";
+  }
+  return {place,method,expiry};
+}
+
+window.FITNESS_GROCERY_CATALOG={list,category,initial,make,storageAdvice};
 })();
