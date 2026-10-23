@@ -132,6 +132,13 @@ async function recommend(){
  }catch(err){aiError="生成失败："+(err?.message||"请检查 AI 配置");}
  finally{working=false;paint();}
 }
+function resetGroceries(){
+ if(!confirm("恢复默认食材模板？将找回误删食材并覆盖自定义搭配，但不会清空采购历史。"))return;
+ const s=load(),status=Object.fromEntries(s.week.concat(s.pantry).map(x=>[x.name,x.checked]));
+ s.week=C.initial.week.map(n=>({...C.make(n,cat(n)),checked:!!status[n]}));
+ s.pantry=C.initial.pantry.map(n=>({...C.make(n,"常备储存"),checked:!!status[n]}));
+ store(s);
+}
 function styles(){
  const st=document.createElement("style");st.id="gmStyle";st.textContent=[
  "#grocerySheet,#groceryEditor{z-index:135}",
@@ -168,6 +175,7 @@ function setup(){
  '<div id="gmCurrent"><div class="gm-bar"><b id="gmTitle"></b><small id="gmProgress"></small></div>'+
  '<p class="gm-note">数量是估算；冷藏按4℃以下、冷冻按-18℃计算，实际以包装和新鲜程度为准。</p><div id="gmList"></div>'+
  '<button type="button" class="simple-btn" id="gmAdd">＋ 添加食材</button>'+
+ '<button type="button" class="simple-btn" id="gmReset">↻ 恢复默认食材</button>'+
  '<div class="gm-actions"><button class="simple-btn primary" id="gmFinish">完成采购并记录</button><button class="simple-btn" id="gmNewWeek">开始新一周</button></div>'+
  '<p id="gmSaved" class="gm-note"></p><div id="gmAiBox" class="gm-group" hidden><h3>✨ 已购食材推荐菜谱</h3>'+
  '<button class="simple-btn primary" id="gmAiButton" style="width:100%">AI 推荐做什么菜</button><p id="gmAiText" class="gm-ai-text"></p></div></div>'+
@@ -188,6 +196,7 @@ function setup(){
  for(const t of ["week","pantry","history"])$("gmTab"+t).onclick=()=>{tab=t;paint();sheet.scrollTop=0;};
  $("gmList").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)editor(b.dataset.edit);};
  $("gmList").onchange=e=>{const b=e.target.closest("[data-check]");if(!b)return;const s=load(),x=items(s).find(x=>x.id===b.dataset.check);if(x){x.checked=b.checked;store(s);}};
+ $("gmReset").onclick=resetGroceries;
  $("gmAdd").onclick=()=>editor("");$("gmFinish").onclick=finish;$("gmNewWeek").onclick=newWeek;$("gmAiButton").onclick=recommend;
  $("gmHistory").onclick=e=>{const b=e.target.closest("[data-history]");if(b){historyId=b.dataset.history;paint();}};
  $("gmCancel").onclick=()=>ed.classList.remove("open");
