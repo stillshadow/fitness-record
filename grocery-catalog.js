@@ -61,7 +61,7 @@ pantry:["大米","原味燕麦","冷冻西兰花","菜籽油","生抽","食盐",
 };
 function make(name,group){
  const info=list[name]||["","按实际包装","保存期限请查看包装"];
- return {id:"ing_"+Math.random().toString(36).slice(2,10),name,group,amount:info[0],pieces:info[1],life:info[2],checked:false};
+ return {id:"catalog_"+name,name,group,amount:info[0],pieces:info[1],life:info[2],checked:false};
 }
 window.FITNESS_GROCERY_CATALOG={list,category,initial,make};
 })();
