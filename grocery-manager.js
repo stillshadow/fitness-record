@@ -9,29 +9,46 @@ let tab="week",editId=null,historyId=null,working=false,aiError="";
 function cat(name){for(const [key,arr] of Object.entries(C.category))if(key!=="常备储存"&&arr.includes(name))return key;return "水果薯类";}
 function load(){
  const db=window.fitnessApp.getDB();
- if(db.groceryPlanner&&Array.isArray(db.groceryPlanner.week))return db.groceryPlanner;
+ if(db.groceryPlanner&&Array.isArray(db.groceryPlanner.week)){const v=db.groceryPlanner;return {...v,cycle:v.cycle||0,lastBought:v.lastBought||{}};}
  const old=db.groceryChecklist||{};
  let names=C.initial.week.slice();
  const changes=[{},{"青花鱼净肉":"沙丁鱼","小白菜":"菠菜","西兰花":"菜花","青椒":"彩椒","蘑菇":"杏鲍菇"},{"青花鱼净肉":"三文鱼净肉","小白菜":"油麦菜","蘑菇":"香菇","卷心菜":"娃娃菜"}];
  names=names.map(n=>changes[Math.min(2,+old.week||0)][n]||n);
  return {week:names.map(n=>Object.assign(C.make(n,cat(n)),{checked:!!old.weekChecked?.[n]})),
  pantry:C.initial.pantry.map(n=>Object.assign(C.make(n,"常备储存"),{checked:!!old.pantryChecked?.[n]})),
- history:[],activeRecordId:null};
+ history:[],activeRecordId:null,cycle:0,lastBought:{}};
 }
 function store(s){const db=window.fitnessApp.getDB();db.groceryPlanner=s;window.fitnessApp.replaceDB(db);paint();}
 function items(s){return tab==="pantry"?s.pantry:s.week;}
-function groups(){return tab==="pantry"?["常备储存"]:["肉鱼蛋奶豆","蔬菜","水果薯类"];}
+function groups(){return tab==="pantry"?["常备储存"]:["肉鱼蛋奶豆","蔬菜","水果薯类","常备储存"];}
 function record(s){return (s.history||[]).find(x=>x.id===s.activeRecordId);}
 function snap(s){return {foods:s.week.filter(x=>x.checked).map(x=>({name:x.name,amount:x.amount,pieces:x.pieces,life:x.life,group:x.group})),
  pantry:s.pantry.filter(x=>x.checked).map(x=>({name:x.name,amount:x.amount,pieces:x.pieces}))};}
 function sameRecord(s){const r=record(s);return !!r&&JSON.stringify({foods:r.foods,pantry:r.pantry})===JSON.stringify(snap(s));}
+
+const FROZEN=/^(鸡胸肉|去骨鸡腿肉|猪里脊|瘦牛肉|青花鱼净肉|沙丁鱼|三文鱼净肉|秋刀鱼|去壳虾仁|冷冻混合杂蔬|冷冻西兰花)$/;
+const PANTRY_CYCLE={"大米":4,"原味燕麦":5,"冷冻西兰花":2,"菜籽油":12,"生抽":12,"食盐":24,"黑胡椒粉":12,"米醋":12};
+function allGroceries(s){return s.week.concat(s.pantry)}
+function weeksFor(s,x){return s.pantry.includes(x)?PANTRY_CYCLE[x.name]||4:(FROZEN.test(x.name)?2:1)}
+function needsBuying(s,x){const last=s.lastBought[x.name];return !Number.isFinite(last)||s.cycle-last>=weeksFor(s,x)}
+function amountToBuy(s,x){
+ const weeks=weeksFor(s,x);
+ if(weeks===1||s.pantry.includes(x))return x.amount;
+ const m=String(x.amount).match(/^(\d+(?:\.\d+)?)(g|kg|ml|个|盒)$/i);
+ if(!m)return x.amount+"（约两周份）";
+ let n=+m[1]*weeks,unit=m[2];
+ if(unit==="g"&&n>=1000){n/=1000;unit="kg";}
+ return n+unit+"（约"+weeks+"周份）";
+}
+function expectedAvailable(s){return allGroceries(s).filter(x=>s.lastBought[x.name]!==undefined&&s.cycle-s.lastBought[x.name]<weeksFor(s,x)).map(x=>({name:x.name,amount:x.amount,pieces:x.pieces,life:x.life}));}
+
 function paint(){
  if(!$("grocerySheet"))return;
- const s=load(),all=items(s),checked=all.filter(x=>x.checked).length,r=record(s);
- $("grocerySummary").textContent=s.week.filter(x=>x.checked).length+"/"+s.week.length+" 已购";
+ const s=load(),allItems=tab==="pantry"?s.pantry:allGroceries(s),all=tab==="pantry"?allItems:allItems.filter(x=>needsBuying(s,x)),checked=all.filter(x=>x.checked).length,r=record(s);
+ $("grocerySummary").textContent=allGroceries(s).filter(x=>needsBuying(s,x)).length+"项待买";
  ["week","pantry","history"].forEach(t=>$("gmTab"+t).classList.toggle("active",tab===t));
  $("gmCurrent").hidden=tab==="history";$("gmHistory").hidden=tab!=="history";
- $("gmTitle").textContent=tab==="week"?"本周食材（可随时替换）":"家中常备储存";
+ $("gmTitle").textContent=tab==="week"?"本周建议采购":"长期储备 / 补货";
  $("gmProgress").textContent=checked+"/"+all.length+" 已勾选";
  $("gmNewWeek").hidden=tab!=="week";$("gmFinish").hidden=tab!=="week";
  $("gmFinish").textContent=r?"更新采购记录":"完成采购并记录";
@@ -40,10 +57,11 @@ function paint(){
  const subset=all.filter(x=>x.group===g);if(!subset.length)return "";
  return '<section class="gm-group"><h3>'+esc(g)+'</h3>'+subset.map(x=>
  '<div class="gm-item"><input aria-label="已买 '+esc(x.name)+'" type="checkbox" data-check="'+esc(x.id)+'" '+(x.checked?"checked":"")+'>'+
- '<div class="gm-info"><b>'+esc(x.name)+'</b><span>'+esc(x.amount)+' ≈ '+esc(x.pieces)+'</span><small>保存：'+esc(x.life)+'</small></div>'+
+ '<div class="gm-info"><b>'+esc(x.name)+'</b><span>'+esc(amountToBuy(s,x))+' ≈ '+esc(x.pieces)+'</span><small>保存：'+esc(x.life)+'</small></div>'+
  '<button type="button" class="gm-change" data-edit="'+esc(x.id)+'">替换/改量</button></div>'
  ).join("")+'</section>';
- }).join("");
+ }).join("")||(tab==="week"?'<p class="gm-note">按预计库存，本周没有必须补购的食材。</p>':"");
+ if(tab==="week"){const enough=allItems.filter(x=>!needsBuying(s,x));if(enough.length)$("gmList").innerHTML+='<details class="gm-group"><summary>预计库存足够（'+enough.length+'项）</summary>'+enough.map(x=>'<div class="gm-item"><div class="gm-info"><b>'+esc(x.name)+'</b><small>预计本周仍有库存</small></div><button class="gm-change" data-edit="'+esc(x.id)+'">替换</button></div>').join("")+'</details>';}
  $("gmAiBox").hidden=tab!=="week"||!r;
  $("gmSaved").textContent=r?(sameRecord(s)?"已记录 "+r.date+"，"+r.foods.length+" 种食材":"清单有变化，请更新采购记录"):"";
  $("gmAiText").textContent=aiError||r?.recipe||"完成采购后，根据买到的食材生成简单健身菜谱。";
@@ -72,9 +90,9 @@ function updatePreset(){
 }
 function editor(id){
  editId=id||"new";
- const s=load(),item=items(s).find(x=>x.id===id),category=item?.group||(tab==="pantry"?"常备储存":"蔬菜");
+ const s=load(),item=allGroceries(s).find(x=>x.id===id),category=item?.group||(tab==="pantry"?"常备储存":"蔬菜");
  $("gmEditorTitle").textContent=item?"替换或修改食材":"新增食材";
- $("gmCategory").innerHTML=groups().map(x=>'<option>'+esc(x)+'</option>').join("");
+ $("gmCategory").innerHTML=(category==="常备储存"?["常备储存"]:["肉鱼蛋奶豆","蔬菜","水果薯类"]).map(x=>'<option>'+esc(x)+'</option>').join("");
  $("gmCategory").value=category;populate(item?.name||"",category);
  $("gmCustom").value=item?.name&&!C.list[item.name]?item.name:"";
  $("gmWeight").value=item?.amount||"";$("gmCount").value=item?.pieces||"";$("gmLife").value=item?.life||"";
@@ -85,15 +103,15 @@ function applyEdit(){
  const name=($("gmOption").value||$("gmCustom").value).trim();
  const amount=$("gmWeight").value.trim(),pieces=$("gmCount").value.trim(),life=$("gmLife").value.trim(),group=$("gmCategory").value;
  if(!name||!amount||!pieces||!life){alert("请填写名称、购买量、个数和保存期限");return;}
- const s=load(),arr=items(s),item=arr.find(x=>x.id===editId);
+ const s=load(),item=allGroceries(s).find(x=>x.id===editId),arr=item?(s.pantry.includes(item)?s.pantry:s.week):(group==="常备储存"?s.pantry:s.week);
  if(item)Object.assign(item,{name,amount,pieces,life,group,checked:item.name===name&&item.checked});
  else arr.push({id:"ing_"+uid(),name,amount,pieces,life,group,checked:false});
  store(s);$("groceryEditor").classList.remove("open");
 }
 function deleteEdit(){
  const s=load();
- if(tab==="pantry")s.pantry=s.pantry.filter(x=>x.id!==editId);
- else s.week=s.week.filter(x=>x.id!==editId);
+ s.pantry=s.pantry.filter(x=>x.id!==editId);
+ s.week=s.week.filter(x=>x.id!==editId);
  store(s);$("groceryEditor").classList.remove("open");
 }
 function finish(){
@@ -173,7 +191,7 @@ function setup(){
  sheet.innerHTML='<div class="simple-sheet-inner"><div class="simple-sheet-head"><h2>食材采购</h2><button id="gmClose">关闭</button></div>'+
  '<div class="gm-tabs"><button id="gmTabweek">本周</button><button id="gmTabpantry">长期储备</button><button id="gmTabhistory">采购历史</button></div>'+
  '<div id="gmCurrent"><div class="gm-bar"><b id="gmTitle"></b><small id="gmProgress"></small></div>'+
- '<p class="gm-note">数量是估算；冷藏按4℃以下、冷冻按-18℃计算，实际以包装和新鲜程度为准。</p><div id="gmList"></div>'+
+ '<p class="gm-note">按购买记录估算补货周期：新鲜食材每周买、可冷冻食材约两周一买。实际库存以家里为准。</p><div id="gmList"></div>'+
  '<button type="button" class="simple-btn" id="gmAdd">＋ 添加食材</button>'+
  '<button type="button" class="simple-btn" id="gmReset">↻ 恢复默认食材</button>'+
  '<div class="gm-actions"><button class="simple-btn primary" id="gmFinish">完成采购并记录</button><button class="simple-btn" id="gmNewWeek">开始新一周</button></div>'+
@@ -195,7 +213,7 @@ function setup(){
  $("gmClose").onclick=()=>sheet.classList.remove("open");
  for(const t of ["week","pantry","history"])$("gmTab"+t).onclick=()=>{tab=t;paint();sheet.scrollTop=0;};
  $("gmList").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)editor(b.dataset.edit);};
- $("gmList").onchange=e=>{const b=e.target.closest("[data-check]");if(!b)return;const s=load(),x=items(s).find(x=>x.id===b.dataset.check);if(x){x.checked=b.checked;store(s);}};
+ $("gmList").onchange=e=>{const b=e.target.closest("[data-check]");if(!b)return;const s=load(),x=allGroceries(s).find(x=>x.id===b.dataset.check);if(x){x.checked=b.checked;store(s);}};
  $("gmReset").onclick=resetGroceries;
  $("gmAdd").onclick=()=>editor("");$("gmFinish").onclick=finish;$("gmNewWeek").onclick=newWeek;$("gmAiButton").onclick=recommend;
  $("gmHistory").onclick=e=>{const b=e.target.closest("[data-history]");if(b){historyId=b.dataset.history;paint();}};
