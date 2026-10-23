@@ -79,7 +79,7 @@ function paint(){
     '<input aria-label="已买 '+esc(x.name)+'" type="checkbox" data-check="'+esc(x.id)+'" '+(x.checked?'checked':'')+'>'+
     '<div class="gm-info"><div class="gm-food-head"><b>'+esc(x.name)+'</b>'+
       (bulk?'<span class="gm-bulk">买 2 周量</span>':'')+'</div>'+
-    '<div class="gm-buy"><strong>'+esc(primary)+'</strong><span>≈ '+esc(pieces)+'</span></div>'+
+    '<div class="gm-buy"><strong>'+esc(primary)+'</strong><span>'+esc(pieces)+'</span></div>'+
     '<div class="gm-storage"><span class="gm-storage-place">'+esc(advice.place)+'</span>'+
       '<span class="gm-storage-method">'+esc(advice.method)+'</span>'+
       '<small>保存期限：'+esc(advice.expiry)+'</small></div></div>'+
