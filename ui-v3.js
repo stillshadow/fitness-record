@@ -421,29 +421,6 @@
     return {key,url,model:cfg.model||"deepseek-chat"};
   }
 
-  // 采购清单复用当前 App 的 DeepSeek 配置；仅由用户点击时发起请求。
-  window.fitnessDietAIAsk=async function(prompt){
-    const cfg=findConfig();
-    if(!cfg.key)throw new Error("请先在 App 设置里配置 DeepSeek API Key");
-    const response=await fetch(cfg.url,{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.key},
-      body:JSON.stringify({
-        model:cfg.model,
-        messages:[
-          {role:"system",content:"你是谨慎实用的健身料理助手。仅将用户确认购买的食材视为已有，菜谱简短，注意食物冷藏与彻底加热。"},
-          {role:"user",content:String(prompt||"")}
-        ],
-        temperature:0.45,max_tokens:1400
-      })
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(data?.error?.message||"DeepSeek 请求失败（HTTP "+response.status+"）");
-    const answer=data?.choices?.[0]?.message?.content;
-    if(typeof answer!=="string"||!answer.trim())throw new Error("AI 没有返回有效菜谱");
-    return answer.trim();
-  };
-
   async function evaluateDiet(){
     const btn=$("simpleAiAssessBtn"),box=$("simpleAiAssessment"),db=getDB(),day=ensureDay(db),t=dayTotals(day),targets=getTargets(db);
     if(!(day.foods||[]).length){box.textContent="先记录今天吃了什么，再进行整体评估。";return}
