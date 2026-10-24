@@ -1,7 +1,7 @@
-const CACHE="chibianying-diet-memo-diet-v2-20261023a";
+const CACHE="chibianying-diet-no-groceries-20261024";
 const ASSETS=[
   "./","index.html","manifest.json","deepseek-config.js","app-config.js",
-  "food-system.js","ai-system.js","ui-v3.js","grocery-catalog.js","grocery-manager.js","ui-keyboard.js","ui-v2.css",
+  "food-system.js","ai-system.js","ui-v3.js","ui-keyboard.js","ui-v2.css",
   "update.html","icon-192.png","icon-512.png"
 ];
 self.addEventListener("install",event=>{
